@@ -64,6 +64,24 @@ export async function fetchUserStats(userId: string) {
   };
 
   try {
+    // First, get the artist record for this user
+    const { data: artistData, error: artistError } = await supabase
+      .from('artists')
+      .select('total_earnings, available_balance')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (artistError) {
+      console.error("Error fetching artist data:", artistError);
+      return defaultStats;
+    }
+
+    // If no artist record found, return default stats
+    if (!artistData) {
+      console.log("No artist record found for userId:", userId);
+      return defaultStats;
+    }
+
     // Get all releases count
     const { count: totalReleases, error: releasesError } = await supabase
       .from('releases')
@@ -72,7 +90,7 @@ export async function fetchUserStats(userId: string) {
 
     if (releasesError) {
       console.error("Error fetching release counts:", releasesError);
-      return defaultStats;
+      return { ...defaultStats, totalEarnings: artistData.total_earnings || 0 };
     }
 
     // Get approved releases count
@@ -84,26 +102,21 @@ export async function fetchUserStats(userId: string) {
 
     if (activeError) {
       console.error("Error fetching active release counts:", activeError);
-      return { ...defaultStats, totalReleases };
-    }
-
-    // Get total earnings
-    const { data: earningsData, error: earningsError } = await supabase
-      .from('earnings')
-      .select('amount')
-      .eq('artist_id', userId);
-
-    if (earningsError) {
-      console.error("Error fetching earnings:", earningsError);
       return { 
+        ...defaultStats, 
         totalReleases: totalReleases || 0,
-        activeReleases: activeReleases || 0,
-        totalPlays: 0,
-        totalEarnings: 0
+        totalEarnings: artistData.total_earnings || 0
       };
     }
 
-    const totalEarnings = earningsData.reduce((sum, earning) => sum + Number(earning.amount), 0);
+    // Use the total_earnings directly from the artist record
+    const totalEarnings = artistData.total_earnings || 0;
+
+    console.log("Fetched artist stats:", {
+      totalReleases,
+      activeReleases,
+      totalEarnings
+    });
 
     return {
       totalReleases: totalReleases || 0,
