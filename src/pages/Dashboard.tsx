@@ -15,74 +15,67 @@ import Footer from '../components/Footer';
 import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
 import AnimatedCard from '../components/AnimatedCard';
-
-// Mock data with proper type for status
-const mockRecentReleases = [
-  {
-    id: '1',
-    title: 'Summer Feelings',
-    artist: 'John Artist',
-    coverArt: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'approved' as 'approved',
-    releaseDate: '2023-06-15',
-    streamingLinks: [
-      { platform: 'Spotify', url: '#' },
-      { platform: 'Apple Music', url: '#' },
-      { platform: 'Audiomack', url: '#' }
-    ]
-  },
-  {
-    id: '2',
-    title: 'Midnight Thoughts',
-    artist: 'Sarah Singer',
-    coverArt: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'pending' as 'pending',
-  },
-  {
-    id: '3',
-    title: 'Lost in Time',
-    artist: 'The Weekenders',
-    coverArt: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'processing' as 'processing',
-  },
-  {
-    id: '4',
-    title: 'City Lights',
-    artist: 'Electro Dreams',
-    coverArt: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'approved' as 'approved',
-    releaseDate: '2023-05-22',
-    streamingLinks: [
-      { platform: 'Spotify', url: '#' },
-      { platform: 'Apple Music', url: '#' }
-    ]
-  }
-];
+import { supabase } from '../integrations/supabase/client';
+import { Release, fetchUserReleases, fetchUserStats } from '../services/releaseService';
 
 const Dashboard = () => {
   const [loading, setLoading] = useState(true);
+  const [releases, setReleases] = useState<Release[]>([]);
   const [stats, setStats] = useState({
     totalReleases: 0,
     activeReleases: 0,
     totalPlays: 0,
     totalEarnings: 0
   });
+  const [userProfile, setUserProfile] = useState<{ name: string } | null>(null);
 
   useEffect(() => {
-    // Simulate API call
     const fetchData = async () => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      setStats({
-        totalReleases: 12,
-        activeReleases: 8,
-        totalPlays: 45892,
-        totalEarnings: 1247.65
-      });
-      setLoading(false);
+      try {
+        setLoading(true);
+        
+        // Get current user
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session?.user) {
+          console.log("No user logged in");
+          setLoading(false);
+          return;
+        }
+
+        const userId = session.user.id;
+        
+        // Get user's profile information
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', userId)
+          .maybeSingle();
+
+        if (profileData) {
+          setUserProfile({ name: profileData.full_name });
+        }
+
+        // Get releases
+        const userReleases = await fetchUserReleases(userId);
+        setReleases(userReleases);
+
+        // Get stats
+        const userStats = await fetchUserStats(userId);
+        setStats(userStats);
+
+      } catch (error) {
+        console.error("Error loading dashboard data:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchData();
   }, []);
+
+  // Only show at most 4 releases on the dashboard
+  const displayedReleases = releases.slice(0, 4);
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -94,7 +87,7 @@ const Dashboard = () => {
           <div className="container mx-auto px-4 py-8 md:py-12">
             <AnimatedCard className="flex flex-col md:flex-row items-center justify-between gap-6">
               <div>
-                <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900">Welcome, Artist</h1>
+                <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900">Welcome, {userProfile?.name || 'Artist'}</h1>
                 <p className="mt-2 text-slate-600">Manage your music and track your growth.</p>
               </div>
               <Link to="/new-release" className="btn-primary">
@@ -131,11 +124,32 @@ const Dashboard = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {mockRecentReleases.map((release, index) => (
-              <AnimatedCard key={release.id} delay={150 + index * 50}>
-                <ReleaseCard {...release} />
-              </AnimatedCard>
-            ))}
+            {loading ? (
+              Array(4).fill(0).map((_, index) => (
+                <AnimatedCard key={`skeleton-${index}`} delay={150 + index * 50}>
+                  <div className="glass-card">
+                    <div className="aspect-square bg-slate-200 animate-pulse" />
+                    <div className="p-4">
+                      <div className="h-5 bg-slate-200 animate-pulse rounded-md mb-2" />
+                      <div className="h-4 bg-slate-200 animate-pulse rounded-md w-3/4" />
+                    </div>
+                  </div>
+                </AnimatedCard>
+              ))
+            ) : displayedReleases.length > 0 ? (
+              displayedReleases.map((release, index) => (
+                <AnimatedCard key={release.id} delay={150 + index * 50}>
+                  <ReleaseCard {...release} />
+                </AnimatedCard>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10">
+                <p className="text-slate-600">You don't have any releases yet.</p>
+                <Link to="/new-release" className="mt-4 inline-block text-blue-600 hover:text-blue-700 font-medium">
+                  Create your first release
+                </Link>
+              </div>
+            )}
           </div>
         </section>
         
