@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -10,11 +9,14 @@ import {
   Music, 
   Info,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  DollarSign
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
+import { supabase } from '../integrations/supabase/client';
+import { useToast } from '../hooks/use-toast';
 
 // Mock platforms data
 const distributionPlatforms = [
@@ -33,6 +35,8 @@ const genres = [
 ];
 
 const ReleaseForm = () => {
+  const { toast } = useToast();
+  
   // Form state
   const [formState, setFormState] = useState({
     title: '',
@@ -154,12 +158,91 @@ const ReleaseForm = () => {
     setCurrentStep(prev => prev - 1);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // In a real app, this would submit to the server
-    console.log('Form submitted with:', { formState, coverArt, audioFiles, audioTitles });
-    // Navigate to success or review page
-    nextStep();
+    try {
+      // Check if user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please login to submit a release",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Upload cover art
+      let coverArtUrl = null;
+      if (coverArt) {
+        const coverArtFileName = `${Date.now()}_${coverArt.name}`;
+        const { data: coverUploadData, error: coverUploadError } = await supabase.storage
+          .from('release_artwork')
+          .upload(coverArtFileName, coverArt);
+          
+        if (coverUploadError) {
+          throw coverUploadError;
+        }
+        
+        coverArtUrl = coverUploadData.path;
+      }
+      
+      // Upload audio files and store their URLs
+      let audioFilesUrls = [];
+      for (const audioFile of audioFiles) {
+        const audioFileName = `${Date.now()}_${audioFile.name}`;
+        const { data: audioUploadData, error: audioUploadError } = await supabase.storage
+          .from('audio_files')
+          .upload(audioFileName, audioFile);
+          
+        if (audioUploadError) {
+          throw audioUploadError;
+        }
+        
+        audioFilesUrls.push(audioUploadData.path);
+      }
+      
+      // Insert release record
+      const { data: releaseData, error: releaseError } = await supabase
+        .from('releases')
+        .insert({
+          title: formState.title,
+          artist_id: session.user.id, // Associate with the current user
+          release_date: formState.releaseDate,
+          status: 'Pending',
+          cover_art_url: coverArtUrl,
+          platforms: formState.platforms,
+          audio_file_url: audioFilesUrls[0], // Just storing the first audio file for now
+          // Add other metadata
+          upc: formState.upc || null,
+          // Other fields as needed
+        })
+        .select()
+        .single();
+        
+      if (releaseError) {
+        throw releaseError;
+      }
+      
+      toast({
+        title: "Release submitted",
+        description: "Your release has been submitted for review",
+        variant: "default"
+      });
+      
+      // Navigate to success step
+      nextStep();
+      
+    } catch (error) {
+      console.error('Error submitting release:', error);
+      toast({
+        title: "Submission failed",
+        description: "An error occurred while submitting your release",
+        variant: "destructive"
+      });
+    }
   };
 
   // Render form step content
@@ -454,7 +537,39 @@ const ReleaseForm = () => {
       case 3:
         return (
           <div className="animate-fade-in">
-            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-6">Additional Details</h2>
+            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-6">Additional Details & Payment</h2>
+            
+            {/* Payment Information */}
+            <div className="glass-panel p-6 mb-8 bg-green-50 border-green-200">
+              <div className="flex items-start gap-3">
+                <DollarSign className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-green-800 font-medium">Payment Instructions</h3>
+                  <p className="text-sm text-green-700 mt-1">
+                    Please make a payment via bank transfer to the following account:
+                  </p>
+                  <div className="mt-3 p-4 bg-white rounded-md border border-green-200">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <span className="font-semibold">Account Name:</span> 
+                        <span className="ml-2">ABDULKADIR IBRAHIM OLUWASHINA</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">Account Number:</span> 
+                        <span className="ml-2">8168940582</span>
+                      </div>
+                      <div>
+                        <span className="font-semibold">Bank:</span> 
+                        <span className="ml-2">OPAY DIGITAL BANK</span>
+                      </div>
+                    </div>
+                    <p className="mt-3 text-xs text-green-700">
+                      Please include your artist name as reference when making the payment. Your submission will be processed after payment confirmation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
             
             <div className="glass-panel p-6 mb-8">
               <div className="flex items-start gap-3">
@@ -624,6 +739,32 @@ const ReleaseForm = () => {
               We'll review your submission and get back to you soon. You can check the status in your dashboard.
             </p>
             
+            <div className="glass-panel p-6 mb-8 max-w-lg mx-auto">
+              <h3 className="text-xl font-semibold text-slate-900 mb-3">Payment Instructions</h3>
+              <p className="text-slate-600 mb-4">
+                Please make your payment to complete your release submission:
+              </p>
+              <div className="bg-slate-50 p-4 rounded-md border border-slate-200 text-left">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="font-semibold">Account Name:</span> 
+                    <span className="ml-2 text-slate-700">ABDULKADIR IBRAHIM OLUWASHINA</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Account Number:</span> 
+                    <span className="ml-2 text-slate-700">8168940582</span>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Bank:</span> 
+                    <span className="ml-2 text-slate-700">OPAY DIGITAL BANK</span>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-slate-500 mt-4">
+                Include your artist name in the payment reference to help us match your payment to your submission.
+              </p>
+            </div>
+            
             <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
               <Link to="/dashboard" className="btn-primary px-8">
                 Return to Dashboard
@@ -669,7 +810,7 @@ const ReleaseForm = () => {
                           {step}
                         </div>
                         <span className="text-xs text-slate-600 mt-2">
-                          {step === 1 ? 'Information' : step === 2 ? 'Files' : 'Details'}
+                          {step === 1 ? 'Information' : step === 2 ? 'Files' : 'Details & Payment'}
                         </span>
                       </div>
                     ))}
