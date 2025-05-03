@@ -162,7 +162,7 @@ export async function submitRelease(releaseData: any, userId: string, coverArt: 
     }
     
     // Insert release record
-    const { data: releaseData: insertedRelease, error: releaseError } = await supabase
+    const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
         title: releaseData.title,
