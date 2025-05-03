@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
   Upload, 
   X, 
@@ -17,6 +17,7 @@ import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { submitRelease } from '../services/releaseService';
 
 // Mock platforms data
 const distributionPlatforms = [
@@ -36,6 +37,7 @@ const genres = [
 
 const ReleaseForm = () => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   // Form state
   const [formState, setFormState] = useState({
@@ -61,10 +63,28 @@ const ReleaseForm = () => {
   const [audioFiles, setAudioFiles] = useState<File[]>([]);
   const [audioTitles, setAudioTitles] = useState<string[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Refs for file inputs
   const coverArtInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Check authentication on component mount
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Authentication required",
+          description: "Please log in to submit releases",
+          variant: "destructive"
+        });
+        navigate('/auth');
+      }
+    };
+    
+    checkAuth();
+  }, [navigate, toast]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -160,7 +180,8 @@ const ReleaseForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would submit to the server
+    setIsSubmitting(true);
+    
     try {
       // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
@@ -171,70 +192,27 @@ const ReleaseForm = () => {
           description: "Please login to submit a release",
           variant: "destructive"
         });
+        navigate('/auth');
         return;
       }
       
-      // Upload cover art
-      let coverArtUrl = null;
-      if (coverArt) {
-        const coverArtFileName = `${Date.now()}_${coverArt.name}`;
-        const { data: coverUploadData, error: coverUploadError } = await supabase.storage
-          .from('release_artwork')
-          .upload(coverArtFileName, coverArt);
-          
-        if (coverUploadError) {
-          throw coverUploadError;
-        }
+      const userId = session.user.id;
+      
+      // Submit the release
+      const result = await submitRelease(formState, userId, coverArt, audioFiles);
+      
+      if (result.success) {
+        toast({
+          title: "Release submitted",
+          description: "Your release has been submitted for review",
+          variant: "default"
+        });
         
-        coverArtUrl = coverUploadData.path;
+        // Navigate to success step
+        nextStep();
+      } else {
+        throw new Error("Failed to submit release");
       }
-      
-      // Upload audio files and store their URLs
-      let audioFilesUrls = [];
-      for (const audioFile of audioFiles) {
-        const audioFileName = `${Date.now()}_${audioFile.name}`;
-        const { data: audioUploadData, error: audioUploadError } = await supabase.storage
-          .from('audio_files')
-          .upload(audioFileName, audioFile);
-          
-        if (audioUploadError) {
-          throw audioUploadError;
-        }
-        
-        audioFilesUrls.push(audioUploadData.path);
-      }
-      
-      // Insert release record
-      const { data: releaseData, error: releaseError } = await supabase
-        .from('releases')
-        .insert({
-          title: formState.title,
-          artist_id: session.user.id, // Associate with the current user
-          release_date: formState.releaseDate,
-          status: 'Pending',
-          cover_art_url: coverArtUrl,
-          platforms: formState.platforms,
-          audio_file_url: audioFilesUrls[0], // Just storing the first audio file for now
-          // Add other metadata
-          upc: formState.upc || null,
-          // Other fields as needed
-        })
-        .select()
-        .single();
-        
-      if (releaseError) {
-        throw releaseError;
-      }
-      
-      toast({
-        title: "Release submitted",
-        description: "Your release has been submitted for review",
-        variant: "default"
-      });
-      
-      // Navigate to success step
-      nextStep();
-      
     } catch (error) {
       console.error('Error submitting release:', error);
       toast({
@@ -242,6 +220,8 @@ const ReleaseForm = () => {
         description: "An error occurred while submitting your release",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -714,11 +694,20 @@ const ReleaseForm = () => {
               
               <button
                 type="submit"
-                onClick={handleSubmit}
+                disabled={isSubmitting}
                 className="btn-primary flex items-center gap-2"
               >
-                Submit Release
-                <Check className="w-4 h-4" />
+                {isSubmitting ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    Submitting...
+                  </>
+                ) : (
+                  <>
+                    Submit Release
+                    <Check className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </div>
           </div>

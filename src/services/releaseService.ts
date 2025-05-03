@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import type { Database } from "../integrations/supabase/types";
 
@@ -115,6 +114,80 @@ export async function fetchUserStats(userId: string) {
   } catch (error) {
     console.error("Unexpected error in fetchUserStats:", error);
     return defaultStats;
+  }
+}
+
+export async function submitRelease(releaseData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
+  try {
+    // Upload cover art if provided
+    let coverArtUrl = null;
+    if (coverArt) {
+      const coverArtFileName = `${Date.now()}_${coverArt.name}`;
+      const { data: coverUploadData, error: coverUploadError } = await supabase.storage
+        .from('release_artwork')
+        .upload(coverArtFileName, coverArt);
+        
+      if (coverUploadError) {
+        console.error("Error uploading cover art:", coverUploadError);
+        throw coverUploadError;
+      }
+      
+      // Get public URL for the uploaded cover art
+      const { data: publicUrlData } = supabase.storage
+        .from('release_artwork')
+        .getPublicUrl(coverArtFileName);
+      
+      coverArtUrl = publicUrlData?.publicUrl;
+    }
+    
+    // Upload audio files and store their URLs
+    let audioFilesUrls = [];
+    for (const audioFile of audioFiles) {
+      const audioFileName = `${Date.now()}_${audioFile.name}`;
+      const { data: audioUploadData, error: audioUploadError } = await supabase.storage
+        .from('audio_files')
+        .upload(audioFileName, audioFile);
+        
+      if (audioUploadError) {
+        console.error("Error uploading audio file:", audioUploadError);
+        throw audioUploadError;
+      }
+      
+      // Get public URL for the uploaded audio file
+      const { data: audioUrlData } = supabase.storage
+        .from('audio_files')
+        .getPublicUrl(audioFileName);
+      
+      audioFilesUrls.push(audioUrlData?.publicUrl);
+    }
+    
+    // Insert release record
+    const { data: releaseData: insertedRelease, error: releaseError } = await supabase
+      .from('releases')
+      .insert({
+        title: releaseData.title,
+        artist_id: userId,
+        release_date: releaseData.releaseDate,
+        status: 'Pending',
+        cover_art_url: coverArtUrl,
+        platforms: releaseData.platforms,
+        audio_file_url: audioFilesUrls[0] || null, // Store the first audio URL
+        upc: releaseData.upc || null,
+        // Other relevant fields
+      })
+      .select()
+      .single();
+      
+    if (releaseError) {
+      console.error("Error inserting release:", releaseError);
+      throw releaseError;
+    }
+    
+    return { success: true, data: insertedRelease };
+      
+  } catch (error) {
+    console.error('Error submitting release:', error);
+    return { success: false, error };
   }
 }
 
