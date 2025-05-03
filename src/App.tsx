@@ -13,6 +13,8 @@ import Auth from "./pages/Auth";
 import About from "./pages/About";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
+import Analytics from "./pages/Analytics";
+import Earnings from "./pages/Earnings";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 
@@ -140,6 +142,22 @@ const App = () => {
               element={
                 <ProtectedRoute>
                   <ReleaseForm />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/analytics" 
+              element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/earnings" 
+              element={
+                <ProtectedRoute>
+                  <Earnings />
                 </ProtectedRoute>
               } 
             />
