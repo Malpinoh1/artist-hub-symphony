@@ -16,6 +16,8 @@ import Contact from "./pages/Contact";
 import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 
+const queryClient = new QueryClient();
+
 // Create a custom ProtectedRoute component for admin routes
 const AdminRoute = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -73,8 +75,6 @@ const ProtectedRoute = ({ children }) => {
 
   return isAuthenticated ? children : <Navigate to="/auth" replace />;
 };
-
-const queryClient = new QueryClient();
 
 const App = () => {
   // Add scroll animation observer
