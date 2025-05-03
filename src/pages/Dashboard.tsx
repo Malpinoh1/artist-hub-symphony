@@ -16,14 +16,14 @@ import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
 import AnimatedCard from '../components/AnimatedCard';
 
-// Mock data
+// Mock data with proper type for status
 const mockRecentReleases = [
   {
     id: '1',
     title: 'Summer Feelings',
     artist: 'John Artist',
     coverArt: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'approved',
+    status: 'approved' as 'approved',
     releaseDate: '2023-06-15',
     streamingLinks: [
       { platform: 'Spotify', url: '#' },
@@ -36,21 +36,21 @@ const mockRecentReleases = [
     title: 'Midnight Thoughts',
     artist: 'Sarah Singer',
     coverArt: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'pending',
+    status: 'pending' as 'pending',
   },
   {
     id: '3',
     title: 'Lost in Time',
     artist: 'The Weekenders',
     coverArt: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'processing',
+    status: 'processing' as 'processing',
   },
   {
     id: '4',
     title: 'City Lights',
     artist: 'Electro Dreams',
     coverArt: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-    status: 'approved',
+    status: 'approved' as 'approved',
     releaseDate: '2023-05-22',
     streamingLinks: [
       { platform: 'Spotify', url: '#' },
