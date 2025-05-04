@@ -52,7 +52,7 @@ const EarningsTable: React.FC<EarningsTableProps> = ({ earnings }) => {
                 {earning.source || 'Platform Earnings'}
               </TableCell>
               <TableCell className="whitespace-nowrap font-medium">
-                ₦{earning.amount.toLocaleString()}
+                ${earning.amount.toLocaleString()}
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 <StatusBadge status={earning.status} />

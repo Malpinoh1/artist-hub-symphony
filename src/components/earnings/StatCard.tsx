@@ -10,6 +10,7 @@ interface StatCardProps {
   iconBgColor: string;
   iconTextColor: string;
   delay?: number;
+  currencySymbol?: string;
 }
 
 const StatCard: React.FC<StatCardProps> = ({ 
@@ -19,7 +20,8 @@ const StatCard: React.FC<StatCardProps> = ({
   description, 
   iconBgColor, 
   iconTextColor,
-  delay = 0 
+  delay = 0,
+  currencySymbol = '₦'
 }) => {
   return (
     <AnimatedCard delay={delay}>
@@ -31,7 +33,7 @@ const StatCard: React.FC<StatCardProps> = ({
           <div>
             <h2 className="text-sm font-medium text-slate-500">{title}</h2>
             <p className="text-2xl font-semibold">
-              {typeof value === 'number' ? `₦${value.toLocaleString()}` : value}
+              {typeof value === 'number' ? `${currencySymbol}${value.toLocaleString()}` : value}
             </p>
           </div>
         </div>
