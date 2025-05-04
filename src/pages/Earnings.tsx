@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DollarSign, ArrowUpRight, Download, Calendar, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -7,7 +6,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import WithdrawalForm from '../components/WithdrawalForm';
 
-// Define interfaces for type safety
+// Define interfaces for type safety with simplified structure
 interface EarningData {
   id: string;
   amount: number;
@@ -123,6 +122,7 @@ const Earnings = () => {
     window.location.reload();
   };
 
+  // Extracted the status badge function to avoid any recursive type issues
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'COMPLETED':
