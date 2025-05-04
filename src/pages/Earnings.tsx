@@ -1,43 +1,29 @@
 
 import React, { useState, useEffect } from 'react';
-import { BarChart3, Download, ChevronDown } from 'lucide-react';
+import { DollarSign, ArrowUpRight, Download, Calendar, FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
-
-// Define proper types to match our backend schema
-type Transaction = {
-  id: string;
-  date: string;
-  source: string;
-  amount: number;
-  status: "Pending" | "Processed" | "Failed"; // Fixed to match expected enum
-};
-
-type Withdrawal = {
-  id: string;
-  date: string;
-  amount: number;
-  status: "Pending" | "Processed" | "Failed"; // Fixed to match expected enum
-};
+import WithdrawalForm from '../components/WithdrawalForm';
 
 const Earnings = () => {
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [artistId, setArtistId] = useState<string | null>(null);
+  const [earnings, setEarnings] = useState<any[]>([]);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalEarnings: 0,
-    availableBalance: 0,
-    pendingPayouts: 0,
-    completedPayouts: 0
+    pendingEarnings: 0,
+    availableBalance: 0
   });
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
 
   useEffect(() => {
-    const fetchEarningsData = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+
       try {
-        setLoading(true);
-        
         // Get current user
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -47,242 +33,306 @@ const Earnings = () => {
           return;
         }
 
-        const userId = session.user.id;
+        const currentUserId = session.user.id;
+        setUserId(currentUserId);
         
-        // Get artist data
+        // Get artist ID
         const { data: artistData } = await supabase
           .from('artists')
-          .select('total_earnings, available_balance')
-          .eq('id', userId)
+          .select('id, available_balance, total_earnings')
+          .eq('user_id', currentUserId)
           .maybeSingle();
-
-        // Fetch earnings for transactions
-        const { data: earningsData } = await supabase
-          .from('earnings')
-          .select('*')
-          .eq('artist_id', userId)
-          .order('date', { ascending: false });
-
-        // Fetch withdrawals
-        const { data: withdrawalsData } = await supabase
-          .from('withdrawals')
-          .select('*')
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-
-        // Calculate stats
-        const totalEarnings = artistData?.total_earnings || 0;
-        const availableBalance = artistData?.available_balance || 0;
-        
-        const pendingPayouts = withdrawalsData
-          ? withdrawalsData.filter(w => w.status === 'PENDING')
-              .reduce((sum, w) => sum + Number(w.amount), 0)
-          : 0;
           
-        const completedPayouts = withdrawalsData
-          ? withdrawalsData.filter(w => w.status === 'PAID')
-              .reduce((sum, w) => sum + Number(w.amount), 0)
-          : 0;
-
-        setStats({
-          totalEarnings,
-          availableBalance,
-          pendingPayouts,
-          completedPayouts
-        });
-
-        // Format transactions with proper types
-        if (earningsData) {
-          const formattedTransactions: Transaction[] = earningsData.map(earning => ({
-            id: earning.id,
-            date: new Date(earning.date).toLocaleDateString(),
-            source: 'Streaming Revenue',
-            amount: Number(earning.amount),
-            status: earning.status === 'Paid' ? 'Processed' : 'Pending' // Map DB status to expected enum
+        if (artistData) {
+          setArtistId(artistData.id);
+          setStats(prevStats => ({
+            ...prevStats,
+            totalEarnings: artistData.total_earnings || 0,
+            availableBalance: artistData.available_balance || 0
           }));
-          setTransactions(formattedTransactions);
+          
+          // Fetch earnings
+          const { data: earningsData, error: earningsError } = await supabase
+            .from('earnings')
+            .select('*')
+            .eq('artist_id', artistData.id)
+            .order('created_at', { ascending: false });
+            
+          if (!earningsError) {
+            setEarnings(earningsData || []);
+            // Calculate pending earnings
+            const pendingAmount = earningsData
+              ?.filter(earning => earning.status === 'Pending')
+              .reduce((sum, earning) => sum + Number(earning.amount), 0) || 0;
+            
+            setStats(prevStats => ({
+              ...prevStats,
+              pendingEarnings: pendingAmount
+            }));
+          }
+          
+          // Fetch withdrawals
+          const { data: withdrawalsData, error: withdrawalsError } = await supabase
+            .from('withdrawals')
+            .select('*')
+            .eq('artist_id', artistData.id)
+            .order('created_at', { ascending: false });
+            
+          if (!withdrawalsError) {
+            setWithdrawals(withdrawalsData || []);
+          }
         }
-
-        // Format withdrawals with proper types
-        if (withdrawalsData) {
-          const formattedWithdrawals: Withdrawal[] = withdrawalsData.map(withdrawal => ({
-            id: withdrawal.id,
-            date: new Date(withdrawal.created_at).toLocaleDateString(),
-            amount: Number(withdrawal.amount),
-            status: withdrawal.status === 'PAID' ? 'Processed' : 
-                   withdrawal.status === 'PENDING' ? 'Pending' : 'Failed'
-          }));
-          setWithdrawals(formattedWithdrawals);
-        }
-
-        setLoading(false);
       } catch (error) {
         console.error("Error loading earnings data:", error);
+      } finally {
         setLoading(false);
       }
     };
 
-    fetchEarningsData();
+    fetchData();
   }, []);
+
+  const handleWithdrawalSuccess = () => {
+    // Refresh data after successful withdrawal request
+    window.location.reload();
+  };
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'COMPLETED':
+      case 'Paid':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+            <CheckCircle className="w-3 h-3 mr-1" />
+            {status}
+          </span>
+        );
+      case 'REJECTED':
+      case 'Rejected':
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+            <XCircle className="w-3 h-3 mr-1" />
+            {status}
+          </span>
+        );
+      case 'PENDING':
+      case 'Pending':
+      default:
+        return (
+          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <Clock className="w-3 h-3 mr-1" />
+            {status}
+          </span>
+        );
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col bg-slate-50">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
-          <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-6">Earnings Dashboard</h1>
-          <p className="text-slate-600 mb-8">Track your revenue and payouts from all sources.</p>
-
-          {/* Earnings stats */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
-            <AnimatedCard delay={100}>
+        <div className="container mx-auto px-4">
+          <h1 className="text-3xl font-display font-semibold text-slate-900 mb-6">Earnings & Payments</h1>
+          <p className="text-slate-600 mb-8">Track your music revenue and manage withdrawals</p>
+          
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+            <AnimatedCard>
               <div className="glass-card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <BarChart3 className="h-5 w-5 text-blue-600" />
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-medium text-slate-500">Total Earnings</h2>
+                    <p className="text-2xl font-semibold">₦{stats.totalEarnings.toLocaleString()}</p>
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-semibold text-slate-900">${stats.totalEarnings.toFixed(2)}</h3>
-                <p className="text-sm text-slate-500 mt-1">Total Earnings</p>
+                <div className="text-xs text-slate-500">Lifetime earnings from all streams</div>
               </div>
             </AnimatedCard>
             
-            <AnimatedCard delay={150}>
+            <AnimatedCard delay={100}>
               <div className="glass-card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                    <Download className="h-5 w-5 text-green-600" />
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mr-3">
+                    <Clock className="h-5 w-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-medium text-slate-500">Pending Earnings</h2>
+                    <p className="text-2xl font-semibold">₦{stats.pendingEarnings.toLocaleString()}</p>
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-semibold text-slate-900">${stats.availableBalance.toFixed(2)}</h3>
-                <p className="text-sm text-slate-500 mt-1">Available Balance</p>
+                <div className="text-xs text-slate-500">Earnings being processed</div>
               </div>
             </AnimatedCard>
             
             <AnimatedCard delay={200}>
               <div className="glass-card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-full bg-yellow-100 flex items-center justify-center">
-                    <ChevronDown className="h-5 w-5 text-yellow-600" />
+                <div className="flex items-center mb-4">
+                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
+                    <ArrowUpRight className="h-5 w-5 text-green-600" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-medium text-slate-500">Available Balance</h2>
+                    <p className="text-2xl font-semibold">₦{stats.availableBalance.toLocaleString()}</p>
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-semibold text-slate-900">${stats.pendingPayouts.toFixed(2)}</h3>
-                <p className="text-sm text-slate-500 mt-1">Pending Payouts</p>
+                <div className="text-xs text-slate-500">Amount available for withdrawal</div>
+              </div>
+            </AnimatedCard>
+          </div>
+          
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            {/* Withdrawal Form */}
+            <AnimatedCard className="lg:col-span-1">
+              {artistId && userId && (
+                <WithdrawalForm 
+                  availableBalance={stats.availableBalance}
+                  userId={userId}
+                  artistId={artistId} 
+                  onSuccess={handleWithdrawalSuccess}
+                />
+              )}
+              
+              <div className="mt-6 glass-panel p-6">
+                <h3 className="text-xl font-semibold mb-4">Payment Information</h3>
+                <p className="text-slate-600 mb-4">
+                  Once your withdrawal request is approved, you'll receive payment to the bank account you provide.
+                  Processing typically takes 1-3 business days.
+                </p>
+                <div className="text-sm text-slate-500 space-y-2">
+                  <div className="flex items-start">
+                    <div className="mr-2">•</div>
+                    <div>Minimum withdrawal amount: ₦5,000</div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="mr-2">•</div>
+                    <div>Bank transfers available to all Nigerian banks</div>
+                  </div>
+                  <div className="flex items-start">
+                    <div className="mr-2">•</div>
+                    <div>International withdrawals require additional verification</div>
+                  </div>
+                </div>
               </div>
             </AnimatedCard>
             
-            <AnimatedCard delay={250}>
-              <div className="glass-card p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center">
-                    <Download className="h-5 w-5 text-purple-600" />
+            {/* Recent Activity */}
+            <AnimatedCard className="lg:col-span-2" delay={100}>
+              <div className="glass-panel p-6 h-full">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-semibold">Recent Activity</h3>
+                  <div className="flex gap-2">
+                    <button className="text-xs p-2 rounded bg-slate-100 hover:bg-slate-200 flex items-center gap-1">
+                      <Download className="w-3 h-3" />
+                      Export
+                    </button>
+                    <button className="text-xs p-2 rounded bg-slate-100 hover:bg-slate-200 flex items-center gap-1">
+                      <Calendar className="w-3 h-3" />
+                      Filter
+                    </button>
                   </div>
                 </div>
-                <h3 className="text-2xl font-display font-semibold text-slate-900">${stats.completedPayouts.toFixed(2)}</h3>
-                <p className="text-sm text-slate-500 mt-1">Completed Payouts</p>
+                
+                <div className="space-y-1 mb-4">
+                  <h4 className="font-medium text-slate-700">Withdrawals</h4>
+                </div>
+                
+                {withdrawals.length > 0 ? (
+                  <div className="overflow-x-auto mb-8">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Date</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Amount</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Account</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {withdrawals.slice(0, 5).map((withdrawal) => (
+                          <tr key={withdrawal.id} className="border-b border-slate-100">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {new Date(withdrawal.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap font-medium">
+                              ₦{withdrawal.amount.toLocaleString()}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {withdrawal.account_name}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {getStatusBadge(withdrawal.status)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="mb-8 text-center py-8 text-slate-500">
+                    No withdrawal requests found
+                  </div>
+                )}
+                
+                <div className="space-y-1 mb-4">
+                  <h4 className="font-medium text-slate-700">Earnings</h4>
+                </div>
+                
+                {earnings.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200">
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Date</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Source</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Amount</th>
+                          <th className="px-2 py-3 text-left font-medium text-slate-500">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {earnings.slice(0, 5).map((earning) => (
+                          <tr key={earning.id} className="border-b border-slate-100">
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {new Date(earning.date).toLocaleDateString()}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {earning.source || 'Platform Earnings'}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap font-medium">
+                              ₦{earning.amount.toLocaleString()}
+                            </td>
+                            <td className="px-2 py-3 whitespace-nowrap">
+                              {getStatusBadge(earning.status)}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-slate-500">
+                    No earnings recorded yet
+                  </div>
+                )}
               </div>
             </AnimatedCard>
           </div>
-
-          {/* Recent Transactions */}
-          <h2 className="text-2xl font-display font-semibold text-slate-900 mb-4">Recent Transactions</h2>
-          <div className="glass-panel overflow-hidden mb-12">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Date</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Source</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Amount</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transactions.length > 0 ? (
-                    transactions.map((transaction) => (
-                      <tr key={transaction.id} className="border-b border-slate-100">
-                        <td className="px-6 py-4 text-slate-700">{transaction.date}</td>
-                        <td className="px-6 py-4 text-slate-700">{transaction.source}</td>
-                        <td className="px-6 py-4 text-slate-700">${transaction.amount.toFixed(2)}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            transaction.status === 'Processed' 
-                              ? 'bg-green-100 text-green-700' 
-                              : transaction.status === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}>
-                            {transaction.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center text-slate-500">
-                        No transactions found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          {/* Withdrawal History */}
-          <h2 className="text-2xl font-display font-semibold text-slate-900 mb-4">Withdrawal History</h2>
-          <div className="glass-panel overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Date</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Amount</th>
-                    <th className="px-6 py-4 text-left text-sm font-medium text-slate-500">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {withdrawals.length > 0 ? (
-                    withdrawals.map((withdrawal) => (
-                      <tr key={withdrawal.id} className="border-b border-slate-100">
-                        <td className="px-6 py-4 text-slate-700">{withdrawal.date}</td>
-                        <td className="px-6 py-4 text-slate-700">${withdrawal.amount.toFixed(2)}</td>
-                        <td className="px-6 py-4">
-                          <span className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
-                            withdrawal.status === 'Processed' 
-                              ? 'bg-green-100 text-green-700' 
-                              : withdrawal.status === 'Pending'
-                                ? 'bg-yellow-100 text-yellow-700'
-                                : 'bg-red-100 text-red-700'
-                          }`}>
-                            {withdrawal.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={3} className="px-6 py-4 text-center text-slate-500">
-                        No withdrawals found
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Withdrawal Form Placeholder */}
-          <div className="mt-12">
-            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-4">Request a Withdrawal</h2>
-            <div className="glass-panel p-6">
-              <p className="text-center text-slate-500 py-8">
-                Withdrawal functionality will be available soon.
-              </p>
-            </div>
-          </div>
-        </section>
+        </div>
       </main>
       
       <Footer />

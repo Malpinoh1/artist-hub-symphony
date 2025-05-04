@@ -10,10 +10,10 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<{ name: string } | null>(null);
   const [platformData, setPlatformData] = useState({
-    spotify: { plays: 1245, growth: 12.5 },
-    appleMusic: { plays: 823, growth: 8.3 },
-    youtubeMusic: { plays: 1652, growth: 15.7 },
-    deezer: { plays: 412, growth: -3.2 }
+    spotify: { plays: 0, growth: 0 },
+    appleMusic: { plays: 0, growth: 0 },
+    youtubeMusic: { plays: 0, growth: 0 },
+    deezer: { plays: 0, growth: 0 }
   });
   
   // Top tracks data (would come from backend in a real app)
@@ -52,8 +52,34 @@ const Analytics = () => {
           setUserProfile({ name: profileData.full_name });
         }
 
-        // Here we would fetch real analytics data
-        // For now we'll use the mock data
+        // Fetch analytics data
+        const { data: analyticsData, error: analyticsError } = await supabase
+          .from('platform_analytics')
+          .select('*')
+          .single();
+          
+        if (analyticsData && !analyticsError) {
+          setPlatformData({
+            spotify: { 
+              plays: analyticsData.spotify_plays || 0, 
+              growth: analyticsData.spotify_growth || 0 
+            },
+            appleMusic: { 
+              plays: analyticsData.apple_music_plays || 0, 
+              growth: analyticsData.apple_music_growth || 0 
+            },
+            youtubeMusic: { 
+              plays: analyticsData.youtube_music_plays || 0, 
+              growth: analyticsData.youtube_music_growth || 0 
+            },
+            deezer: { 
+              plays: analyticsData.deezer_plays || 0, 
+              growth: analyticsData.deezer_growth || 0 
+            }
+          });
+        } else {
+          console.log("Using default analytics data");
+        }
 
         setLoading(false);
       } catch (error) {

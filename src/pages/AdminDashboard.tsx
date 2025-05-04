@@ -13,13 +13,15 @@ import {
   FileText,
   MessageCircle,
   MoreHorizontal,
-  Ban
+  Ban,
+  BarChart3
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -61,6 +63,7 @@ const AdminDashboard = () => {
             processed_at,
             account_name,
             account_number,
+            bank_name,
             artists(id, name, email)
           `)
           .order('created_at', { ascending: false });
@@ -309,6 +312,7 @@ const AdminDashboard = () => {
               <th scope="col" className="px-4 py-3">Artist</th>
               <th scope="col" className="px-4 py-3">Amount</th>
               <th scope="col" className="px-4 py-3">Account Info</th>
+              <th scope="col" className="px-4 py-3">Bank</th>
               <th scope="col" className="px-4 py-3">Status</th>
               <th scope="col" className="px-4 py-3">Date</th>
               <th scope="col" className="px-4 py-3">Actions</th>
@@ -326,6 +330,9 @@ const AdminDashboard = () => {
                 <td className="px-4 py-4">
                   <p className="font-medium">{withdrawal.account_name}</p>
                   <p className="text-xs text-gray-500">{withdrawal.account_number}</p>
+                </td>
+                <td className="px-4 py-4">
+                  {withdrawal.bank_name || "Not specified"}
                 </td>
                 <td className="px-4 py-4">
                   <span className={`px-2 py-1 text-xs font-medium rounded-full ${
@@ -456,6 +463,11 @@ const AdminDashboard = () => {
     );
   };
 
+  // Render analytics editor tab
+  const renderAnalyticsTab = () => {
+    return <AdminAnalyticsEditor />;
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
@@ -557,6 +569,21 @@ const AdminDashboard = () => {
                     </div>
                   </button>
                 </li>
+                <li className="mr-2">
+                  <button
+                    className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                      activeTab === 'analytics' 
+                        ? 'text-blue-600 border-blue-600' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                    }`}
+                    onClick={() => setActiveTab('analytics')}
+                  >
+                    <div className="flex items-center">
+                      <BarChart3 className="w-4 h-4 mr-2" />
+                      Analytics
+                    </div>
+                  </button>
+                </li>
               </ul>
             </div>
             
@@ -565,6 +592,7 @@ const AdminDashboard = () => {
               {activeTab === 'releases' && renderReleasesTab()}
               {activeTab === 'withdrawals' && renderWithdrawalsTab()}
               {activeTab === 'artists' && renderArtistsTab()}
+              {activeTab === 'analytics' && renderAnalyticsTab()}
             </div>
           </AnimatedCard>
         </div>

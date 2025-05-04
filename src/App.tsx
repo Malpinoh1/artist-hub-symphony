@@ -16,6 +16,8 @@ import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import Analytics from "./pages/Analytics";
 import Earnings from "./pages/Earnings";
+import Pricing from "./pages/Pricing";
+import HelpCenter from "./pages/HelpCenter";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -129,6 +131,8 @@ const App = () => {
             <Route path="/about" element={<About />} />
             <Route path="/services" element={<Services />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/help" element={<HelpCenter />} />
             <Route 
               path="/dashboard" 
               element={
