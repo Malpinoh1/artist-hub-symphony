@@ -64,21 +64,15 @@ export async function fetchUserStats(userId: string) {
   };
 
   try {
-    // First, get the artist record for this user
+    // Get artist data first, which includes total earnings
     const { data: artistData, error: artistError } = await supabase
       .from('artists')
-      .select('total_earnings, available_balance')
+      .select('total_earnings')
       .eq('id', userId)
       .maybeSingle();
     
     if (artistError) {
       console.error("Error fetching artist data:", artistError);
-      return defaultStats;
-    }
-
-    // If no artist record found, return default stats
-    if (!artistData) {
-      console.log("No artist record found for userId:", userId);
       return defaultStats;
     }
 
@@ -90,7 +84,10 @@ export async function fetchUserStats(userId: string) {
 
     if (releasesError) {
       console.error("Error fetching release counts:", releasesError);
-      return { ...defaultStats, totalEarnings: artistData.total_earnings || 0 };
+      return { 
+        ...defaultStats, 
+        totalEarnings: artistData?.total_earnings || 0
+      };
     }
 
     // Get approved releases count
@@ -105,24 +102,15 @@ export async function fetchUserStats(userId: string) {
       return { 
         ...defaultStats, 
         totalReleases: totalReleases || 0,
-        totalEarnings: artistData.total_earnings || 0
+        totalEarnings: artistData?.total_earnings || 0
       };
     }
-
-    // Use the total_earnings directly from the artist record
-    const totalEarnings = artistData.total_earnings || 0;
-
-    console.log("Fetched artist stats:", {
-      totalReleases,
-      activeReleases,
-      totalEarnings
-    });
 
     return {
       totalReleases: totalReleases || 0,
       activeReleases: activeReleases || 0,
       totalPlays: 0, // We don't have plays data yet
-      totalEarnings
+      totalEarnings: artistData?.total_earnings || 0
     };
   } catch (error) {
     console.error("Unexpected error in fetchUserStats:", error);
@@ -130,7 +118,7 @@ export async function fetchUserStats(userId: string) {
   }
 }
 
-export async function submitRelease(releaseData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
+export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
   try {
     // Upload cover art if provided
     let coverArtUrl = null;
@@ -174,18 +162,18 @@ export async function submitRelease(releaseData: any, userId: string, coverArt: 
       audioFilesUrls.push(audioUrlData?.publicUrl);
     }
     
-    // Insert release record
+    // Insert release record - fixed the variable naming conflict here
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
-        title: releaseData.title,
+        title: releaseFormData.title,
         artist_id: userId,
-        release_date: releaseData.releaseDate,
+        release_date: releaseFormData.releaseDate,
         status: 'Pending',
         cover_art_url: coverArtUrl,
-        platforms: releaseData.platforms,
+        platforms: releaseFormData.platforms,
         audio_file_url: audioFilesUrls[0] || null, // Store the first audio URL
-        upc: releaseData.upc || null,
+        upc: releaseFormData.upc || null,
         // Other relevant fields
       })
       .select()

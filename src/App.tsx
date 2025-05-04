@@ -1,4 +1,5 @@
 
+import React, { useEffect, useState } from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,7 +16,6 @@ import Services from "./pages/Services";
 import Contact from "./pages/Contact";
 import Analytics from "./pages/Analytics";
 import Earnings from "./pages/Earnings";
-import { useEffect, useState } from "react";
 import { supabase } from "./integrations/supabase/client";
 
 const queryClient = new QueryClient();
