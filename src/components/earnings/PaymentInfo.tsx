@@ -12,11 +12,11 @@ const PaymentInfo: React.FC = () => {
       <div className="text-sm text-slate-500 space-y-2">
         <div className="flex items-start">
           <div className="mr-2">•</div>
-          <div>Minimum withdrawal amount: ₦5,000</div>
+          <div>Minimum withdrawal amount: $50</div>
         </div>
         <div className="flex items-start">
           <div className="mr-2">•</div>
-          <div>Bank transfers available to all Nigerian banks</div>
+          <div>Bank transfers available to all major banks</div>
         </div>
         <div className="flex items-start">
           <div className="mr-2">•</div>

@@ -23,6 +23,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         description="Lifetime earnings from all streams"
         iconBgColor="bg-blue-100"
         iconTextColor="text-blue-600"
+        currencySymbol="$"
       />
       
       <StatCard
@@ -33,6 +34,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         iconBgColor="bg-amber-100"
         iconTextColor="text-amber-600"
         delay={100}
+        currencySymbol="$"
       />
       
       <StatCard
@@ -43,6 +45,7 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         iconBgColor="bg-green-100"
         iconTextColor="text-green-600"
         delay={200}
+        currencySymbol="$"
       />
     </div>
   );

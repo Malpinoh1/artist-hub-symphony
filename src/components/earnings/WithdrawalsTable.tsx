@@ -52,7 +52,7 @@ const WithdrawalsTable: React.FC<WithdrawalsTableProps> = ({ withdrawals }) => {
                 {new Date(withdrawal.created_at).toLocaleDateString()}
               </TableCell>
               <TableCell className="whitespace-nowrap font-medium">
-                ₦{withdrawal.amount.toLocaleString()}
+                ${withdrawal.amount.toLocaleString()}
               </TableCell>
               <TableCell className="whitespace-nowrap">
                 {withdrawal.account_name}

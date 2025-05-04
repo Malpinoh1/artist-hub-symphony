@@ -41,11 +41,13 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
     
     const amount = parseFloat(formData.amount);
     
-    // Check if amount is valid and within available balance
-    if (isNaN(amount) || amount <= 0 || amount > availableBalance) {
+    // Check if amount is valid, meets minimum requirement, and within available balance
+    if (isNaN(amount) || amount < 50 || amount > availableBalance) {
       toast({
         title: 'Invalid amount',
-        description: `Amount must be between 1 and ${availableBalance}`,
+        description: amount < 50 ? 
+          'Minimum withdrawal amount is $50' : 
+          `Amount must be between $50 and $${availableBalance}`,
         variant: 'destructive'
       });
       return;
@@ -100,11 +102,11 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
   return (
     <div className="glass-panel p-6">
       <h3 className="text-xl font-semibold mb-2">Request Withdrawal</h3>
-      <p className="text-slate-500 mb-6">Available Balance: ₦{availableBalance.toLocaleString()}</p>
+      <p className="text-slate-500 mb-6">Available Balance: ${availableBalance.toLocaleString()}</p>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Amount (₦)</label>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
           <input
             type="number"
             name="amount"
@@ -112,7 +114,7 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
             onChange={handleChange}
             className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter amount to withdraw"
-            min="1"
+            min="50"
             max={availableBalance}
           />
         </div>
