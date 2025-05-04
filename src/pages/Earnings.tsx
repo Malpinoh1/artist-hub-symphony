@@ -1,141 +1,172 @@
 
-import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import { supabase } from '../integrations/supabase/client';
-
-// Import refactored components
-import LoadingState from '../components/earnings/LoadingState';
-import StatsCards, { StatsData } from '../components/earnings/StatsCards';
+import { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Bookmark, Calendar, FileText } from 'lucide-react';
+import StatsCards from '../components/earnings/StatsCards';
 import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
-import { EarningData } from '../components/earnings/EarningsTable';
-import { WithdrawalData } from '../components/earnings/WithdrawalsTable';
+import LoadingState from '../components/earnings/LoadingState';
+
+// Define types to avoid circular dependencies
+export interface EarningsSummary {
+  totalEarnings: number;
+  availableBalance: number;
+  pendingEarnings: number;
+  recentEarnings: any[];
+  withdrawals: any[];
+}
 
 const Earnings = () => {
-  const [loading, setLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [artistId, setArtistId] = useState<string | null>(null);
-  const [earnings, setEarnings] = useState<EarningData[]>([]);
-  const [withdrawals, setWithdrawals] = useState<WithdrawalData[]>([]);
-  const [stats, setStats] = useState<StatsData>({
-    totalEarnings: 0,
-    pendingEarnings: 0,
-    availableBalance: 0
-  });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-
-      try {
-        // Get current user
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session?.user) {
-          console.log("No user logged in");
-          setLoading(false);
-          return;
-        }
-
-        const currentUserId = session.user.id;
-        setUserId(currentUserId);
-        
-        // Get artist ID
-        const { data: artistData } = await supabase
-          .from('artists')
-          .select('id, available_balance, total_earnings')
-          .eq('user_id', currentUserId)
-          .maybeSingle();
-          
-        if (artistData) {
-          setArtistId(artistData.id);
-          setStats(prevStats => ({
-            ...prevStats,
-            totalEarnings: artistData.total_earnings || 0,
-            availableBalance: artistData.available_balance || 0
-          }));
-          
-          // Fetch earnings
-          const { data: earningsData, error: earningsError } = await supabase
-            .from('earnings')
-            .select('*')
-            .eq('artist_id', artistData.id)
-            .order('created_at', { ascending: false });
-            
-          if (!earningsError && earningsData) {
-            setEarnings(earningsData);
-            // Calculate pending earnings
-            const pendingAmount = earningsData
-              .filter(earning => earning.status === 'Pending')
-              .reduce((sum, earning) => sum + Number(earning.amount), 0) || 0;
-            
-            setStats(prevStats => ({
-              ...prevStats,
-              pendingEarnings: pendingAmount
-            }));
-          }
-          
-          // Fetch withdrawals
-          const { data: withdrawalsData, error: withdrawalsError } = await supabase
-            .from('withdrawals')
-            .select('*')
-            .eq('artist_id', artistData.id)
-            .order('created_at', { ascending: false });
-            
-          if (!withdrawalsError && withdrawalsData) {
-            setWithdrawals(withdrawalsData);
-          }
-        }
-      } catch (error) {
-        console.error("Error loading earnings data:", error);
-      } finally {
-        setLoading(false);
+  // Mock data for earnings
+  const earningsSummary: EarningsSummary = {
+    totalEarnings: 5280,
+    availableBalance: 3640,
+    pendingEarnings: 1640,
+    recentEarnings: [
+      {
+        id: 'e1',
+        amount: 320,
+        date: '2023-05-01',
+        status: 'completed',
+        source: 'Spotify Streams'
+      },
+      {
+        id: 'e2',
+        amount: 450,
+        date: '2023-05-05',
+        status: 'completed',
+        source: 'Apple Music'
+      },
+      {
+        id: 'e3',
+        amount: 280,
+        date: '2023-05-12',
+        status: 'pending',
+        source: 'Boomplay'
+      },
+      {
+        id: 'e4',
+        amount: 590,
+        date: '2023-05-18',
+        status: 'completed',
+        source: 'YouTube Music'
+      },
+      {
+        id: 'e5',
+        amount: 780,
+        date: '2023-05-25',
+        status: 'pending',
+        source: 'Audiomack'
       }
-    };
-
-    fetchData();
-  }, []);
-
-  const handleWithdrawalSuccess = () => {
-    // Refresh data after successful withdrawal request
-    window.location.reload();
+    ],
+    withdrawals: [
+      {
+        id: 'w1',
+        amount: 1500,
+        date: '2023-04-15',
+        status: 'completed'
+      },
+      {
+        id: 'w2',
+        amount: 2200,
+        date: '2023-03-10',
+        status: 'completed'
+      },
+      {
+        id: 'w3',
+        amount: 1000,
+        date: '2023-05-20',
+        status: 'processing'
+      }
+    ]
   };
 
-  if (loading) {
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+
+  if (isLoading) {
     return <LoadingState />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl font-display font-semibold text-slate-900 mb-6">Earnings & Payments</h1>
-          <p className="text-slate-600 mb-8">Track your music revenue and manage withdrawals</p>
-          
-          {/* Stats Cards */}
-          <StatsCards stats={stats} />
-          
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-            {/* Withdrawal Form */}
-            {artistId && userId && (
-              <WithdrawalPanel
-                availableBalance={stats.availableBalance}
-                userId={userId}
-                artistId={artistId}
-                onSuccess={handleWithdrawalSuccess}
+    <div className="container p-4 mx-auto max-w-7xl">
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold">Earnings & Payments</h1>
+        <p className="text-slate-500">Manage your earnings and payment methods</p>
+      </div>
+
+      <StatsCards 
+        totalEarnings={earningsSummary.totalEarnings} 
+        availableBalance={earningsSummary.availableBalance} 
+        pendingEarnings={earningsSummary.pendingEarnings}
+        currencySymbol="$"
+      />
+
+      <div className="mt-8">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="mb-8">
+            <TabsTrigger value="overview" className="flex items-center gap-2">
+              <FileText className="w-4 h-4" />
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex items-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Activity
+            </TabsTrigger>
+            <TabsTrigger value="withdraw" className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4" />
+              Withdraw
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="overview">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card className="p-6">
+                <h2 className="text-lg font-medium mb-4">Recent Earnings</h2>
+                <ActivityPanel 
+                  recentEarnings={earningsSummary.recentEarnings} 
+                  withdrawals={earningsSummary.withdrawals} 
+                  type="earnings"
+                  currencySymbol="$"
+                />
+              </Card>
+              <Card className="p-6">
+                <h2 className="text-lg font-medium mb-4">Recent Withdrawals</h2>
+                <ActivityPanel 
+                  recentEarnings={earningsSummary.recentEarnings} 
+                  withdrawals={earningsSummary.withdrawals} 
+                  type="withdrawals"
+                  currencySymbol="$"
+                />
+              </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="activity">
+            <Card>
+              <ActivityPanel 
+                recentEarnings={earningsSummary.recentEarnings} 
+                withdrawals={earningsSummary.withdrawals}
+                type="all"
+                currencySymbol="$"
               />
-            )}
-            
-            {/* Recent Activity */}
-            <ActivityPanel earnings={earnings} withdrawals={withdrawals} />
-          </div>
-        </div>
-      </main>
-      
-      <Footer />
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="withdraw">
+            <WithdrawalPanel 
+              availableBalance={earningsSummary.availableBalance} 
+              minWithdrawal={50}
+              currencySymbol="$"
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
     </div>
   );
 };
