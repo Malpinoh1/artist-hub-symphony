@@ -167,6 +167,45 @@ export type Database = {
           },
         ]
       }
+      platform_analytics: {
+        Row: {
+          apple_music_growth: number
+          apple_music_plays: number
+          deezer_growth: number
+          deezer_plays: number
+          id: string
+          last_updated: string
+          spotify_growth: number
+          spotify_plays: number
+          youtube_music_growth: number
+          youtube_music_plays: number
+        }
+        Insert: {
+          apple_music_growth?: number
+          apple_music_plays?: number
+          deezer_growth?: number
+          deezer_plays?: number
+          id?: string
+          last_updated?: string
+          spotify_growth?: number
+          spotify_plays?: number
+          youtube_music_growth?: number
+          youtube_music_plays?: number
+        }
+        Update: {
+          apple_music_growth?: number
+          apple_music_plays?: number
+          deezer_growth?: number
+          deezer_plays?: number
+          id?: string
+          last_updated?: string
+          spotify_growth?: number
+          spotify_plays?: number
+          youtube_music_growth?: number
+          youtube_music_plays?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -274,6 +313,7 @@ export type Database = {
           account_number: string
           amount: number
           artist_id: string
+          bank_name: string | null
           created_at: string
           id: string
           processed_at: string | null
@@ -285,6 +325,7 @@ export type Database = {
           account_number: string
           amount: number
           artist_id: string
+          bank_name?: string | null
           created_at?: string
           id?: string
           processed_at?: string | null
@@ -296,6 +337,7 @@ export type Database = {
           account_number?: string
           amount?: number
           artist_id?: string
+          bank_name?: string | null
           created_at?: string
           id?: string
           processed_at?: string | null

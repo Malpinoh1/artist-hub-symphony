@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BarChart3, TrendingUp, TrendingDown, Play } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -6,10 +5,33 @@ import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 
+// Define interface for platform analytics data
+interface PlatformAnalyticsData {
+  spotify_plays: number;
+  spotify_growth: number;
+  apple_music_plays: number;
+  apple_music_growth: number;
+  youtube_music_plays: number;
+  youtube_music_growth: number;
+  deezer_plays: number;
+  deezer_growth: number;
+}
+
+interface TrackData {
+  title: string;
+  plays: number;
+  growth: number;
+}
+
 const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<{ name: string } | null>(null);
-  const [platformData, setPlatformData] = useState({
+  const [platformData, setPlatformData] = useState<{
+    spotify: { plays: number, growth: number },
+    appleMusic: { plays: number, growth: number },
+    youtubeMusic: { plays: number, growth: number },
+    deezer: { plays: number, growth: number }
+  }>({
     spotify: { plays: 0, growth: 0 },
     appleMusic: { plays: 0, growth: 0 },
     youtubeMusic: { plays: 0, growth: 0 },
@@ -17,7 +39,7 @@ const Analytics = () => {
   });
   
   // Top tracks data (would come from backend in a real app)
-  const [topTracks, setTopTracks] = useState([
+  const [topTracks, setTopTracks] = useState<TrackData[]>([
     { title: 'Summer Nights', plays: 542, growth: 8.3 },
     { title: 'Midnight Drive', plays: 423, growth: 12.7 },
     { title: 'City Lights', plays: 387, growth: -2.1 },
@@ -52,7 +74,7 @@ const Analytics = () => {
           setUserProfile({ name: profileData.full_name });
         }
 
-        // Fetch analytics data
+        // Fetch analytics data from platform_analytics table
         const { data: analyticsData, error: analyticsError } = await supabase
           .from('platform_analytics')
           .select('*')

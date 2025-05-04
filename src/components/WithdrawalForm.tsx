@@ -4,7 +4,14 @@ import { RefreshCw } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 
-const WithdrawalForm = ({ availableBalance, userId, artistId, onSuccess }) => {
+interface WithdrawalFormProps {
+  availableBalance: number;
+  userId: string;
+  artistId: string;
+  onSuccess?: () => void;
+}
+
+const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userId, artistId, onSuccess }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -14,12 +21,12 @@ const WithdrawalForm = ({ availableBalance, userId, artistId, onSuccess }) => {
     bankName: ''
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation

@@ -4,14 +4,32 @@ import { Save, RefreshCw } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 
+// Define the interface for platform analytics data
+interface PlatformAnalyticsData {
+  id?: string;
+  spotify_plays: number;
+  spotify_growth: number;
+  apple_music_plays: number;
+  apple_music_growth: number;
+  youtube_music_plays: number;
+  youtube_music_growth: number;
+  deezer_plays: number;
+  deezer_growth: number;
+  last_updated?: string;
+}
+
 const AdminAnalyticsEditor = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
-  const [analyticsData, setAnalyticsData] = useState({
-    spotify: { plays: 0, growth: 0 },
-    appleMusic: { plays: 0, growth: 0 },
-    youtubeMusic: { plays: 0, growth: 0 },
-    deezer: { plays: 0, growth: 0 }
+  const [analyticsData, setAnalyticsData] = useState<PlatformAnalyticsData>({
+    spotify_plays: 0,
+    spotify_growth: 0,
+    apple_music_plays: 0,
+    apple_music_growth: 0,
+    youtube_music_plays: 0,
+    youtube_music_growth: 0,
+    deezer_plays: 0,
+    deezer_growth: 0
   });
   
   // Fetch current analytics data
@@ -29,22 +47,14 @@ const AdminAnalyticsEditor = () => {
         
         if (data) {
           setAnalyticsData({
-            spotify: { 
-              plays: data.spotify_plays || 0, 
-              growth: data.spotify_growth || 0 
-            },
-            appleMusic: { 
-              plays: data.apple_music_plays || 0, 
-              growth: data.apple_music_growth || 0 
-            },
-            youtubeMusic: { 
-              plays: data.youtube_music_plays || 0, 
-              growth: data.youtube_music_growth || 0 
-            },
-            deezer: { 
-              plays: data.deezer_plays || 0, 
-              growth: data.deezer_growth || 0 
-            }
+            spotify_plays: data.spotify_plays || 0, 
+            spotify_growth: data.spotify_growth || 0,
+            apple_music_plays: data.apple_music_plays || 0, 
+            apple_music_growth: data.apple_music_growth || 0,
+            youtube_music_plays: data.youtube_music_plays || 0, 
+            youtube_music_growth: data.youtube_music_growth || 0,
+            deezer_plays: data.deezer_plays || 0, 
+            deezer_growth: data.deezer_growth || 0 
           });
         }
       } catch (error) {
@@ -60,11 +70,11 @@ const AdminAnalyticsEditor = () => {
     fetchData();
   }, [toast]);
   
-  const handleInputChange = (platform, field, value) => {
+  const handleInputChange = (platform: string, field: string, value: string) => {
     setAnalyticsData(prev => ({
       ...prev,
       [platform]: {
-        ...prev[platform],
+        ...prev[platform as keyof PlatformAnalyticsData] as Record<string, number>,
         [field]: Number(value)
       }
     }));
@@ -74,7 +84,7 @@ const AdminAnalyticsEditor = () => {
     try {
       setLoading(true);
       
-      const updateData = {
+      const updateData: PlatformAnalyticsData = {
         spotify_plays: analyticsData.spotify.plays,
         spotify_growth: analyticsData.spotify.growth,
         apple_music_plays: analyticsData.appleMusic.plays,
@@ -107,115 +117,75 @@ const AdminAnalyticsEditor = () => {
     }
   };
   
+  // Fixed state model for better TypeScript support
+  const platforms = [
+    { id: 'spotify', name: 'Spotify', color: 'text-green-600', bgColor: 'bg-white' },
+    { id: 'appleMusic', name: 'Apple Music', color: 'text-red-600', bgColor: 'bg-white' },
+    { id: 'youtubeMusic', name: 'YouTube Music', color: 'text-purple-600', bgColor: 'bg-white' },
+    { id: 'deezer', name: 'Deezer', color: 'text-blue-600', bgColor: 'bg-white' }
+  ];
+  
   return (
     <div className="glass-panel p-6">
       <h3 className="text-xl font-semibold mb-4">Edit Platform Analytics</h3>
       <p className="text-slate-500 mb-6">Update play counts and growth rates for each platform</p>
       
       <div className="space-y-6">
-        {/* Spotify */}
-        <div className="p-4 border border-slate-200 rounded-md bg-white">
-          <h4 className="font-medium text-green-600 mb-3">Spotify</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Plays</label>
-              <input
-                type="number"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.spotify.plays}
-                onChange={(e) => handleInputChange('spotify', 'plays', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Growth %</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.spotify.growth}
-                onChange={(e) => handleInputChange('spotify', 'growth', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* Apple Music */}
-        <div className="p-4 border border-slate-200 rounded-md bg-white">
-          <h4 className="font-medium text-red-600 mb-3">Apple Music</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Plays</label>
-              <input
-                type="number"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.appleMusic.plays}
-                onChange={(e) => handleInputChange('appleMusic', 'plays', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Growth %</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.appleMusic.growth}
-                onChange={(e) => handleInputChange('appleMusic', 'growth', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
-        
-        {/* YouTube Music */}
-        <div className="p-4 border border-slate-200 rounded-md bg-white">
-          <h4 className="font-medium text-purple-600 mb-3">YouTube Music</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Plays</label>
-              <input
-                type="number"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.youtubeMusic.plays}
-                onChange={(e) => handleInputChange('youtubeMusic', 'plays', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Growth %</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.youtubeMusic.growth}
-                onChange={(e) => handleInputChange('youtubeMusic', 'growth', e.target.value)}
-              />
+        {platforms.map((platform) => (
+          <div 
+            key={platform.id}
+            className="p-4 border border-slate-200 rounded-md bg-white"
+          >
+            <h4 className={`font-medium ${platform.color} mb-3`}>{platform.name}</h4>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">Plays</label>
+                <input
+                  type="number"
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                  value={analyticsData[`${platform.id === 'spotify' ? 'spotify' : 
+                                          platform.id === 'appleMusic' ? 'apple_music' :
+                                          platform.id === 'youtubeMusic' ? 'youtube_music' : 
+                                          'deezer'}_plays` as keyof PlatformAnalyticsData]}
+                  onChange={(e) => {
+                    const field = `${platform.id === 'spotify' ? 'spotify' : 
+                                    platform.id === 'appleMusic' ? 'apple_music' :
+                                    platform.id === 'youtubeMusic' ? 'youtube_music' : 
+                                    'deezer'}_plays`;
+                    
+                    setAnalyticsData(prev => ({
+                      ...prev,
+                      [field]: Number(e.target.value)
+                    }));
+                  }}
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-500 mb-1">Growth %</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  className="w-full p-2 border border-slate-300 rounded-md"
+                  value={analyticsData[`${platform.id === 'spotify' ? 'spotify' : 
+                                         platform.id === 'appleMusic' ? 'apple_music' :
+                                         platform.id === 'youtubeMusic' ? 'youtube_music' : 
+                                         'deezer'}_growth` as keyof PlatformAnalyticsData]}
+                  onChange={(e) => {
+                    const field = `${platform.id === 'spotify' ? 'spotify' : 
+                                    platform.id === 'appleMusic' ? 'apple_music' :
+                                    platform.id === 'youtubeMusic' ? 'youtube_music' : 
+                                    'deezer'}_growth`;
+                                    
+                    setAnalyticsData(prev => ({
+                      ...prev,
+                      [field]: Number(e.target.value)
+                    }));
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
-        
-        {/* Deezer */}
-        <div className="p-4 border border-slate-200 rounded-md bg-white">
-          <h4 className="font-medium text-blue-600 mb-3">Deezer</h4>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Plays</label>
-              <input
-                type="number"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.deezer.plays}
-                onChange={(e) => handleInputChange('deezer', 'plays', e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-500 mb-1">Growth %</label>
-              <input
-                type="number"
-                step="0.1"
-                className="w-full p-2 border border-slate-300 rounded-md"
-                value={analyticsData.deezer.growth}
-                onChange={(e) => handleInputChange('deezer', 'growth', e.target.value)}
-              />
-            </div>
-          </div>
-        </div>
+        ))}
         
         <button
           onClick={handleSaveAnalytics}
