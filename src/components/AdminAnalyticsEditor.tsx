@@ -70,13 +70,10 @@ const AdminAnalyticsEditor = () => {
     fetchData();
   }, [toast]);
   
-  const handleInputChange = (platform: string, field: string, value: string) => {
+  const handleInputChange = (field: string, value: string) => {
     setAnalyticsData(prev => ({
       ...prev,
-      [platform]: {
-        ...prev[platform as keyof PlatformAnalyticsData] as Record<string, number>,
-        [field]: Number(value)
-      }
+      [field]: Number(value)
     }));
   };
   
@@ -84,20 +81,19 @@ const AdminAnalyticsEditor = () => {
     try {
       setLoading(true);
       
-      const updateData: PlatformAnalyticsData = {
-        spotify_plays: analyticsData.spotify.plays,
-        spotify_growth: analyticsData.spotify.growth,
-        apple_music_plays: analyticsData.appleMusic.plays,
-        apple_music_growth: analyticsData.appleMusic.growth,
-        youtube_music_plays: analyticsData.youtubeMusic.plays,
-        youtube_music_growth: analyticsData.youtubeMusic.growth,
-        deezer_plays: analyticsData.deezer.plays,
-        deezer_growth: analyticsData.deezer.growth
-      };
-      
       const { error } = await supabase
         .from('platform_analytics')
-        .upsert(updateData);
+        .upsert({
+          spotify_plays: analyticsData.spotify_plays,
+          spotify_growth: analyticsData.spotify_growth,
+          apple_music_plays: analyticsData.apple_music_plays,
+          apple_music_growth: analyticsData.apple_music_growth,
+          youtube_music_plays: analyticsData.youtube_music_plays,
+          youtube_music_growth: analyticsData.youtube_music_growth,
+          deezer_plays: analyticsData.deezer_plays,
+          deezer_growth: analyticsData.deezer_growth,
+          last_updated: new Date().toISOString()
+        });
         
       if (error) throw error;
       
@@ -117,12 +113,12 @@ const AdminAnalyticsEditor = () => {
     }
   };
   
-  // Fixed state model for better TypeScript support
+  // Platform configuration for rendering
   const platforms = [
-    { id: 'spotify', name: 'Spotify', color: 'text-green-600', bgColor: 'bg-white' },
-    { id: 'appleMusic', name: 'Apple Music', color: 'text-red-600', bgColor: 'bg-white' },
-    { id: 'youtubeMusic', name: 'YouTube Music', color: 'text-purple-600', bgColor: 'bg-white' },
-    { id: 'deezer', name: 'Deezer', color: 'text-blue-600', bgColor: 'bg-white' }
+    { id: 'spotify', name: 'Spotify', color: 'text-green-600', bgColor: 'bg-white', playsField: 'spotify_plays', growthField: 'spotify_growth' },
+    { id: 'appleMusic', name: 'Apple Music', color: 'text-red-600', bgColor: 'bg-white', playsField: 'apple_music_plays', growthField: 'apple_music_growth' },
+    { id: 'youtubeMusic', name: 'YouTube Music', color: 'text-purple-600', bgColor: 'bg-white', playsField: 'youtube_music_plays', growthField: 'youtube_music_growth' },
+    { id: 'deezer', name: 'Deezer', color: 'text-blue-600', bgColor: 'bg-white', playsField: 'deezer_plays', growthField: 'deezer_growth' }
   ];
   
   return (
@@ -143,21 +139,8 @@ const AdminAnalyticsEditor = () => {
                 <input
                   type="number"
                   className="w-full p-2 border border-slate-300 rounded-md"
-                  value={analyticsData[`${platform.id === 'spotify' ? 'spotify' : 
-                                          platform.id === 'appleMusic' ? 'apple_music' :
-                                          platform.id === 'youtubeMusic' ? 'youtube_music' : 
-                                          'deezer'}_plays` as keyof PlatformAnalyticsData]}
-                  onChange={(e) => {
-                    const field = `${platform.id === 'spotify' ? 'spotify' : 
-                                    platform.id === 'appleMusic' ? 'apple_music' :
-                                    platform.id === 'youtubeMusic' ? 'youtube_music' : 
-                                    'deezer'}_plays`;
-                    
-                    setAnalyticsData(prev => ({
-                      ...prev,
-                      [field]: Number(e.target.value)
-                    }));
-                  }}
+                  value={analyticsData[platform.playsField as keyof PlatformAnalyticsData]}
+                  onChange={(e) => handleInputChange(platform.playsField, e.target.value)}
                 />
               </div>
               <div>
@@ -166,21 +149,8 @@ const AdminAnalyticsEditor = () => {
                   type="number"
                   step="0.1"
                   className="w-full p-2 border border-slate-300 rounded-md"
-                  value={analyticsData[`${platform.id === 'spotify' ? 'spotify' : 
-                                         platform.id === 'appleMusic' ? 'apple_music' :
-                                         platform.id === 'youtubeMusic' ? 'youtube_music' : 
-                                         'deezer'}_growth` as keyof PlatformAnalyticsData]}
-                  onChange={(e) => {
-                    const field = `${platform.id === 'spotify' ? 'spotify' : 
-                                    platform.id === 'appleMusic' ? 'apple_music' :
-                                    platform.id === 'youtubeMusic' ? 'youtube_music' : 
-                                    'deezer'}_growth`;
-                                    
-                    setAnalyticsData(prev => ({
-                      ...prev,
-                      [field]: Number(e.target.value)
-                    }));
-                  }}
+                  value={analyticsData[platform.growthField as keyof PlatformAnalyticsData]}
+                  onChange={(e) => handleInputChange(platform.growthField, e.target.value)}
                 />
               </div>
             </div>

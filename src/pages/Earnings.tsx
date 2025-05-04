@@ -7,13 +7,39 @@ import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import WithdrawalForm from '../components/WithdrawalForm';
 
+// Define interfaces for type safety
+interface EarningData {
+  id: string;
+  amount: number;
+  date: string;
+  status: string;
+  source?: string;
+}
+
+interface WithdrawalData {
+  id: string;
+  amount: number;
+  created_at: string;
+  processed_at: string | null;
+  status: string;
+  account_name: string;
+  account_number: string;
+  bank_name: string | null;
+}
+
+interface StatsData {
+  totalEarnings: number;
+  pendingEarnings: number;
+  availableBalance: number;
+}
+
 const Earnings = () => {
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
   const [artistId, setArtistId] = useState<string | null>(null);
-  const [earnings, setEarnings] = useState<any[]>([]);
-  const [withdrawals, setWithdrawals] = useState<any[]>([]);
-  const [stats, setStats] = useState({
+  const [earnings, setEarnings] = useState<EarningData[]>([]);
+  const [withdrawals, setWithdrawals] = useState<WithdrawalData[]>([]);
+  const [stats, setStats] = useState<StatsData>({
     totalEarnings: 0,
     pendingEarnings: 0,
     availableBalance: 0
@@ -58,11 +84,11 @@ const Earnings = () => {
             .eq('artist_id', artistData.id)
             .order('created_at', { ascending: false });
             
-          if (!earningsError) {
-            setEarnings(earningsData || []);
+          if (!earningsError && earningsData) {
+            setEarnings(earningsData);
             // Calculate pending earnings
             const pendingAmount = earningsData
-              ?.filter(earning => earning.status === 'Pending')
+              .filter(earning => earning.status === 'Pending')
               .reduce((sum, earning) => sum + Number(earning.amount), 0) || 0;
             
             setStats(prevStats => ({
@@ -78,8 +104,8 @@ const Earnings = () => {
             .eq('artist_id', artistData.id)
             .order('created_at', { ascending: false });
             
-          if (!withdrawalsError) {
-            setWithdrawals(withdrawalsData || []);
+          if (!withdrawalsError && withdrawalsData) {
+            setWithdrawals(withdrawalsData);
           }
         }
       } catch (error) {
@@ -97,7 +123,7 @@ const Earnings = () => {
     window.location.reload();
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'COMPLETED':
       case 'Paid':
