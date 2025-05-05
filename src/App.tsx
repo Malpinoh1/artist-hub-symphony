@@ -19,6 +19,11 @@ import Analytics from "./pages/Analytics";
 import Earnings from "./pages/Earnings";
 import Pricing from "./pages/Pricing";
 import HelpCenter from "./pages/HelpCenter";
+import ReleaseDetails from "./pages/ReleaseDetails";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
+import Resources from "./pages/Resources";
+import MarketingGuide from "./pages/resources/MarketingGuide";
 
 const queryClient = new QueryClient();
 
@@ -133,11 +138,23 @@ const App = () => {
             <Route path="/contact" element={<Contact />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/help" element={<HelpCenter />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/resources" element={<Resources />} />
+            <Route path="/resources/marketing" element={<MarketingGuide />} />
             <Route 
               path="/dashboard" 
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/releases/:id" 
+              element={
+                <ProtectedRoute>
+                  <ReleaseDetails />
                 </ProtectedRoute>
               } 
             />
