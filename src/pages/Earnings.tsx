@@ -101,10 +101,11 @@ const Earnings = () => {
       </div>
 
       <StatsCards 
-        totalEarnings={earningsSummary.totalEarnings} 
-        availableBalance={earningsSummary.availableBalance} 
-        pendingEarnings={earningsSummary.pendingEarnings}
-        currencySymbol="$"
+        stats={{
+          totalEarnings: earningsSummary.totalEarnings,
+          availableBalance: earningsSummary.availableBalance,
+          pendingEarnings: earningsSummary.pendingEarnings
+        }}
       />
 
       <div className="mt-8">
@@ -129,19 +130,15 @@ const Earnings = () => {
               <Card className="p-6">
                 <h2 className="text-lg font-medium mb-4">Recent Earnings</h2>
                 <ActivityPanel 
-                  recentEarnings={earningsSummary.recentEarnings} 
-                  withdrawals={earningsSummary.withdrawals} 
-                  type="earnings"
-                  currencySymbol="$"
+                  earnings={earningsSummary.recentEarnings} 
+                  withdrawals={[]}
                 />
               </Card>
               <Card className="p-6">
                 <h2 className="text-lg font-medium mb-4">Recent Withdrawals</h2>
                 <ActivityPanel 
-                  recentEarnings={earningsSummary.recentEarnings} 
+                  earnings={[]}
                   withdrawals={earningsSummary.withdrawals} 
-                  type="withdrawals"
-                  currencySymbol="$"
                 />
               </Card>
             </div>
@@ -150,19 +147,18 @@ const Earnings = () => {
           <TabsContent value="activity">
             <Card>
               <ActivityPanel 
-                recentEarnings={earningsSummary.recentEarnings} 
+                earnings={earningsSummary.recentEarnings}
                 withdrawals={earningsSummary.withdrawals}
-                type="all"
-                currencySymbol="$"
               />
             </Card>
           </TabsContent>
 
           <TabsContent value="withdraw">
             <WithdrawalPanel 
-              availableBalance={earningsSummary.availableBalance} 
-              minWithdrawal={50}
-              currencySymbol="$"
+              availableBalance={earningsSummary.availableBalance}
+              userId="mock-user-id"
+              artistId="mock-artist-id"
+              onSuccess={() => console.log("Withdrawal successful")}
             />
           </TabsContent>
         </Tabs>

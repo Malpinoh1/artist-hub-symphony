@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,10 +24,10 @@ const queryClient = new QueryClient();
 
 // Create a custom ProtectedRoute component for admin routes
 const AdminRoute = ({ children }) => {
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAdminStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
@@ -60,10 +60,10 @@ const AdminRoute = ({ children }) => {
 
 // Protected route for authenticated users
 const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
-  useEffect(() => {
+  React.useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setIsAuthenticated(!!session);
@@ -82,7 +82,7 @@ const ProtectedRoute = ({ children }) => {
 
 const App = () => {
   // Add scroll animation observer
-  useEffect(() => {
+  React.useEffect(() => {
     const animateOnScrollObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {

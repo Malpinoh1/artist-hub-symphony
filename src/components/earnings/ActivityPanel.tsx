@@ -28,17 +28,23 @@ const ActivityPanel: React.FC<ActivityPanelProps> = ({ earnings, withdrawals }) 
           </div>
         </div>
         
-        <div className="space-y-1 mb-4">
-          <h4 className="font-medium text-slate-700">Withdrawals</h4>
-        </div>
+        {withdrawals.length > 0 && (
+          <>
+            <div className="space-y-1 mb-4">
+              <h4 className="font-medium text-slate-700">Withdrawals</h4>
+            </div>
+            <WithdrawalsTable withdrawals={withdrawals} />
+          </>
+        )}
         
-        <WithdrawalsTable withdrawals={withdrawals} />
-        
-        <div className="space-y-1 mb-4">
-          <h4 className="font-medium text-slate-700">Earnings</h4>
-        </div>
-        
-        <EarningsTable earnings={earnings} />
+        {earnings.length > 0 && (
+          <>
+            <div className="space-y-1 mb-4">
+              <h4 className="font-medium text-slate-700">Earnings</h4>
+            </div>
+            <EarningsTable earnings={earnings} />
+          </>
+        )}
       </div>
     </AnimatedCard>
   );
