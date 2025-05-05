@@ -1,5 +1,7 @@
+
 import { supabase } from "../integrations/supabase/client";
 import type { Database } from "../integrations/supabase/types";
+import { toast } from "sonner";
 
 export type Release = {
   id: string;
@@ -123,20 +125,28 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     // Upload cover art if provided
     let coverArtUrl = null;
     if (coverArt) {
-      const coverArtFileName = `${Date.now()}_${coverArt.name}`;
+      // Create folder path with user ID to avoid filename conflicts
+      const folderPath = `${userId}`;
+      const coverArtFileName = `${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
+      const coverArtPath = `${folderPath}/${coverArtFileName}`;
+      
       const { data: coverUploadData, error: coverUploadError } = await supabase.storage
         .from('release_artwork')
-        .upload(coverArtFileName, coverArt);
+        .upload(coverArtPath, coverArt, {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (coverUploadError) {
         console.error("Error uploading cover art:", coverUploadError);
+        toast.error("Failed to upload cover art. Please try again.");
         throw coverUploadError;
       }
       
       // Get public URL for the uploaded cover art
       const { data: publicUrlData } = supabase.storage
         .from('release_artwork')
-        .getPublicUrl(coverArtFileName);
+        .getPublicUrl(coverArtPath);
       
       coverArtUrl = publicUrlData?.publicUrl;
     }
@@ -144,25 +154,33 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     // Upload audio files and store their URLs
     let audioFilesUrls = [];
     for (const audioFile of audioFiles) {
-      const audioFileName = `${Date.now()}_${audioFile.name}`;
+      // Create folder path with user ID to avoid filename conflicts
+      const folderPath = `${userId}`;
+      const audioFileName = `${Date.now()}_audio.${audioFile.name.split('.').pop()}`;
+      const audioPath = `${folderPath}/${audioFileName}`;
+      
       const { data: audioUploadData, error: audioUploadError } = await supabase.storage
         .from('audio_files')
-        .upload(audioFileName, audioFile);
+        .upload(audioPath, audioFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
         
       if (audioUploadError) {
         console.error("Error uploading audio file:", audioUploadError);
+        toast.error("Failed to upload audio file. Please try again.");
         throw audioUploadError;
       }
       
       // Get public URL for the uploaded audio file
       const { data: audioUrlData } = supabase.storage
         .from('audio_files')
-        .getPublicUrl(audioFileName);
+        .getPublicUrl(audioPath);
       
       audioFilesUrls.push(audioUrlData?.publicUrl);
     }
     
-    // Insert release record - fixed the variable naming conflict here
+    // Insert release record
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
@@ -174,16 +192,17 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         platforms: releaseFormData.platforms,
         audio_file_url: audioFilesUrls[0] || null, // Store the first audio URL
         upc: releaseFormData.upc || null,
-        // Other relevant fields
       })
       .select()
       .single();
       
     if (releaseError) {
       console.error("Error inserting release:", releaseError);
+      toast.error("Failed to submit release. Please try again.");
       throw releaseError;
     }
     
+    toast.success("Release submitted successfully!");
     return { success: true, data: insertedRelease };
       
   } catch (error) {
