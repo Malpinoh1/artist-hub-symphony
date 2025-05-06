@@ -167,6 +167,50 @@ export type Database = {
           },
         ]
       }
+      performance_statistics: {
+        Row: {
+          apple_music_streams: number
+          created_at: string
+          date: string
+          id: string
+          other_streams: number
+          release_id: string
+          spotify_streams: number
+          total_streams: number
+          youtube_music_streams: number
+        }
+        Insert: {
+          apple_music_streams?: number
+          created_at?: string
+          date?: string
+          id?: string
+          other_streams?: number
+          release_id: string
+          spotify_streams?: number
+          total_streams?: number
+          youtube_music_streams?: number
+        }
+        Update: {
+          apple_music_streams?: number
+          created_at?: string
+          date?: string
+          id?: string
+          other_streams?: number
+          release_id?: string
+          spotify_streams?: number
+          total_streams?: number
+          youtube_music_streams?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "performance_statistics_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       platform_analytics: {
         Row: {
           apple_music_growth: number
@@ -282,6 +326,38 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      streaming_links: {
+        Row: {
+          created_at: string
+          id: string
+          platform: string
+          release_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          platform: string
+          release_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          platform?: string
+          release_id?: string
+          url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "streaming_links_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
             referencedColumns: ["id"]
           },
         ]

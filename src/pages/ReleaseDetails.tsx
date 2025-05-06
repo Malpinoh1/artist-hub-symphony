@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Calendar, Music, Share2, Download, AlertTriangle, FileText, Link2 } from 'lucide-react';
@@ -85,22 +84,22 @@ const ReleaseDetails = () => {
           }
         }
 
-        // Get streaming links for this release
-        const { data: streamingLinksData, error: streamingLinksError } = await supabase
+        // Get streaming links for this release - use type casting to work around TS errors
+        const { data: streamingLinksData, error: streamingLinksError } = await (supabase as any)
           .from('streaming_links')
           .select('*')
           .eq('release_id', id);
           
         let streamingLinks = [];
         if (!streamingLinksError && streamingLinksData) {
-          streamingLinks = streamingLinksData.map(link => ({
+          streamingLinks = streamingLinksData.map((link: any) => ({
             platform: link.platform,
             url: link.url
           }));
         }
         
-        // Get performance statistics for this release
-        const { data: statsData, error: statsError } = await supabase
+        // Get performance statistics for this release - use type casting to work around TS errors
+        const { data: statsData, error: statsError } = await (supabase as any)
           .from('performance_statistics')
           .select('*')
           .eq('release_id', id)

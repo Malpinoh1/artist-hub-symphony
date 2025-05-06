@@ -57,7 +57,8 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
     let streamingLinks = [];
     
     if (releaseIds.length > 0) {
-      const { data: linksData, error: linksError } = await supabase
+      // Use type assertion to work around the type error
+      const { data: linksData, error: linksError } = await (supabase as any)
         .from('streaming_links')
         .select('*')
         .in('release_id', releaseIds);
@@ -70,8 +71,8 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
     return releases.map(release => {
       // Filter streaming links for this release
       const releaseLinks = streamingLinks
-        .filter(link => link.release_id === release.id)
-        .map(link => ({
+        .filter((link: any) => link.release_id === release.id)
+        .map((link: any) => ({
           platform: link.platform,
           url: link.url
         }));
@@ -253,7 +254,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
 export async function manageStreamingLinks(releaseId: string, links: { platform: string, url: string }[]) {
   try {
     // First, delete existing links for this release
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await (supabase as any)
       .from('streaming_links')
       .delete()
       .eq('release_id', releaseId);
@@ -271,7 +272,7 @@ export async function manageStreamingLinks(releaseId: string, links: { platform:
         url: link.url
       }));
       
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('streaming_links')
         .insert(linksToInsert);
         
@@ -301,7 +302,7 @@ export async function updatePerformanceStatistics(
 ) {
   try {
     // Check if stats already exist for this release
-    const { data: existingStats, error: checkError } = await supabase
+    const { data: existingStats, error: checkError } = await (supabase as any)
       .from('performance_statistics')
       .select('id')
       .eq('release_id', releaseId)
@@ -314,7 +315,7 @@ export async function updatePerformanceStatistics(
     
     if (existingStats) {
       // Update existing stats
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabase as any)
         .from('performance_statistics')
         .update({
           ...stats,
@@ -328,7 +329,7 @@ export async function updatePerformanceStatistics(
       }
     } else {
       // Insert new stats
-      const { error: insertError } = await supabase
+      const { error: insertError } = await (supabase as any)
         .from('performance_statistics')
         .insert({
           release_id: releaseId,
