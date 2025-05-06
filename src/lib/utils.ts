@@ -38,3 +38,7 @@ export function generateInitials(name: string): string {
   
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+export function themeClass(lightClass: string, darkClass: string): string {
+  return `${lightClass} dark:${darkClass}`;
+}
