@@ -8,7 +8,7 @@ export type Release = {
   title: string;
   artist: string;
   coverArt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
   releaseDate?: string;
   streamingLinks?: { platform: string; url: string }[];
 };
@@ -212,12 +212,18 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
 }
 
 // Helper function to map database release status to UI status
-function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] | string): 'pending' | 'approved' | 'rejected' | 'processing' {
+function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] | string): 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested' {
   switch(status) {
     case 'Approved':
       return 'approved';
     case 'Rejected':
       return 'rejected';
+    case 'Processing':
+      return 'processing';
+    case 'TakeDown':
+      return 'takedown';
+    case 'TakeDownRequested':
+      return 'takedownrequested';
     case 'Pending':
     default:
       return 'pending';

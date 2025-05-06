@@ -1,232 +1,160 @@
 
-import React, { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, User, LogOut } from "lucide-react";
-import { supabase } from "../integrations/supabase/client";
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { Menu, X } from 'lucide-react';
+import { supabase } from '../integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import ThemeToggle from './ThemeToggle';
 
 const Navbar = () => {
-  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        setUser(session.user);
-        
-        // Check if user is admin
-        const { data } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-          
-        setIsAdmin(!!data);
-      }
-      
-      setLoading(false);
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
     };
-    
-    checkAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user || null);
-      
-      if (session?.user) {
-        // Check admin status when auth state changes
-        setTimeout(async () => {
-          const { data } = await supabase
-            .from('user_roles')
-            .select('*')
-            .eq('user_id', session.user.id)
-            .eq('role', 'admin')
-            .maybeSingle();
-            
-          setIsAdmin(!!data);
-        }, 0);
-      } else {
-        setIsAdmin(false);
-      }
-    });
-    
+
+    window.addEventListener('scroll', handleScroll);
+
     return () => {
-      subscription.unsubscribe();
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
-  const handleLogout = async () => {
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data } = await supabase.auth.getSession();
+      setIsLoggedIn(!!data.session);
+    };
+
+    checkAuthStatus();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      setIsLoggedIn(event === 'SIGNED_IN');
+    });
+
+    return () => {
+      authListener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleSignOut = async () => {
     await supabase.auth.signOut();
-    navigate('/');
   };
 
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
+
+  const navClassNames = `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+    isScrolled || isOpen ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg shadow-lg' : 'bg-transparent'
+  }`;
+
+  const isActive = (path: string) => location.pathname === path;
+
+  const navLinks = [
+    { path: '/', label: 'Home' },
+    { path: '/services', label: 'Services' },
+    { path: '/pricing', label: 'Pricing' },
+    { path: '/about', label: 'About' },
+    { path: '/resources', label: 'Resources' },
+    { path: '/contact', label: 'Contact' },
+  ];
+
   return (
-    <nav className="fixed w-full bg-white shadow-sm z-50">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <div className="flex items-center">
-            <Link to="/" className="text-xl font-bold text-blue-600">
-              MALPINOHDISTRO
-            </Link>
-          </div>
+    <nav className={navClassNames}>
+      <div className="container mx-auto px-4 py-3">
+        <div className="flex justify-between items-center">
+          <Link to="/" className="flex items-center space-x-2">
+            <span className="font-display text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
+              Malpinoh Music
+            </span>
+          </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Link
-              to="/"
-              className="text-slate-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Home
-            </Link>
-            <Link
-              to="/about"
-              className="text-slate-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              About
-            </Link>
-            <Link
-              to="/services"
-              className="text-slate-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Services
-            </Link>
-            <Link
-              to="/contact"
-              className="text-slate-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Contact
-            </Link>
+          <div className="hidden md:flex items-center space-x-1">
+            {navLinks.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`py-2 px-3 mx-1 rounded-lg transition-colors ${
+                  isActive(link.path)
+                    ? 'text-violet-600 dark:text-violet-400 font-medium'
+                    : 'text-slate-700 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400'
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
             
-            {!loading && (
-              user ? (
-                <div className="relative group">
-                  <button 
-                    className="flex items-center space-x-1 text-slate-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium border border-slate-200 bg-slate-50"
-                  >
-                    <User className="w-4 h-4 mr-1" />
-                    <span>Account</span>
-                  </button>
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg overflow-hidden z-10 hidden group-hover:block">
-                    <div className="py-2">
-                      <Link 
-                        to="/dashboard" 
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      >
-                        Dashboard
-                      </Link>
-                      
-                      {isAdmin && (
-                        <Link 
-                          to="/admin" 
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                        >
-                          Admin Panel
-                        </Link>
-                      )}
-                      
-                      <button
-                        onClick={handleLogout}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
-                      >
-                        <div className="flex items-center">
-                          <LogOut className="w-4 h-4 mr-1" />
-                          Sign Out
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <Link
-                  to="/auth"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-                >
-                  Sign In
-                </Link>
-              )
+            <ThemeToggle />
+
+            {isLoggedIn ? (
+              <div className="flex space-x-2 ml-4">
+                <Button asChild variant="outline">
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+                <Button onClick={handleSignOut} variant="ghost">
+                  Sign Out
+                </Button>
+              </div>
+            ) : (
+              <Button asChild className="ml-4">
+                <Link to="/auth">Get Started</Link>
+              </Button>
             )}
           </div>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden flex items-center">
+          {/* Mobile Navigation Toggle */}
+          <div className="flex items-center space-x-3 md:hidden">
+            <ThemeToggle />
             <button
-              onClick={() => setIsOpen(!isOpen)}
-              className="text-gray-500 hover:text-blue-600 focus:outline-none"
+              onClick={toggleMenu}
+              className="p-2 text-slate-700 dark:text-slate-300 focus:outline-none"
             >
-              {isOpen ? (
-                <X className="w-6 h-6" />
-              ) : (
-                <Menu className="w-6 h-6" />
-              )}
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Mobile Navigation */}
+      {/* Mobile Navigation Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white shadow-lg">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              to="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Home
-            </Link>
-            <Link
-              to="/about"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              About
-            </Link>
-            <Link
-              to="/services"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Services
-            </Link>
-            <Link
-              to="/contact"
-              className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-              onClick={() => setIsOpen(false)}
-            >
-              Contact
-            </Link>
-            
-            {!loading && (
-              user ? (
+        <div className="md:hidden bg-white dark:bg-slate-900 shadow-lg">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex flex-col space-y-2">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  className={`py-2 px-3 rounded-lg transition-colors ${
+                    isActive(link.path)
+                      ? 'text-violet-600 dark:text-violet-400 font-medium bg-violet-50 dark:bg-violet-900/20'
+                      : 'text-slate-700 dark:text-slate-300'
+                  }`}
+                  onClick={closeMenu}
+                >
+                  {link.label}
+                </Link>
+              ))}
+              
+              {isLoggedIn ? (
                 <>
                   <Link
                     to="/dashboard"
-                    className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-                    onClick={() => setIsOpen(false)}
+                    className="py-2 px-3 rounded-lg text-slate-700 dark:text-slate-300"
+                    onClick={closeMenu}
                   >
                     Dashboard
                   </Link>
-                  
-                  {isAdmin && (
-                    <Link
-                      to="/admin"
-                      className="block px-3 py-2 rounded-md text-base font-medium text-slate-700 hover:text-blue-600 hover:bg-gray-50"
-                      onClick={() => setIsOpen(false)}
-                    >
-                      Admin Panel
-                    </Link>
-                  )}
-                  
                   <button
                     onClick={() => {
-                      handleLogout();
-                      setIsOpen(false);
+                      handleSignOut();
+                      closeMenu();
                     }}
-                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-red-600 hover:bg-gray-50"
+                    className="py-2 px-3 text-left rounded-lg text-slate-700 dark:text-slate-300"
                   >
                     Sign Out
                   </button>
@@ -234,13 +162,13 @@ const Navbar = () => {
               ) : (
                 <Link
                   to="/auth"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-gray-50"
-                  onClick={() => setIsOpen(false)}
+                  className="py-2 px-3 rounded-lg text-white bg-violet-600 hover:bg-violet-700"
+                  onClick={closeMenu}
                 >
-                  Sign In
+                  Get Started
                 </Link>
-              )
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}

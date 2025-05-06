@@ -286,6 +286,54 @@ export type Database = {
           },
         ]
       }
+      take_down_requests: {
+        Row: {
+          admin_notes: string | null
+          artist_id: string
+          created_at: string
+          id: string
+          processed_at: string | null
+          reason: string
+          release_id: string
+          status: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          artist_id: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason: string
+          release_id: string
+          status?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          artist_id?: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          reason?: string
+          release_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "take_down_requests_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "take_down_requests_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -368,7 +416,12 @@ export type Database = {
     }
     Enums: {
       earnings_status: "Pending" | "Paid"
-      release_status: "Pending" | "Approved" | "Rejected"
+      release_status:
+        | "Pending"
+        | "Approved"
+        | "Rejected"
+        | "TakeDown"
+        | "TakeDownRequested"
       user_role: "user" | "admin"
     }
     CompositeTypes: {
@@ -486,7 +539,13 @@ export const Constants = {
   public: {
     Enums: {
       earnings_status: ["Pending", "Paid"],
-      release_status: ["Pending", "Approved", "Rejected"],
+      release_status: [
+        "Pending",
+        "Approved",
+        "Rejected",
+        "TakeDown",
+        "TakeDownRequested",
+      ],
       user_role: ["user", "admin"],
     },
   },

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -14,7 +13,8 @@ import {
   MessageCircle,
   MoreHorizontal,
   Ban,
-  BarChart3
+  BarChart3,
+  AlertTriangle
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -22,6 +22,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
+import TakeDownRequestsTab from '../components/TakeDownRequestsTab';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -30,6 +31,7 @@ const AdminDashboard = () => {
   const [artists, setArtists] = useState([]);
   const [activeTab, setActiveTab] = useState('releases');
   const [loading, setLoading] = useState(true);
+  const [takeDownRequestsCount, setTakeDownRequestsCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -79,6 +81,16 @@ const AdminDashboard = () => {
           
         if (artistsError) throw artistsError;
         setArtists(artistsData || []);
+        
+        // Fetch take down requests count
+        const { count, error: takeDownError } = await supabase
+          .from('take_down_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'PENDING');
+          
+        if (!takeDownError) {
+          setTakeDownRequestsCount(count || 0);
+        }
         
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -468,68 +480,87 @@ const AdminDashboard = () => {
     return <AdminAnalyticsEditor />;
   };
 
+  // Render take down requests tab
+  const renderTakeDownRequestsTab = () => {
+    return <TakeDownRequestsTab />;
+  };
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="mb-6">
-              <h1 className="text-3xl font-display font-bold text-slate-900">Admin Dashboard</h1>
-              <p className="text-slate-600 mt-2">Manage your distribution platform</p>
+              <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">Admin Dashboard</h1>
+              <p className="text-slate-600 dark:text-slate-400 mt-2">Manage your distribution platform</p>
             </div>
             
             {/* Dashboard Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <div className="glass-panel p-6">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Music className="w-6 h-6 text-blue-600" />
+                  <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                    <Music className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div className="ml-4">
-                    <h2 className="text-xl font-bold text-slate-900">{releases.length}</h2>
-                    <p className="text-slate-600">Total Releases</p>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{releases.length}</h2>
+                    <p className="text-slate-600 dark:text-slate-400">Total Releases</p>
                   </div>
                 </div>
               </div>
               
               <div className="glass-panel p-6">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-green-600" />
+                  <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-green-600 dark:text-green-400" />
                   </div>
                   <div className="ml-4">
-                    <h2 className="text-xl font-bold text-slate-900">{artists.length}</h2>
-                    <p className="text-slate-600">Active Artists</p>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">{artists.length}</h2>
+                    <p className="text-slate-600 dark:text-slate-400">Active Artists</p>
                   </div>
                 </div>
               </div>
               
               <div className="glass-panel p-6">
                 <div className="flex items-center">
-                  <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
-                    <DollarSign className="w-6 h-6 text-amber-600" />
+                  <div className="w-12 h-12 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center">
+                    <DollarSign className="w-6 h-6 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div className="ml-4">
-                    <h2 className="text-xl font-bold text-slate-900">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                       {withdrawals.filter(w => w.status === 'PENDING').length}
                     </h2>
-                    <p className="text-slate-600">Pending Withdrawals</p>
+                    <p className="text-slate-600 dark:text-slate-400">Pending Withdrawals</p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="glass-panel p-6">
+                <div className="flex items-center">
+                  <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div className="ml-4">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                      {takeDownRequestsCount}
+                    </h2>
+                    <p className="text-slate-600 dark:text-slate-400">Take Down Requests</p>
                   </div>
                 </div>
               </div>
             </div>
             
             {/* Tabs Navigation */}
-            <div className="mb-6 border-b border-slate-200">
+            <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
               <ul className="flex flex-wrap -mb-px text-sm font-medium text-center">
                 <li className="mr-2">
                   <button
                     className={`inline-block p-4 border-b-2 rounded-t-lg ${
                       activeTab === 'releases' 
-                        ? 'text-blue-600 border-blue-600' 
-                        : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                        ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
                     }`}
                     onClick={() => setActiveTab('releases')}
                   >
@@ -543,8 +574,8 @@ const AdminDashboard = () => {
                   <button
                     className={`inline-block p-4 border-b-2 rounded-t-lg ${
                       activeTab === 'withdrawals' 
-                        ? 'text-blue-600 border-blue-600' 
-                        : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                        ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
                     }`}
                     onClick={() => setActiveTab('withdrawals')}
                   >
@@ -558,8 +589,8 @@ const AdminDashboard = () => {
                   <button
                     className={`inline-block p-4 border-b-2 rounded-t-lg ${
                       activeTab === 'artists' 
-                        ? 'text-blue-600 border-blue-600' 
-                        : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                        ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
                     }`}
                     onClick={() => setActiveTab('artists')}
                   >
@@ -573,14 +604,34 @@ const AdminDashboard = () => {
                   <button
                     className={`inline-block p-4 border-b-2 rounded-t-lg ${
                       activeTab === 'analytics' 
-                        ? 'text-blue-600 border-blue-600' 
-                        : 'border-transparent hover:text-gray-600 hover:border-gray-300'
+                        ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
                     }`}
                     onClick={() => setActiveTab('analytics')}
                   >
                     <div className="flex items-center">
                       <BarChart3 className="w-4 h-4 mr-2" />
                       Analytics
+                    </div>
+                  </button>
+                </li>
+                <li className="mr-2">
+                  <button
+                    className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                      activeTab === 'takedown' 
+                        ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                        : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
+                    }`}
+                    onClick={() => setActiveTab('takedown')}
+                  >
+                    <div className="flex items-center">
+                      <AlertTriangle className="w-4 h-4 mr-2" />
+                      Take Down Requests
+                      {takeDownRequestsCount > 0 && (
+                        <span className="ml-2 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {takeDownRequestsCount}
+                        </span>
+                      )}
                     </div>
                   </button>
                 </li>
@@ -593,6 +644,7 @@ const AdminDashboard = () => {
               {activeTab === 'withdrawals' && renderWithdrawalsTab()}
               {activeTab === 'artists' && renderArtistsTab()}
               {activeTab === 'analytics' && renderAnalyticsTab()}
+              {activeTab === 'takedown' && renderTakeDownRequestsTab()}
             </div>
           </AnimatedCard>
         </div>

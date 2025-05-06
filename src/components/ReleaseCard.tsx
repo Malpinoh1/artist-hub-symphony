@@ -1,14 +1,14 @@
 
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Play, ExternalLink, Clock } from 'lucide-react';
+import { Play, ExternalLink, Clock, AlertTriangle } from 'lucide-react';
 
 interface ReleaseCardProps {
   id: string;
   title: string;
   artist: string;
   coverArt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing';
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
   releaseDate?: string;
   streamingLinks?: { platform: string; url: string }[];
 }
@@ -25,13 +25,16 @@ const ReleaseCard: React.FC<ReleaseCardProps> = ({
   const getStatusColor = () => {
     switch (status) {
       case 'approved':
-        return 'bg-green-100 text-green-700';
+        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
-        return 'bg-red-100 text-red-700';
+      case 'takedown':
+        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
       case 'processing':
-        return 'bg-amber-100 text-amber-700';
+        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'takedownrequested':
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
       default:
-        return 'bg-blue-100 text-blue-700';
+        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     }
   };
   
@@ -43,9 +46,20 @@ const ReleaseCard: React.FC<ReleaseCardProps> = ({
         return 'Rejected';
       case 'processing':
         return 'Processing';
+      case 'takedown':
+        return 'Removed';
+      case 'takedownrequested':
+        return 'Removal Requested';
       default:
         return 'Pending';
     }
+  };
+  
+  const getStatusIcon = () => {
+    if (status === 'takedownrequested' || status === 'takedown') {
+      return <AlertTriangle className="w-3.5 h-3.5 mr-1" />;
+    }
+    return null;
   };
   
   return (
@@ -63,18 +77,19 @@ const ReleaseCard: React.FC<ReleaseCardProps> = ({
           </button>
         </div>
         <div className="absolute top-3 right-3">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${getStatusColor()}`}>
+          <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center ${getStatusColor()}`}>
+            {getStatusIcon()}
             {getStatusLabel()}
           </span>
         </div>
       </div>
       
       <div className="p-4">
-        <h3 className="font-medium text-slate-900 truncate" title={title}>{title}</h3>
-        <p className="text-sm text-slate-600 mt-1">{artist}</p>
+        <h3 className="font-medium text-slate-900 dark:text-white truncate" title={title}>{title}</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{artist}</p>
         
         {status === 'approved' && releaseDate && (
-          <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-500">
+          <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-500 dark:text-slate-400">
             <Clock className="w-3.5 h-3.5" />
             <span>Released: {new Date(releaseDate).toLocaleDateString()}</span>
           </div>
@@ -88,24 +103,24 @@ const ReleaseCard: React.FC<ReleaseCardProps> = ({
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors"
+                className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors"
               >
                 <span>{link.platform}</span>
                 <ExternalLink className="w-3 h-3" />
               </a>
             ))}
             {streamingLinks.length > 3 && (
-              <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1.5 rounded-full">
+              <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-full">
                 +{streamingLinks.length - 3} more
               </span>
             )}
           </div>
         )}
         
-        <div className="mt-4 pt-3 border-t border-slate-100">
+        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
           <Link 
             to={`/releases/${id}`}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
+            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium inline-flex items-center gap-1"
           >
             View Details
             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
