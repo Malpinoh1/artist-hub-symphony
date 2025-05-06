@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Calendar, Music, Share2, Download, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Calendar, Music, Share2, Download, AlertTriangle, FileText, Link2 } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -9,6 +9,10 @@ import { toast } from 'sonner';
 import { Release } from '../services/releaseService';
 import AnimatedCard from '../components/AnimatedCard';
 import TakeDownRequestForm from '../components/TakeDownRequestForm';
+import { Button } from '@/components/ui/button';
+import PerformanceStatisticsForm from '../components/PerformanceStatisticsForm';
+import StreamingLinksForm from '../components/StreamingLinksForm';
+import { themeClass } from '@/lib/utils';
 
 const ReleaseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -17,6 +21,9 @@ const ReleaseDetails = () => {
   const [artistId, setArtistId] = useState<string | null>(null);
   const [takeDownRequest, setTakeDownRequest] = useState<any | null>(null);
   const [showTakeDownForm, setShowTakeDownForm] = useState<boolean>(false);
+  const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [showStatsForm, setShowStatsForm] = useState<boolean>(false);
+  const [showLinksForm, setShowLinksForm] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchReleaseDetails = async () => {
@@ -25,6 +32,18 @@ const ReleaseDetails = () => {
         
         // Get user session
         const { data: { session } } = await supabase.auth.getSession();
+        
+        // Check if user is admin
+        if (session?.user) {
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', session.user.id)
+            .eq('role', 'admin')
+            .maybeSingle();
+            
+          setIsAdmin(!!roleData);
+        }
         
         // Get release information
         const { data: releaseData, error: releaseError } = await supabase
@@ -66,6 +85,30 @@ const ReleaseDetails = () => {
           }
         }
 
+        // Get streaming links for this release
+        const { data: streamingLinksData, error: streamingLinksError } = await supabase
+          .from('streaming_links')
+          .select('*')
+          .eq('release_id', id);
+          
+        let streamingLinks = [];
+        if (!streamingLinksError && streamingLinksData) {
+          streamingLinks = streamingLinksData.map(link => ({
+            platform: link.platform,
+            url: link.url
+          }));
+        }
+        
+        // Get performance statistics for this release
+        const { data: statsData, error: statsError } = await supabase
+          .from('performance_statistics')
+          .select('*')
+          .eq('release_id', id)
+          .order('date', { ascending: false })
+          .maybeSingle();
+        
+        const statistics = !statsError && statsData ? statsData : null;
+
         const formattedRelease: Release = {
           id: releaseData.id,
           title: releaseData.title,
@@ -73,7 +116,10 @@ const ReleaseDetails = () => {
           coverArt: releaseData.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
           status: mapReleaseStatus(releaseData.status),
           releaseDate: releaseData.release_date,
-          streamingLinks: []  // We'll implement this later if needed
+          streamingLinks: streamingLinks,
+          upc: releaseData.upc || 'Not assigned',
+          isrc: releaseData.isrc || 'Not assigned',
+          statistics: statistics
         };
 
         setRelease(formattedRelease);
@@ -91,7 +137,7 @@ const ReleaseDetails = () => {
   }, [id]);
 
   // Helper function to map database status to UI status
-  const mapReleaseStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'processing' => {
+  const mapReleaseStatus = (status: string): 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested' => {
     switch(status) {
       case 'Approved':
         return 'approved';
@@ -100,9 +146,9 @@ const ReleaseDetails = () => {
       case 'Processing':
         return 'processing';
       case 'TakeDownRequested':
-        return 'pending';
+        return 'takedownrequested';
       case 'TakeDown':
-        return 'rejected';
+        return 'takedown';
       case 'Pending':
       default:
         return 'pending';
@@ -117,9 +163,12 @@ const ReleaseDetails = () => {
       case 'approved':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
+      case 'takedown':
         return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
       case 'processing':
         return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'takedownrequested':
+        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
       default:
         return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     }
@@ -136,6 +185,10 @@ const ReleaseDetails = () => {
         return 'Rejected';
       case 'processing':
         return 'Processing';
+      case 'takedown':
+        return 'Removed';
+      case 'takedownrequested':
+        return 'Removal Requested';
       default:
         return 'Pending';
     }
@@ -144,6 +197,51 @@ const ReleaseDetails = () => {
   const handleTakeDownRequestSubmitted = () => {
     // Refresh the release data
     window.location.reload();
+  };
+  
+  const handleStatisticsSubmitted = () => {
+    setShowStatsForm(false);
+    window.location.reload();
+  };
+  
+  const handleLinksSubmitted = () => {
+    setShowLinksForm(false);
+    window.location.reload();
+  };
+  
+  const downloadAssets = async () => {
+    if (!release) return;
+    
+    try {
+      // Get audio file URL from the release
+      const { data: releaseData, error: releaseError } = await supabase
+        .from('releases')
+        .select('audio_file_url')
+        .eq('id', release.id)
+        .single();
+        
+      if (releaseError) {
+        throw releaseError;
+      }
+      
+      if (!releaseData.audio_file_url) {
+        toast.error('No audio file available for download');
+        return;
+      }
+      
+      // Create a temporary anchor to download the file
+      const link = document.createElement('a');
+      link.href = releaseData.audio_file_url;
+      link.download = `${release.title} - ${release.artist}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Download started');
+    } catch (error) {
+      console.error('Error downloading assets:', error);
+      toast.error('Failed to download assets');
+    }
   };
 
   return (
@@ -178,6 +276,33 @@ const ReleaseDetails = () => {
                           className="w-full h-full object-cover"
                         />
                       </div>
+                      
+                      {/* Release Identifiers */}
+                      <div className="mt-6 p-4 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <h3 className="text-sm font-medium mb-3 flex items-center dark:text-slate-200">
+                          <FileText className="w-4 h-4 mr-2 text-slate-500 dark:text-slate-400" />
+                          Release Information
+                        </h3>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 dark:text-slate-400">UPC:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{release.upc}</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 dark:text-slate-400">ISRC:</span>
+                            <span className="font-medium text-slate-700 dark:text-slate-300">{release.isrc}</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-slate-500 dark:text-slate-400">Status:</span>
+                            <span className={`font-medium px-2 py-0.5 rounded-full text-xs ${getStatusColor()}`}>
+                              {getStatusLabel()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                     
                     <div className="w-full md:w-2/3">
@@ -200,7 +325,10 @@ const ReleaseDetails = () => {
                       {release.status === 'approved' ? (
                         <div className="space-y-6">
                           <div>
-                            <h3 className="text-lg font-medium mb-3 dark:text-slate-200">Streaming Links</h3>
+                            <h3 className="text-lg font-medium mb-3 flex items-center dark:text-slate-200">
+                              <Link2 className="w-5 h-5 mr-2 text-blue-600 dark:text-blue-400" />
+                              Streaming Links
+                            </h3>
                             {release.streamingLinks && release.streamingLinks.length > 0 ? (
                               <div className="flex flex-wrap gap-3">
                                 {release.streamingLinks.map((link, index) => (
@@ -217,22 +345,43 @@ const ReleaseDetails = () => {
                               </div>
                             ) : (
                               <p className="text-slate-500 dark:text-slate-400">
-                                Streaming links will be available once your release is distributed.
+                                No streaming links available yet.
                               </p>
+                            )}
+                            
+                            {isAdmin && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="mt-3"
+                                onClick={() => setShowLinksForm(true)}
+                              >
+                                Manage Streaming Links
+                              </Button>
                             )}
                           </div>
                           
                           <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-                            <div className="flex gap-3">
-                              <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600">
+                            <div className="flex gap-3 flex-wrap">
+                              <Button 
+                                variant="default" 
+                                className="inline-flex items-center gap-2"
+                              >
                                 <Share2 className="w-4 h-4" />
                                 Share
-                              </button>
+                              </Button>
                               
-                              <button className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
-                                <Download className="w-4 h-4" />
+                              <Button
+                                variant="outline"
+                                className={themeClass(
+                                  "bg-white border border-slate-200 hover:bg-slate-50",
+                                  "bg-slate-800 border-slate-700 hover:bg-slate-700"
+                                )}
+                                onClick={downloadAssets}
+                              >
+                                <Download className="w-4 h-4 mr-2" />
                                 Download Assets
-                              </button>
+                              </Button>
                             </div>
                           </div>
                         </div>
@@ -252,6 +401,16 @@ const ReleaseDetails = () => {
                           {release.status === 'processing' && (
                             <p className="text-slate-600 dark:text-slate-400">
                               Your release is being processed and will be distributed to platforms soon.
+                            </p>
+                          )}
+                          {release.status === 'takedownrequested' && (
+                            <p className="text-slate-600 dark:text-slate-400">
+                              A take down request has been submitted for this release.
+                            </p>
+                          )}
+                          {release.status === 'takedown' && (
+                            <p className="text-slate-600 dark:text-slate-400">
+                              This release has been removed from all platforms.
                             </p>
                           )}
                         </div>
@@ -303,16 +462,74 @@ const ReleaseDetails = () => {
               {release.status === 'approved' && (
                 <AnimatedCard delay={100}>
                   <div className="glass-panel p-6 md:p-8 mb-8">
-                    <h2 className="text-xl font-semibold mb-4 flex items-center dark:text-slate-200">
-                      <Music className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
-                      Performance Statistics
-                    </h2>
-                    
-                    <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
-                      <p className="text-slate-600 dark:text-slate-400">
-                        Performance statistics will be available after your release has accumulated streaming activity.
-                      </p>
+                    <div className="flex justify-between items-center mb-4">
+                      <h2 className="text-xl font-semibold flex items-center dark:text-slate-200">
+                        <Music className="mr-2 h-5 w-5 text-blue-600 dark:text-blue-400" />
+                        Performance Statistics
+                      </h2>
+                      
+                      {isAdmin && (
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowStatsForm(true)}
+                        >
+                          Update Statistics
+                        </Button>
+                      )}
                     </div>
+                    
+                    {release.statistics ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Total Streams</h4>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">{release.statistics.total_streams?.toLocaleString() || '0'}</p>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Spotify</h4>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">{release.statistics.spotify_streams?.toLocaleString() || '0'}</p>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Apple Music</h4>
+                          <p className="text-2xl font-bold text-slate-900 dark:text-white">{release.statistics.apple_music_streams?.toLocaleString() || '0'}</p>
+                        </div>
+                        
+                        <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-200 dark:border-slate-700">
+                          <h4 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Last Updated</h4>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            {new Date(release.statistics.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
+                        <p className="text-slate-600 dark:text-slate-400">
+                          Performance statistics will be available after your release has accumulated streaming activity.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Stats Form modal */}
+                    {showStatsForm && (
+                      <PerformanceStatisticsForm 
+                        releaseId={release.id} 
+                        existingStats={release.statistics}
+                        onClose={() => setShowStatsForm(false)}
+                        onSubmitted={handleStatisticsSubmitted}
+                      />
+                    )}
+                    
+                    {/* Streaming links form modal */}
+                    {showLinksForm && (
+                      <StreamingLinksForm 
+                        releaseId={release.id}
+                        existingLinks={release.streamingLinks}
+                        onClose={() => setShowLinksForm(false)}
+                        onSubmitted={handleLinksSubmitted}
+                      />
+                    )}
                   </div>
                 </AnimatedCard>
               )}

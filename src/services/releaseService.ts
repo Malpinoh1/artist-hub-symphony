@@ -11,6 +11,17 @@ export type Release = {
   status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
   releaseDate?: string;
   streamingLinks?: { platform: string; url: string }[];
+  upc?: string;
+  isrc?: string;
+  statistics?: {
+    id: string;
+    total_streams: number;
+    spotify_streams: number;
+    apple_music_streams: number;
+    youtube_music_streams: number;
+    other_streams: number;
+    date: string;
+  } | null;
 };
 
 export async function fetchUserReleases(userId: string): Promise<Release[]> {
@@ -40,17 +51,43 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
       console.error("Error fetching releases:", error);
       return [];
     }
+
+    // Get all streaming links for these releases
+    const releaseIds = releases.map(release => release.id);
+    let streamingLinks = [];
     
-    return releases.map(release => ({
-      id: release.id,
-      title: release.title,
-      artist: artistData.name,
-      coverArt: release.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
-      status: mapReleaseStatus(release.status),
-      releaseDate: release.release_date,
-      // We don't have streaming links in the data model yet, so we'll leave this empty
-      streamingLinks: []
-    }));
+    if (releaseIds.length > 0) {
+      const { data: linksData, error: linksError } = await supabase
+        .from('streaming_links')
+        .select('*')
+        .in('release_id', releaseIds);
+        
+      if (!linksError && linksData) {
+        streamingLinks = linksData;
+      }
+    }
+    
+    return releases.map(release => {
+      // Filter streaming links for this release
+      const releaseLinks = streamingLinks
+        .filter(link => link.release_id === release.id)
+        .map(link => ({
+          platform: link.platform,
+          url: link.url
+        }));
+      
+      return {
+        id: release.id,
+        title: release.title,
+        artist: artistData.name,
+        coverArt: release.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
+        status: mapReleaseStatus(release.status),
+        releaseDate: release.release_date,
+        streamingLinks: releaseLinks,
+        upc: release.upc,
+        isrc: release.isrc
+      };
+    });
   } catch (error) {
     console.error("Unexpected error in fetchUserReleases:", error);
     return [];
@@ -192,6 +229,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         platforms: releaseFormData.platforms,
         audio_file_url: audioFilesUrls[0] || null, // Store the first audio URL
         upc: releaseFormData.upc || null,
+        isrc: releaseFormData.isrc || null,
       })
       .select()
       .single();
@@ -207,6 +245,106 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       
   } catch (error) {
     console.error('Error submitting release:', error);
+    return { success: false, error };
+  }
+}
+
+// Create function to add/update streaming links
+export async function manageStreamingLinks(releaseId: string, links: { platform: string, url: string }[]) {
+  try {
+    // First, delete existing links for this release
+    const { error: deleteError } = await supabase
+      .from('streaming_links')
+      .delete()
+      .eq('release_id', releaseId);
+      
+    if (deleteError) {
+      console.error("Error deleting existing links:", deleteError);
+      throw deleteError;
+    }
+    
+    // Then insert the new links
+    if (links.length > 0) {
+      const linksToInsert = links.map(link => ({
+        release_id: releaseId,
+        platform: link.platform,
+        url: link.url
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('streaming_links')
+        .insert(linksToInsert);
+        
+      if (insertError) {
+        console.error("Error inserting streaming links:", insertError);
+        throw insertError;
+      }
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error managing streaming links:', error);
+    return { success: false, error };
+  }
+}
+
+// Create function to add/update performance statistics
+export async function updatePerformanceStatistics(
+  releaseId: string, 
+  stats: { 
+    total_streams: number,
+    spotify_streams: number,
+    apple_music_streams: number,
+    youtube_music_streams: number,
+    other_streams: number
+  }
+) {
+  try {
+    // Check if stats already exist for this release
+    const { data: existingStats, error: checkError } = await supabase
+      .from('performance_statistics')
+      .select('id')
+      .eq('release_id', releaseId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking existing stats:", checkError);
+      throw checkError;
+    }
+    
+    if (existingStats) {
+      // Update existing stats
+      const { error: updateError } = await supabase
+        .from('performance_statistics')
+        .update({
+          ...stats,
+          date: new Date().toISOString()
+        })
+        .eq('id', existingStats.id);
+        
+      if (updateError) {
+        console.error("Error updating statistics:", updateError);
+        throw updateError;
+      }
+    } else {
+      // Insert new stats
+      const { error: insertError } = await supabase
+        .from('performance_statistics')
+        .insert({
+          release_id: releaseId,
+          ...stats,
+          date: new Date().toISOString()
+        });
+        
+      if (insertError) {
+        console.error("Error inserting statistics:", insertError);
+        throw insertError;
+      }
+    }
+    
+    return { success: true };
+  } catch (error) {
+    console.error('Error managing performance statistics:', error);
     return { success: false, error };
   }
 }
