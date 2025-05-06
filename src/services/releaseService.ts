@@ -2,6 +2,8 @@
 import { supabase } from "../integrations/supabase/client";
 import type { Database } from "../integrations/supabase/types";
 import { toast } from "sonner";
+import { fetchStreamingLinks, StreamingLink } from "./streamingLinksService";
+import { PerformanceStatistics } from "./statisticsService";
 
 export type Release = {
   id: string;
@@ -10,18 +12,10 @@ export type Release = {
   coverArt: string;
   status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
   releaseDate?: string;
-  streamingLinks?: { platform: string; url: string }[];
+  streamingLinks?: StreamingLink[];
   upc?: string;
   isrc?: string;
-  statistics?: {
-    id: string;
-    total_streams: number;
-    spotify_streams: number;
-    apple_music_streams: number;
-    youtube_music_streams: number;
-    other_streams: number;
-    date: string;
-  } | null;
+  statistics?: PerformanceStatistics | null;
 };
 
 export async function fetchUserReleases(userId: string): Promise<Release[]> {
@@ -57,7 +51,6 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
     let streamingLinks = [];
     
     if (releaseIds.length > 0) {
-      // Use type assertion to work around the type error
       const { data: linksData, error: linksError } = await (supabase as any)
         .from('streaming_links')
         .select('*')
@@ -250,108 +243,8 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
   }
 }
 
-// Create function to add/update streaming links
-export async function manageStreamingLinks(releaseId: string, links: { platform: string, url: string }[]) {
-  try {
-    // First, delete existing links for this release
-    const { error: deleteError } = await (supabase as any)
-      .from('streaming_links')
-      .delete()
-      .eq('release_id', releaseId);
-      
-    if (deleteError) {
-      console.error("Error deleting existing links:", deleteError);
-      throw deleteError;
-    }
-    
-    // Then insert the new links
-    if (links.length > 0) {
-      const linksToInsert = links.map(link => ({
-        release_id: releaseId,
-        platform: link.platform,
-        url: link.url
-      }));
-      
-      const { error: insertError } = await (supabase as any)
-        .from('streaming_links')
-        .insert(linksToInsert);
-        
-      if (insertError) {
-        console.error("Error inserting streaming links:", insertError);
-        throw insertError;
-      }
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error managing streaming links:', error);
-    return { success: false, error };
-  }
-}
-
-// Create function to add/update performance statistics
-export async function updatePerformanceStatistics(
-  releaseId: string, 
-  stats: { 
-    total_streams: number,
-    spotify_streams: number,
-    apple_music_streams: number,
-    youtube_music_streams: number,
-    other_streams: number
-  }
-) {
-  try {
-    // Check if stats already exist for this release
-    const { data: existingStats, error: checkError } = await (supabase as any)
-      .from('performance_statistics')
-      .select('id')
-      .eq('release_id', releaseId)
-      .maybeSingle();
-      
-    if (checkError) {
-      console.error("Error checking existing stats:", checkError);
-      throw checkError;
-    }
-    
-    if (existingStats) {
-      // Update existing stats
-      const { error: updateError } = await (supabase as any)
-        .from('performance_statistics')
-        .update({
-          ...stats,
-          date: new Date().toISOString()
-        })
-        .eq('id', existingStats.id);
-        
-      if (updateError) {
-        console.error("Error updating statistics:", updateError);
-        throw updateError;
-      }
-    } else {
-      // Insert new stats
-      const { error: insertError } = await (supabase as any)
-        .from('performance_statistics')
-        .insert({
-          release_id: releaseId,
-          ...stats,
-          date: new Date().toISOString()
-        });
-        
-      if (insertError) {
-        console.error("Error inserting statistics:", insertError);
-        throw insertError;
-      }
-    }
-    
-    return { success: true };
-  } catch (error) {
-    console.error('Error managing performance statistics:', error);
-    return { success: false, error };
-  }
-}
-
 // Helper function to map database release status to UI status
-function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] | string): 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested' {
+export function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] | string): 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested' {
   switch(status) {
     case 'Approved':
       return 'approved';
@@ -366,5 +259,61 @@ function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] 
     case 'Pending':
     default:
       return 'pending';
+  }
+}
+
+// Function to fetch a single release with streaming links and stats
+export async function fetchReleaseDetails(releaseId: string): Promise<Release | null> {
+  try {
+    // Get release information
+    const { data: releaseData, error: releaseError } = await supabase
+      .from('releases')
+      .select('*')
+      .eq('id', releaseId)
+      .single();
+
+    if (releaseError) {
+      throw releaseError;
+    }
+
+    // Get artist information
+    const { data: artistData, error: artistError } = await supabase
+      .from('artists')
+      .select('name')
+      .eq('id', releaseData.artist_id)
+      .single();
+
+    if (artistError) {
+      throw artistError;
+    }
+
+    // Get streaming links for this release
+    const streamingLinks = await fetchStreamingLinks(releaseId);
+    
+    // Get performance statistics for this release
+    const { data: statsData, error: statsError } = await (supabase as any)
+      .from('performance_statistics')
+      .select('*')
+      .eq('release_id', releaseId)
+      .order('date', { ascending: false })
+      .maybeSingle();
+    
+    const statistics = !statsError && statsData ? statsData : null;
+    
+    return {
+      id: releaseData.id,
+      title: releaseData.title,
+      artist: artistData.name,
+      coverArt: releaseData.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
+      status: mapReleaseStatus(releaseData.status),
+      releaseDate: releaseData.release_date,
+      streamingLinks: streamingLinks,
+      upc: releaseData.upc || 'Not assigned',
+      isrc: releaseData.isrc || 'Not assigned',
+      statistics: statistics
+    };
+  } catch (error) {
+    console.error('Error fetching release details:', error);
+    return null;
   }
 }
