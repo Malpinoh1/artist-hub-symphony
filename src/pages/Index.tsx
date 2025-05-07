@@ -19,17 +19,17 @@ import AnimatedCard from '../components/AnimatedCard';
 const testimonials = [
   {
     quote: "MALPINOHdistro.com.ng helped me expand my audience globally. Their service is top-notch!",
-    author: "Adewale J.",
+    author: "Liolizzy",
     role: "Independent Artist"
   },
   {
     quote: "The best music distribution service for African artists. Easy to use and responsive support.",
-    author: "Chioma E.",
+    author: "Naijareins Studio",
     role: "Afrobeats Producer"
   },
   {
     quote: "I've tried other distributors, but none match the personal touch and care that MALPINOH provides.",
-    author: "Michael O.",
+    author: "Shilex Crown",
     role: "Emerging Artist"
   }
 ];
@@ -93,7 +93,7 @@ const Index = () => {
             <div className="max-w-3xl mx-auto text-center">
               <AnimatedCard>
                 <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium mb-6">
-                  Nigerian Music Distribution Service
+                  GLOBAL MUSIC DISTRIBUTION SERVICE
                 </span>
                 
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-display font-semibold text-slate-900 leading-tight mb-6">
@@ -102,7 +102,7 @@ const Index = () => {
                 
                 <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
                   Distribute your music to major streaming platforms worldwide with a personal touch. 
-                  Made for Nigerian and African artists.
+                  Made for artists around the globe.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">

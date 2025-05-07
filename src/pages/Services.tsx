@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -153,7 +152,7 @@ const Services = () => {
             <div className="text-center mb-16">
               <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-4">Our Services</h1>
               <p className="text-slate-600 max-w-2xl mx-auto">
-                MALPINOHDISTRO offers comprehensive music distribution and promotion services to help independent artists reach their audience and grow their career.
+                MALPINOHdistro offers comprehensive music distribution and promotion services to help independent artists reach their audience and grow their career.
               </p>
             </div>
           </AnimatedCard>
@@ -244,7 +243,7 @@ const Services = () => {
                 <div className="glass-panel p-6">
                   <h3 className="text-xl font-semibold mb-2">How do I get paid my royalties?</h3>
                   <p className="text-slate-600">
-                    Royalties are collected and added to your MALPINOHDISTRO account. Once you reach the minimum withdrawal threshold, you can request a payout to your bank account from your dashboard.
+                    Royalties are collected and added to your MALPINOHdistro account. Once you reach the minimum withdrawal threshold, you can request a payout to your bank account from your dashboard.
                   </p>
                 </div>
               </div>

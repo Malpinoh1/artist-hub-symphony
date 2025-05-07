@@ -67,7 +67,7 @@ const Footer = () => {
         
         <div className="border-t border-slate-200 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
           <p className="text-sm text-slate-500">
-            © {new Date().getFullYear()} MALPINOH. All rights reserved.
+            © {new Date().getFullYear()} MALPINOHdistro. All rights reserved.
           </p>
           <p className="text-sm text-slate-500 mt-2 md:mt-0">
             Designed with ♥ in Nigeria
