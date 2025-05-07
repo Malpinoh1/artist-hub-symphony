@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   Table,
@@ -8,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { updateWithdrawalStatus } from '@/services/adminService';
+import { Withdrawal, updateWithdrawalStatus } from '@/services/adminService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
@@ -22,7 +23,7 @@ import {
 import { MoreHorizontal } from 'lucide-react';
 
 interface WithdrawalsTabProps {
-  withdrawals: any[];
+  withdrawals: Withdrawal[];
   loading: boolean;
   onWithdrawalUpdate: (id: string, status: string) => void;
 }
@@ -42,7 +43,6 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
     }
   };
   
-  // Replace the toast implementation with the correct API
   const handleStatusChange = async (withdrawalId: string, status: string) => {
     try {
       const result = await updateWithdrawalStatus(withdrawalId, status);
@@ -85,14 +85,14 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
               {withdrawals.map((withdrawal) => (
                 <TableRow key={withdrawal.id}>
                   <TableCell className="font-medium">{withdrawal.id}</TableCell>
-                  <TableCell>{withdrawal.artist_id}</TableCell>
+                  <TableCell>{withdrawal.artists?.name || withdrawal.artist_id}</TableCell>
                   <TableCell>${withdrawal.amount}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(withdrawal.status)}>
                       {withdrawal.status}
                     </Badge>
                   </TableCell>
-                  <TableCell>{new Date(withdrawal.requested_at).toLocaleDateString()}</TableCell>
+                  <TableCell>{new Date(withdrawal.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     {withdrawal.processed_at ? new Date(withdrawal.processed_at).toLocaleDateString() : 'N/A'}
                   </TableCell>

@@ -1,4 +1,45 @@
+
 import { supabase } from "../integrations/supabase/client";
+
+// Define types for our admin service data
+export interface Artist {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  created_at?: string;
+}
+
+export interface Release {
+  id: string;
+  title: string;
+  cover_art_url: string;
+  status: string;
+  release_date: string;
+  artist_name?: string;
+  artists?: {
+    id: string;
+    name: string;
+    email: string;
+  }[];
+}
+
+export interface Withdrawal {
+  id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  processed_at: string | null;
+  account_name: string;
+  account_number: string;
+  bank_name: string;
+  artist_id: string;
+  artists?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
 
 // Fetch all releases for admin dashboard
 export async function fetchAdminReleases() {

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import {
   ColumnDef,
@@ -14,8 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Artist } from '@/services/adminService';
-import { updateArtistStatus } from '@/services/adminService';
+import { Artist, updateArtistStatus } from '@/services/adminService';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 

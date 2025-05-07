@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import {
   Table,
@@ -11,11 +12,11 @@ import { Badge } from "@/components/ui/badge"
 import { MoreVertical, Pencil } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
-import { updateReleaseStatus } from '@/services/adminService';
+import { Release, updateReleaseStatus } from '@/services/adminService';
 import { toast } from 'sonner';
 
 interface ReleasesTabProps {
-  releases: any[];
+  releases: Release[];
   loading: boolean;
   onReleaseUpdate: (id: string, status: string) => void;
 }
@@ -87,7 +88,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 <TableRow key={release.id}>
                   <TableCell className="font-medium">{release.id}</TableCell>
                   <TableCell>{release.title}</TableCell>
-                  <TableCell>{release.artist_name}</TableCell>
+                  <TableCell>{release.artists?.[0]?.name}</TableCell>
                   <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(release.status)}>
