@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import * as React from 'react';
 
 interface AnimatedCardProps {
   children: React.ReactNode;
@@ -12,9 +12,9 @@ const AnimatedCard: React.FC<AnimatedCardProps> = ({
   delay = 0,
   className = "" 
 }) => {
-  const cardRef = useRef<HTMLDivElement>(null);
+  const cardRef = React.useRef<HTMLDivElement>(null);
   
-  useEffect(() => {
+  React.useEffect(() => {
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
