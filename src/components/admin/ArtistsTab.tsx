@@ -1,118 +1,142 @@
-
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { Check, Ban, ChevronRight, Users } from 'lucide-react';
+import {
+  ColumnDef,
+  flexRender,
+  useReactTable,
+  getCoreRowModel,
+} from "@tanstack/react-table";
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
+import { Artist } from '@/services/adminService';
 import { updateArtistStatus } from '@/services/adminService';
 import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 interface ArtistsTabProps {
-  artists: any[];
+  artists: Artist[];
   loading: boolean;
   onArtistUpdate: (id: string, status: string) => void;
 }
 
-const ArtistsTab: React.FC<ArtistsTabProps> = ({ artists, loading, onArtistUpdate }) => {
-  const handleArtistStatusChange = async (id: string, status: string) => {
-    const result = await updateArtistStatus(id, status);
-    if (result.success) {
-      onArtistUpdate(id, status);
-      toast({
-        title: 'Status updated',
-        description: `Artist status changed to ${status}`,
-        variant: 'default'
-      });
-    } else {
-      toast({
-        title: 'Update failed',
-        description: 'Could not update artist status',
-        variant: 'destructive'
-      });
+const ArtistsTab: React.FC<ArtistsTabProps> = ({
+  artists,
+  loading,
+  onArtistUpdate
+}) => {
+  const columns: ColumnDef<Artist>[] = [
+    {
+      accessorKey: "id",
+      header: "ID",
+    },
+    {
+      accessorKey: "name",
+      header: "Name",
+    },
+    {
+      accessorKey: "email",
+      header: "Email",
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+    },
+    {
+      id: "actions",
+      header: "Actions",
+      cell: ({ row }) => {
+        const artist = row.original;
+        return (
+          <div className="flex gap-2">
+            <Button 
+              variant="outline"
+              size="sm"
+              onClick={() => handleStatusChange(artist.id, artist.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE')}
+            >
+              {artist.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  const table = useReactTable({
+    data: artists,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+  });
+
+  const handleStatusChange = async (artistId: string, status: string) => {
+    try {
+      const result = await updateArtistStatus(artistId, status);
+      
+      if (result.success) {
+        toast.success('Artist status updated successfully');
+        onArtistUpdate(artistId, status);
+      } else {
+        toast.error('Failed to update artist status');
+      }
+    } catch (error) {
+      console.error('Error updating artist status:', error);
+      toast.error('An error occurred while updating status');
     }
   };
 
-  if (loading) {
-    return <div className="py-8 text-center text-gray-500">Loading artists...</div>;
-  }
-
-  if (artists.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <Users className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-xl font-semibold text-gray-900">No artists found</h3>
-        <p className="text-gray-500">There are no artists registered in the system yet.</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-sm text-left">
-        <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-          <tr>
-            <th scope="col" className="px-4 py-3">Name</th>
-            <th scope="col" className="px-4 py-3">Email</th>
-            <th scope="col" className="px-4 py-3">Phone</th>
-            <th scope="col" className="px-4 py-3">Balance</th>
-            <th scope="col" className="px-4 py-3">Status</th>
-            <th scope="col" className="px-4 py-3">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {artists.map((artist) => (
-            <tr key={artist.id} className="bg-white border-b hover:bg-gray-50">
-              <td className="px-4 py-4 font-medium text-gray-900">
-                {artist.name}
-              </td>
-              <td className="px-4 py-4">
-                {artist.email}
-              </td>
-              <td className="px-4 py-4">
-                {artist.phone || 'N/A'}
-              </td>
-              <td className="px-4 py-4">
-                ₦{(artist.available_balance || 0).toLocaleString()}
-              </td>
-              <td className="px-4 py-4">
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  artist.status === 'active' ? 'bg-green-100 text-green-800' : 
-                  artist.status === 'banned' ? 'bg-red-100 text-red-800' : 
-                  'bg-gray-100 text-gray-800'
-                }`}>
-                  {artist.status || 'active'}
-                </span>
-              </td>
-              <td className="px-4 py-4">
-                <div className="flex space-x-2">
-                  {artist.status !== 'active' ? (
-                    <button 
-                      onClick={() => handleArtistStatusChange(artist.id, 'active')}
-                      className="px-2 py-1 bg-green-500 text-white rounded-md hover:bg-green-600"
-                      title="Activate"
-                    >
-                      <Check className="w-4 h-4" />
-                    </button>
-                  ) : (
-                    <button 
-                      onClick={() => handleArtistStatusChange(artist.id, 'banned')}
-                      className="px-2 py-1 bg-red-500 text-white rounded-md hover:bg-red-600"
-                      title="Ban"
-                    >
-                      <Ban className="w-4 h-4" />
-                    </button>
-                  )}
-                  <Link 
-                    to={`/artists/${artist.id}`}
-                    className="px-2 py-1 bg-blue-500 text-white rounded-md hover:bg-blue-600"
-                    title="View Details"
-                  >
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </div>
-              </td>
-            </tr>
+    <div className="w-full">
+      <Table>
+        <TableCaption>List of all artists.</TableCaption>
+        <TableHeader>
+          {table.getHeaderGroups().map((headerGroup) => (
+            <TableRow key={headerGroup.id}>
+              {headerGroup.headers.map((header) => {
+                return (
+                  <TableHead key={header.id}>
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                )
+              })}
+            </TableRow>
           ))}
-        </tbody>
-      </table>
+        </TableHeader>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center">
+                Loading artists...
+              </TableCell>
+            </TableRow>
+          ) : artists.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={columns.length} className="text-center">
+                No artists found.
+              </TableCell>
+            </TableRow>
+          ) : (
+            table.getRowModel().rows.map((row) => (
+              <TableRow key={row.id}>
+                {row.getVisibleCells().map((cell) => (
+                  <TableCell key={cell.id}>
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 };

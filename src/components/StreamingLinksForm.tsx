@@ -1,7 +1,6 @@
-
 import React, { useState } from 'react';
 import { toast } from 'sonner';
-import { manageStreamingLinks } from '../services/releaseService';
+import { manageStreamingLinks } from '../services/streamingLinksService';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';

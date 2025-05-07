@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -45,11 +44,7 @@ const AdminDashboard = () => {
         setTakeDownRequestsCount(takeDownCount);
       } catch (error) {
         console.error('Error fetching admin data:', error);
-        toast({
-          title: 'Error loading data',
-          description: 'Failed to load admin dashboard data',
-          variant: 'destructive'
-        });
+        toast.error('Failed to load admin dashboard data');
       } finally {
         setLoading(false);
       }

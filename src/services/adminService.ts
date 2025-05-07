@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 
 // Fetch all releases for admin dashboard
@@ -83,17 +82,23 @@ export async function fetchTakeDownRequestsCount() {
 }
 
 // Update release status
-export async function updateReleaseStatus(id: string, status: string) {
+export async function updateReleaseStatus(releaseId: string, newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested") {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('releases')
-      .update({ status })
-      .eq('id', id);
+      .update({ status: newStatus })
+      .eq('id', releaseId)
+      .select()
+      .single();
       
-    if (error) throw error;
-    return { success: true };
+    if (error) {
+      console.error('Error updating release status:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true, data };
   } catch (error) {
-    console.error('Error updating release status:', error);
+    console.error('Error in updateReleaseStatus:', error);
     return { success: false, error };
   }
 }
