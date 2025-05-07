@@ -4,6 +4,7 @@ import type { Database } from "../integrations/supabase/types";
 import { toast } from "sonner";
 import { fetchStreamingLinks, StreamingLink } from "./streamingLinksService";
 import { PerformanceStatistics } from "./statisticsService";
+import { sendReleaseSubmissionEmail } from "./emailService";
 
 export type Release = {
   id: string;
@@ -153,6 +154,15 @@ export async function fetchUserStats(userId: string) {
 
 export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
   try {
+    // Get user email for notification
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError) {
+      console.error("Error fetching user data:", userError);
+      throw userError;
+    }
+    
+    const userEmail = userData.user.email;
+
     // Upload cover art if provided
     let coverArtUrl = null;
     if (coverArt) {
@@ -211,6 +221,18 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       audioFilesUrls.push(audioUrlData?.publicUrl);
     }
     
+    // Get artist name for email notification
+    const { data: artistData, error: artistError } = await supabase
+      .from('artists')
+      .select('name')
+      .eq('id', userId)
+      .single();
+      
+    if (artistError) {
+      console.error("Error fetching artist data:", artistError);
+      throw artistError;
+    }
+    
     // Insert release record
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
@@ -232,6 +254,11 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       console.error("Error inserting release:", releaseError);
       toast.error("Failed to submit release. Please try again.");
       throw releaseError;
+    }
+    
+    // Send confirmation email
+    if (userEmail) {
+      await sendReleaseSubmissionEmail(userEmail, releaseFormData.title, artistData.name);
     }
     
     toast.success("Release submitted successfully!");
