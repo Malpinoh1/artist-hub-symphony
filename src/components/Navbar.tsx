@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
@@ -69,7 +68,7 @@ const Navbar = () => {
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
             <span className="font-display text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
-              Malpinoh Music
+              MALPINOHdistro
             </span>
           </Link>
 

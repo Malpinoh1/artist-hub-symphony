@@ -9,11 +9,22 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { MoreVertical, Pencil } from 'lucide-react';
+import { MoreVertical, Pencil, Barcode, Database } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
-import { Release, updateReleaseStatus } from '@/services/adminService';
+import { Release, updateReleaseStatus, updateReleaseIdentifiers } from '@/services/adminService';
 import { toast } from 'sonner';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface ReleasesTabProps {
   releases: Release[];
@@ -22,7 +33,10 @@ interface ReleasesTabProps {
 }
 
 const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseUpdate }) => {
-  const [selectedStatus, setSelectedStatus] = useState('');
+  const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
+  const [upc, setUpc] = useState('');
+  const [isrc, setIsrc] = useState('');
+  const [identifierDialogOpen, setIdentifierDialogOpen] = useState(false);
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -64,6 +78,33 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     }
   };
 
+  const openIdentifiersDialog = (release: Release) => {
+    setSelectedRelease(release);
+    setUpc(release.upc || '');
+    setIsrc(release.isrc || '');
+    setIdentifierDialogOpen(true);
+  };
+
+  const handleIdentifiersUpdate = async () => {
+    if (!selectedRelease) return;
+    
+    try {
+      const result = await updateReleaseIdentifiers(selectedRelease.id, upc, isrc);
+      
+      if (result.success) {
+        toast.success('Release identifiers updated successfully');
+        // Update the local state to reflect changes
+        onReleaseUpdate(selectedRelease.id, selectedRelease.status);
+        setIdentifierDialogOpen(false);
+      } else {
+        toast.error('Failed to update release identifiers');
+      }
+    } catch (error) {
+      console.error('Error updating release identifiers:', error);
+      toast.error('An error occurred while updating identifiers');
+    }
+  };
+
   return (
     <div>
       {loading ? (
@@ -79,6 +120,8 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 <TableHead>Title</TableHead>
                 <TableHead>Artist</TableHead>
                 <TableHead>Release Date</TableHead>
+                <TableHead>UPC</TableHead>
+                <TableHead>ISRC</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -86,10 +129,12 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
             <TableBody>
               {releases.map((release) => (
                 <TableRow key={release.id}>
-                  <TableCell className="font-medium">{release.id}</TableCell>
+                  <TableCell className="font-medium">{release.id.substring(0, 8)}...</TableCell>
                   <TableCell>{release.title}</TableCell>
-                  <TableCell>{release.artists?.[0]?.name}</TableCell>
+                  <TableCell>{release.artists?.[0]?.name || 'Unknown'}</TableCell>
                   <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
+                  <TableCell>{release.upc || 'Not assigned'}</TableCell>
+                  <TableCell>{release.isrc || 'Not assigned'}</TableCell>
                   <TableCell>
                     <Badge className={getStatusColor(release.status)}>
                       {release.status}
@@ -105,6 +150,13 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem
+                          onClick={() => openIdentifiersDialog(release)}
+                        >
+                          <Barcode className="mr-2 h-4 w-4" />
+                          Update Identifiers
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleStatusChange(release.id, 'Approved')}
                         >
@@ -127,6 +179,51 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               ))}
             </TableBody>
           </Table>
+
+          <Dialog open={identifierDialogOpen} onOpenChange={setIdentifierDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Update Release Identifiers</DialogTitle>
+                <DialogDescription>
+                  Update the UPC and ISRC for "{selectedRelease?.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="upc" className="text-right">
+                    UPC
+                  </Label>
+                  <Input
+                    id="upc"
+                    value={upc}
+                    onChange={(e) => setUpc(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Enter UPC"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="isrc" className="text-right">
+                    ISRC
+                  </Label>
+                  <Input
+                    id="isrc"
+                    value={isrc}
+                    onChange={(e) => setIsrc(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Enter ISRC"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIdentifierDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleIdentifiersUpdate}>
+                  Save changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>

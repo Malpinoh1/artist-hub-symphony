@@ -7,6 +7,9 @@ export interface Artist {
   name: string;
   email: string;
   status: string;
+  wallet_balance?: number;
+  total_earnings?: number;
+  available_balance?: number;
   created_at?: string;
 }
 
@@ -16,7 +19,10 @@ export interface Release {
   cover_art_url: string;
   status: string;
   release_date: string;
+  upc?: string;
+  isrc?: string;
   artist_name?: string;
+  artist_id?: string;
   artists?: {
     id: string;
     name: string;
@@ -52,9 +58,12 @@ export async function fetchAdminReleases() {
         cover_art_url,
         status,
         release_date,
+        upc,
+        isrc,
+        artist_id,
         artists(id, name, email)
       `)
-      .order('created_at', { ascending: false });
+      .order('release_date', { ascending: false });
       
     if (releasesError) throw releasesError;
     return releasesData || [];
@@ -144,6 +153,31 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   }
 }
 
+// Update release UPC and ISRC
+export async function updateReleaseIdentifiers(releaseId: string, upc: string, isrc: string) {
+  try {
+    const { data, error } = await supabase
+      .from('releases')
+      .update({ 
+        upc,
+        isrc
+      })
+      .eq('id', releaseId)
+      .select()
+      .single();
+      
+    if (error) {
+      console.error('Error updating release identifiers:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateReleaseIdentifiers:', error);
+    return { success: false, error };
+  }
+}
+
 // Update withdrawal status
 export async function updateWithdrawalStatus(id: string, status: string) {
   try {
@@ -176,5 +210,21 @@ export async function updateArtistStatus(id: string, status: string) {
   } catch (error) {
     console.error('Error updating artist status:', error);
     return { success: false, error };
+  }
+}
+
+// Fetch summary of artists' earnings
+export async function fetchArtistsEarningSummary() {
+  try {
+    const { data, error } = await supabase
+      .from('artists')
+      .select('id, name, email, wallet_balance, total_earnings, available_balance')
+      .order('total_earnings', { ascending: false });
+      
+    if (error) throw error;
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching artists earnings summary:', error);
+    return [];
   }
 }
