@@ -29,33 +29,33 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [takeDownRequestsCount, setTakeDownRequestsCount] = useState(0);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      
-      try {
-        // Fetch all data in parallel
-        const [releasesData, withdrawalsData, artistsData, takeDownCount, artistsEarningsData] = await Promise.all([
-          fetchAdminReleases(),
-          fetchAdminWithdrawals(),
-          fetchAdminArtists(),
-          fetchTakeDownRequestsCount(),
-          fetchArtistsEarningSummary()
-        ]);
-        
-        setReleases(releasesData);
-        setWithdrawals(withdrawalsData);
-        setArtists(artistsData);
-        setArtistsEarnings(artistsEarningsData);
-        setTakeDownRequestsCount(takeDownCount);
-      } catch (error) {
-        console.error('Error fetching admin data:', error);
-        toast.error('Failed to load admin dashboard data');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDashboardData = async () => {
+    setLoading(true);
     
+    try {
+      // Fetch all data in parallel
+      const [releasesData, withdrawalsData, artistsData, takeDownCount, artistsEarningsData] = await Promise.all([
+        fetchAdminReleases(),
+        fetchAdminWithdrawals(),
+        fetchAdminArtists(),
+        fetchTakeDownRequestsCount(),
+        fetchArtistsEarningSummary()
+      ]);
+      
+      setReleases(releasesData);
+      setWithdrawals(withdrawalsData);
+      setArtists(artistsData);
+      setArtistsEarnings(artistsEarningsData);
+      setTakeDownRequestsCount(takeDownCount);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load admin dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchDashboardData();
   }, []);
   
@@ -85,6 +85,11 @@ const AdminDashboard = () => {
     setArtists(prev => prev.map(artist => 
       artist.id === id ? { ...artist, status } : artist
     ));
+  };
+
+  // Handle refresh data
+  const handleRefreshData = () => {
+    fetchDashboardData();
   };
   
   // Handle tab change
@@ -134,6 +139,7 @@ const AdminDashboard = () => {
           <ArtistsEarningsTab 
             artistsEarnings={artistsEarnings} 
             loading={loading}
+            onArtistUpdate={handleRefreshData}
           />
         );
       case 'analytics':

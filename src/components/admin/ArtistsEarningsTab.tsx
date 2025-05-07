@@ -8,20 +8,45 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Edit2 } from "lucide-react";
 import { Artist } from '@/services/adminService';
+import ArtistEarningsEditor from './ArtistEarningsEditor';
 
 interface ArtistsEarningsTabProps {
   artistsEarnings: Artist[];
   loading: boolean;
+  onArtistUpdate?: () => void;
 }
 
-const ArtistsEarningsTab: React.FC<ArtistsEarningsTabProps> = ({ artistsEarnings, loading }) => {
+const ArtistsEarningsTab: React.FC<ArtistsEarningsTabProps> = ({ 
+  artistsEarnings, 
+  loading,
+  onArtistUpdate = () => {} 
+}) => {
+  const [selectedArtist, setSelectedArtist] = React.useState<Artist | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+
   const formatCurrency = (amount: number | undefined) => {
     if (amount === undefined) return '$0.00';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
     }).format(amount);
+  };
+
+  const handleOpenEditor = (artist: Artist) => {
+    setSelectedArtist(artist);
+    setIsEditorOpen(true);
+  };
+
+  const handleCloseEditor = () => {
+    setIsEditorOpen(false);
+    setSelectedArtist(null);
+  };
+
+  const handleUpdate = () => {
+    onArtistUpdate();
   };
 
   return (
@@ -40,12 +65,13 @@ const ArtistsEarningsTab: React.FC<ArtistsEarningsTabProps> = ({ artistsEarnings
                 <TableHead>Total Earnings</TableHead>
                 <TableHead>Available Balance</TableHead>
                 <TableHead>Wallet Balance</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {artistsEarnings.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     No earnings data available
                   </TableCell>
                 </TableRow>
@@ -57,12 +83,31 @@ const ArtistsEarningsTab: React.FC<ArtistsEarningsTabProps> = ({ artistsEarnings
                     <TableCell>{formatCurrency(artist.total_earnings)}</TableCell>
                     <TableCell>{formatCurrency(artist.available_balance)}</TableCell>
                     <TableCell>{formatCurrency(artist.wallet_balance)}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleOpenEditor(artist)}
+                      >
+                        <Edit2 className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))
               )}
             </TableBody>
           </Table>
         </div>
+      )}
+
+      {selectedArtist && (
+        <ArtistEarningsEditor
+          artist={selectedArtist}
+          isOpen={isEditorOpen}
+          onClose={handleCloseEditor}
+          onUpdate={handleUpdate}
+        />
       )}
     </div>
   );

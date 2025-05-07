@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { MoreVertical, Pencil, Barcode, Database } from 'lucide-react';
+import { MoreVertical, Pencil, Barcode, Database, BarChart, Link } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
 import { Release, updateReleaseStatus, updateReleaseIdentifiers } from '@/services/adminService';
@@ -21,10 +21,14 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { fetchReleaseDetails } from '@/services/releaseService';
+import { fetchStreamingLinks, StreamingLink } from '@/services/streamingLinksService';
+import PerformanceStatisticsEditor from './PerformanceStatisticsEditor';
+import StreamingLinksEditor from './StreamingLinksEditor';
+import { PerformanceStatistics } from '@/services/statisticsService';
 
 interface ReleasesTabProps {
   releases: Release[];
@@ -37,6 +41,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [upc, setUpc] = useState('');
   const [isrc, setIsrc] = useState('');
   const [identifierDialogOpen, setIdentifierDialogOpen] = useState(false);
+  const [statsDialogOpen, setStatsDialogOpen] = useState(false);
+  const [linksDialogOpen, setLinksDialogOpen] = useState(false);
+  const [releaseStatistics, setReleaseStatistics] = useState<PerformanceStatistics | null>(null);
+  const [streamingLinks, setStreamingLinks] = useState<StreamingLink[]>([]);
+  const [loadingDetails, setLoadingDetails] = useState(false);
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -105,6 +114,58 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     }
   };
 
+  const fetchReleaseStats = async (releaseId: string) => {
+    setLoadingDetails(true);
+    try {
+      const releaseDetails = await fetchReleaseDetails(releaseId);
+      if (releaseDetails) {
+        setReleaseStatistics(releaseDetails.statistics || null);
+      }
+    } catch (error) {
+      console.error("Error fetching release statistics:", error);
+      toast.error("Could not load release statistics");
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const fetchReleaseLinks = async (releaseId: string) => {
+    setLoadingDetails(true);
+    try {
+      const links = await fetchStreamingLinks(releaseId);
+      setStreamingLinks(links || []);
+    } catch (error) {
+      console.error("Error fetching streaming links:", error);
+      toast.error("Could not load streaming links");
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
+
+  const openStatsDialog = async (release: Release) => {
+    setSelectedRelease(release);
+    await fetchReleaseStats(release.id);
+    setStatsDialogOpen(true);
+  };
+
+  const openLinksDialog = async (release: Release) => {
+    setSelectedRelease(release);
+    await fetchReleaseLinks(release.id);
+    setLinksDialogOpen(true);
+  };
+
+  const handleStatsUpdate = () => {
+    if (selectedRelease) {
+      fetchReleaseStats(selectedRelease.id);
+    }
+  };
+
+  const handleLinksUpdate = () => {
+    if (selectedRelease) {
+      fetchReleaseLinks(selectedRelease.id);
+    }
+  };
+
   return (
     <div>
       {loading ? (
@@ -156,6 +217,18 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                           <Barcode className="mr-2 h-4 w-4" />
                           Update Identifiers
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openStatsDialog(release)}
+                        >
+                          <BarChart className="mr-2 h-4 w-4" />
+                          Update Analytics
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => openLinksDialog(release)}
+                        >
+                          <Link className="mr-2 h-4 w-4" />
+                          Update Streaming Links
+                        </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
                           onClick={() => handleStatusChange(release.id, 'Approved')}
@@ -180,6 +253,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
             </TableBody>
           </Table>
 
+          {/* Identifiers Dialog */}
           <Dialog open={identifierDialogOpen} onOpenChange={setIdentifierDialogOpen}>
             <DialogContent className="sm:max-w-[425px]">
               <DialogHeader>
@@ -224,6 +298,28 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               </DialogFooter>
             </DialogContent>
           </Dialog>
+
+          {/* Performance Statistics Editor Dialog */}
+          {selectedRelease && (
+            <PerformanceStatisticsEditor
+              releaseId={selectedRelease.id}
+              currentStats={releaseStatistics}
+              isOpen={statsDialogOpen}
+              onClose={() => setStatsDialogOpen(false)}
+              onUpdate={handleStatsUpdate}
+            />
+          )}
+
+          {/* Streaming Links Editor Dialog */}
+          {selectedRelease && (
+            <StreamingLinksEditor
+              releaseId={selectedRelease.id}
+              currentLinks={streamingLinks}
+              isOpen={linksDialogOpen}
+              onClose={() => setLinksDialogOpen(false)}
+              onUpdate={handleLinksUpdate}
+            />
+          )}
         </div>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 
 // Define types for our admin service data
@@ -226,5 +225,35 @@ export async function fetchArtistsEarningSummary() {
   } catch (error) {
     console.error('Error fetching artists earnings summary:', error);
     return [];
+  }
+}
+
+// Update artist earnings
+export async function updateArtistEarnings(
+  artistId: string, 
+  totalEarnings: number, 
+  availableBalance: number, 
+  walletBalance: number
+) {
+  try {
+    const { data, error } = await supabase
+      .from('artists')
+      .update({ 
+        total_earnings: totalEarnings,
+        available_balance: availableBalance,
+        wallet_balance: walletBalance
+      })
+      .eq('id', artistId)
+      .select();
+      
+    if (error) {
+      console.error('Error updating artist earnings:', error);
+      return { success: false, error };
+    }
+    
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error in updateArtistEarnings:', error);
+    return { success: false, error };
   }
 }
