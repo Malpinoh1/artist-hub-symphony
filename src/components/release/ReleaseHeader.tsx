@@ -20,7 +20,7 @@ const ReleaseHeader: React.FC<ReleaseHeaderProps> = ({
   takeDownRequest
 }) => {
   const getStatusColor = () => {
-    switch (release.status) {
+    switch (release.status.toLowerCase()) {
       case 'approved':
         return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
@@ -36,7 +36,7 @@ const ReleaseHeader: React.FC<ReleaseHeaderProps> = ({
   };
 
   const getStatusLabel = () => {
-    switch (release.status) {
+    switch (release.status.toLowerCase()) {
       case 'approved':
         return 'Approved';
       case 'rejected':
@@ -75,7 +75,7 @@ const ReleaseHeader: React.FC<ReleaseHeaderProps> = ({
       <h2 className="text-xl text-slate-700 dark:text-slate-300 mb-6">{release.artist}</h2>
       
       {/* Release Actions */}
-      {release.status === 'approved' && (
+      {release.status.toLowerCase() === 'approved' && (
         <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
           <div className="flex gap-3 flex-wrap">
             <Button 

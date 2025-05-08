@@ -50,7 +50,7 @@ export async function updatePerformanceStatistics(
           date: new Date().toISOString()
         })
         .eq('id', existingStats.id)
-        .select();
+        .single();
         
       if (updateError) {
         console.error("Error updating statistics:", updateError);
@@ -69,7 +69,8 @@ export async function updatePerformanceStatistics(
           ...stats,
           date: new Date().toISOString()
         })
-        .select();
+        .select()
+        .single();
         
       if (insertError) {
         console.error("Error inserting statistics:", insertError);

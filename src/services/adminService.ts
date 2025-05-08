@@ -136,6 +136,26 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
+    // First, verify the release exists
+    const { data: existingRelease, error: checkError } = await supabase
+      .from('releases')
+      .select('id, status')
+      .eq('id', releaseId)
+      .single();
+      
+    if (checkError) {
+      console.error('Error checking release existence:', checkError);
+      return { success: false, error: checkError };
+    }
+    
+    if (!existingRelease) {
+      console.error('Release not found:', releaseId);
+      return { success: false, error: 'Release not found' };
+    }
+    
+    console.log('Found existing release, current status:', existingRelease.status);
+    
+    // Now update the status
     const { data, error } = await supabase
       .from('releases')
       .update({ status: newStatus })
@@ -167,6 +187,24 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
+    // First, verify the release exists
+    const { data: existingRelease, error: checkError } = await supabase
+      .from('releases')
+      .select('id')
+      .eq('id', releaseId)
+      .single();
+      
+    if (checkError) {
+      console.error('Error checking release existence:', checkError);
+      return { success: false, error: checkError };
+    }
+    
+    if (!existingRelease) {
+      console.error('Release not found for identifier update:', releaseId);
+      return { success: false, error: 'Release not found' };
+    }
+    
+    // Now update the identifiers
     const { data, error } = await supabase
       .from('releases')
       .update({ 
@@ -254,6 +292,24 @@ export async function updateArtistEarnings(
   });
   
   try {
+    // First, verify the artist exists
+    const { data: existingArtist, error: checkError } = await supabase
+      .from('artists')
+      .select('id')
+      .eq('id', artistId)
+      .single();
+      
+    if (checkError) {
+      console.error('Error checking artist existence:', checkError);
+      return { success: false, error: checkError };
+    }
+    
+    if (!existingArtist) {
+      console.error('Artist not found for earnings update:', artistId);
+      return { success: false, error: 'Artist not found' };
+    }
+    
+    // Now update the earnings
     const { data, error } = await supabase
       .from('artists')
       .update({ 
