@@ -45,7 +45,9 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     const { success, error } = await signOut();
-    if (!success && error) {
+    if (success) {
+      toast.success("Successfully signed out");
+    } else if (error) {
       toast.error("Failed to sign out. Please try again.");
     }
   };
@@ -101,13 +103,13 @@ const Navbar = () => {
                 <Button asChild variant="outline">
                   <Link to="/dashboard">Dashboard</Link>
                 </Button>
-                <Button onClick={handleSignOut} variant="ghost" className="flex items-center gap-1">
+                <Button onClick={handleSignOut} variant="destructive" className="flex items-center gap-1">
                   <LogOut size={16} />
                   Sign Out
                 </Button>
               </div>
             ) : (
-              <Button asChild className="ml-4">
+              <Button asChild className="ml-4 bg-violet-600 hover:bg-violet-700 text-white">
                 <Link to="/auth">Get Started</Link>
               </Button>
             )}
@@ -116,6 +118,12 @@ const Navbar = () => {
           {/* Mobile Navigation Toggle */}
           <div className="flex items-center space-x-3 md:hidden">
             <ThemeToggle />
+            {isLoggedIn && (
+              <Button onClick={handleSignOut} variant="destructive" size="sm" className="flex items-center gap-1">
+                <LogOut size={14} />
+                <span className="sr-only md:not-sr-only">Sign Out</span>
+              </Button>
+            )}
             <button
               onClick={toggleMenu}
               className="p-2 text-slate-700 dark:text-slate-300 focus:outline-none"
@@ -160,7 +168,7 @@ const Navbar = () => {
                       handleSignOut();
                       closeMenu();
                     }}
-                    className="py-2 px-3 text-left rounded-lg text-slate-700 dark:text-slate-300 flex items-center gap-2"
+                    className="py-2 px-3 text-left rounded-lg bg-red-500 text-white flex items-center gap-2"
                   >
                     <LogOut size={16} />
                     Sign Out

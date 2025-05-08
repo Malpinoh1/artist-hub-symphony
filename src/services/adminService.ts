@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 
 // Define types for our admin service data
@@ -143,6 +144,12 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
     if (error) {
       console.error('Error updating release status:', error);
       return { success: false, error };
+    }
+    
+    // If a release is approved, send notification email to artist
+    if (newStatus === 'Approved') {
+      // Email notification logic can be added here
+      console.log('Release approved, notification could be sent');
     }
     
     return { success: true, data };

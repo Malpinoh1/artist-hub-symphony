@@ -1,4 +1,5 @@
 
+
 import { supabase } from "../integrations/supabase/client";
 
 // Utility function to completely clean up auth state
@@ -39,3 +40,4 @@ export const signOut = async () => {
     return { success: false, error };
   }
 };
+

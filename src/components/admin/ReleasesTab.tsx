@@ -29,6 +29,13 @@ import { fetchStreamingLinks, StreamingLink } from '@/services/streamingLinksSer
 import PerformanceStatisticsEditor from './PerformanceStatisticsEditor';
 import StreamingLinksEditor from './StreamingLinksEditor';
 import { PerformanceStatistics } from '@/services/statisticsService';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface ReleasesTabProps {
   releases: Release[];
@@ -41,6 +48,8 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [upc, setUpc] = useState('');
   const [isrc, setIsrc] = useState('');
   const [identifierDialogOpen, setIdentifierDialogOpen] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [selectedStatus, setSelectedStatus] = useState('');
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [linksDialogOpen, setLinksDialogOpen] = useState(false);
   const [releaseStatistics, setReleaseStatistics] = useState<PerformanceStatistics | null>(null);
@@ -71,13 +80,22 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     }
   };
   
-  const handleStatusChange = async (releaseId: string, status: string) => {
+  const openStatusDialog = (release: Release) => {
+    setSelectedRelease(release);
+    setSelectedStatus(release.status);
+    setStatusDialogOpen(true);
+  };
+  
+  const handleStatusChange = async () => {
+    if (!selectedRelease || !selectedStatus) return;
+    
     try {
-      const result = await updateReleaseStatus(releaseId, status as any);
+      const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
       
       if (result.success) {
-        toast.success('Release status updated successfully');
-        onReleaseUpdate(releaseId, status);
+        toast.success(`Release status updated to ${selectedStatus}`);
+        onReleaseUpdate(selectedRelease.id, selectedStatus);
+        setStatusDialogOpen(false);
       } else {
         toast.error('Failed to update release status');
       }
@@ -157,12 +175,14 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const handleStatsUpdate = () => {
     if (selectedRelease) {
       fetchReleaseStats(selectedRelease.id);
+      toast.success("Statistics updated successfully");
     }
   };
 
   const handleLinksUpdate = () => {
     if (selectedRelease) {
       fetchReleaseLinks(selectedRelease.id);
+      toast.success("Streaming links updated successfully");
     }
   };
 
@@ -170,7 +190,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     <div>
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 dark:border-blue-400"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500 dark:border-violet-400"></div>
         </div>
       ) : (
         <div className="w-full overflow-x-auto">
@@ -188,70 +208,114 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               </TableRow>
             </TableHeader>
             <TableBody>
-              {releases.map((release) => (
-                <TableRow key={release.id}>
-                  <TableCell className="font-medium">{release.id.substring(0, 8)}...</TableCell>
-                  <TableCell>{release.title}</TableCell>
-                  <TableCell>{release.artists?.[0]?.name || 'Unknown'}</TableCell>
-                  <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
-                  <TableCell>{release.upc || 'Not assigned'}</TableCell>
-                  <TableCell>{release.isrc || 'Not assigned'}</TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(release.status)}>
-                      {release.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem
-                          onClick={() => openIdentifiersDialog(release)}
-                        >
-                          <Barcode className="mr-2 h-4 w-4" />
-                          Update Identifiers
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => openStatsDialog(release)}
-                        >
-                          <BarChart className="mr-2 h-4 w-4" />
-                          Update Analytics
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => openLinksDialog(release)}
-                        >
-                          <Link className="mr-2 h-4 w-4" />
-                          Update Streaming Links
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange(release.id, 'Approved')}
-                        >
-                          Approve
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange(release.id, 'Rejected')}
-                        >
-                          Reject
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => handleStatusChange(release.id, 'TakeDown')}
-                        >
-                          Take Down
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {releases.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+                    No releases found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                releases.map((release) => (
+                  <TableRow key={release.id}>
+                    <TableCell className="font-medium">{release.id.substring(0, 8)}...</TableCell>
+                    <TableCell>{release.title}</TableCell>
+                    <TableCell>{release.artists?.[0]?.name || 'Unknown'}</TableCell>
+                    <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
+                    <TableCell>{release.upc || 'Not assigned'}</TableCell>
+                    <TableCell>{release.isrc || 'Not assigned'}</TableCell>
+                    <TableCell>
+                      <Badge 
+                        className={`cursor-pointer ${getStatusColor(release.status)}`}
+                        onClick={() => openStatusDialog(release)}
+                      >
+                        {release.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56">
+                          <DropdownMenuLabel>Manage Release</DropdownMenuLabel>
+                          <DropdownMenuItem
+                            onClick={() => openStatusDialog(release)}
+                            className="text-violet-600 dark:text-violet-400 font-medium"
+                          >
+                            <Pencil className="mr-2 h-4 w-4" />
+                            Update Status
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openIdentifiersDialog(release)}
+                          >
+                            <Barcode className="mr-2 h-4 w-4" />
+                            Update Identifiers
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openStatsDialog(release)}
+                          >
+                            <BarChart className="mr-2 h-4 w-4" />
+                            Update Analytics
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openLinksDialog(release)}
+                          >
+                            <Link className="mr-2 h-4 w-4" />
+                            Update Streaming Links
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
+
+          {/* Status Dialog */}
+          <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Update Release Status</DialogTitle>
+                <DialogDescription>
+                  Change the status for "{selectedRelease?.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="status" className="text-right">
+                    Status
+                  </Label>
+                  <Select 
+                    value={selectedStatus} 
+                    onValueChange={setSelectedStatus}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {statusOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleStatusChange}>
+                  Save changes
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {/* Identifiers Dialog */}
           <Dialog open={identifierDialogOpen} onOpenChange={setIdentifierDialogOpen}>

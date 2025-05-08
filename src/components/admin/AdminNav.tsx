@@ -16,7 +16,7 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
           <button
             className={`inline-block p-4 border-b-2 rounded-t-lg ${
               activeTab === 'releases' 
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
                 : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
             }`}
             onClick={() => onTabChange('releases')}
@@ -31,7 +31,7 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
           <button
             className={`inline-block p-4 border-b-2 rounded-t-lg ${
               activeTab === 'withdrawals' 
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
                 : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
             }`}
             onClick={() => onTabChange('withdrawals')}
@@ -46,7 +46,7 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
           <button
             className={`inline-block p-4 border-b-2 rounded-t-lg ${
               activeTab === 'artists' 
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
                 : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
             }`}
             onClick={() => onTabChange('artists')}
@@ -61,7 +61,7 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
           <button
             className={`inline-block p-4 border-b-2 rounded-t-lg ${
               activeTab === 'analytics' 
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
                 : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
             }`}
             onClick={() => onTabChange('analytics')}
@@ -76,7 +76,7 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
           <button
             className={`inline-block p-4 border-b-2 rounded-t-lg ${
               activeTab === 'takedown' 
-                ? 'text-blue-600 dark:text-blue-400 border-blue-600 dark:border-blue-400' 
+                ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
                 : 'border-transparent hover:text-gray-600 hover:border-gray-300 dark:hover:text-gray-400 dark:hover:border-gray-700'
             }`}
             onClick={() => onTabChange('takedown')}
