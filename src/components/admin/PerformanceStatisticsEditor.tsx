@@ -35,17 +35,29 @@ const PerformanceStatisticsEditor = ({
   const [youtubeMusicStreams, setYoutubeMusicStreams] = useState<string>('0');
   const [otherStreams, setOtherStreams] = useState<string>('0');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Initialize form with current stats if available
   useEffect(() => {
     if (currentStats) {
-      setTotalStreams(currentStats.total_streams.toString());
       setSpotifyStreams(currentStats.spotify_streams.toString());
       setAppleMusicStreams(currentStats.apple_music_streams.toString());
       setYoutubeMusicStreams(currentStats.youtube_music_streams.toString());
       setOtherStreams(currentStats.other_streams.toString());
+      setTotalStreams(currentStats.total_streams.toString());
+    } else {
+      resetForm();
     }
-  }, [currentStats]);
+  }, [currentStats, isOpen]);
+  
+  const resetForm = () => {
+    setSpotifyStreams('0');
+    setAppleMusicStreams('0');
+    setYoutubeMusicStreams('0');
+    setOtherStreams('0');
+    setTotalStreams('0');
+    setError(null);
+  };
   
   // Calculate total streams based on individual platform streams
   useEffect(() => {
@@ -57,9 +69,35 @@ const PerformanceStatisticsEditor = ({
     setTotalStreams((spotify + apple + youtube + other).toString());
   }, [spotifyStreams, appleMusicStreams, youtubeMusicStreams, otherStreams]);
 
+  const validateForm = () => {
+    const spotify = parseInt(spotifyStreams);
+    const apple = parseInt(appleMusicStreams);
+    const youtube = parseInt(youtubeMusicStreams);
+    const other = parseInt(otherStreams);
+    
+    if (isNaN(spotify) || isNaN(apple) || isNaN(youtube) || isNaN(other)) {
+      setError("All stream counts must be valid numbers");
+      return false;
+    }
+    
+    if (spotify < 0 || apple < 0 || youtube < 0 || other < 0) {
+      setError("Stream counts cannot be negative");
+      return false;
+    }
+    
+    setError(null);
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
     
     try {
       const stats = {
@@ -77,10 +115,12 @@ const PerformanceStatisticsEditor = ({
         onUpdate();
         onClose();
       } else {
+        setError("Failed to update performance statistics");
         toast.error("Failed to update performance statistics");
       }
-    } catch (error) {
-      console.error("Error updating performance statistics:", error);
+    } catch (err) {
+      console.error("Error updating performance statistics:", err);
+      setError("An error occurred while updating statistics");
       toast.error("An error occurred while updating statistics");
     } finally {
       setLoading(false);
@@ -98,6 +138,12 @@ const PerformanceStatisticsEditor = ({
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+          
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="totalStreams" className="text-right">
@@ -108,7 +154,7 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={totalStreams}
                 readOnly
-                className="col-span-3 bg-slate-100"
+                className="col-span-3 bg-slate-100 dark:bg-slate-800"
               />
             </div>
             

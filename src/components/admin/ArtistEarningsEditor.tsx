@@ -27,10 +27,36 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
   const [availableBalance, setAvailableBalance] = useState(artist.available_balance?.toString() || '0');
   const [walletBalance, setWalletBalance] = useState(artist.wallet_balance?.toString() || '0');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const validateForm = () => {
+    const total = parseFloat(totalEarnings);
+    const available = parseFloat(availableBalance);
+    const wallet = parseFloat(walletBalance);
+    
+    if (isNaN(total) || isNaN(available) || isNaN(wallet)) {
+      setError("All values must be valid numbers");
+      return false;
+    }
+    
+    if (total < 0 || available < 0 || wallet < 0) {
+      setError("Earnings values cannot be negative");
+      return false;
+    }
+    
+    setError(null);
+    return true;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setLoading(true);
+    setError(null);
     
     try {
       const result = await updateArtistEarnings(
@@ -45,10 +71,12 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
         onUpdate();
         onClose();
       } else {
+        setError("Failed to update artist earnings");
         toast.error("Failed to update artist earnings");
       }
     } catch (error) {
       console.error("Error updating artist earnings:", error);
+      setError("An error occurred while updating earnings");
       toast.error("An error occurred while updating earnings");
     } finally {
       setLoading(false);
@@ -66,13 +94,19 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md text-sm">
+              {error}
+            </div>
+          )}
+          
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="totalEarnings" className="text-right">
                 Total Earnings
               </Label>
               <div className="col-span-3 relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">$</span>
                 <Input
                   id="totalEarnings"
                   type="number"
@@ -90,7 +124,7 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
                 Available Balance
               </Label>
               <div className="col-span-3 relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">$</span>
                 <Input
                   id="availableBalance"
                   type="number"
@@ -108,7 +142,7 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
                 Wallet Balance
               </Label>
               <div className="col-span-3 relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">$</span>
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">$</span>
                 <Input
                   id="walletBalance"
                   type="number"

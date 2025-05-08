@@ -126,6 +126,23 @@
   .font-display {
     @apply font-sans font-bold;
   }
+  
+  /* Improved dark/light mode text contrast */
+  .dark .text-slate-600 {
+    @apply text-slate-400;
+  }
+  
+  .dark .text-slate-700 {
+    @apply text-slate-300;
+  }
+  
+  .dark .text-slate-800 {
+    @apply text-slate-200;
+  }
+  
+  .dark .bg-slate-100 {
+    @apply bg-slate-800;
+  }
 }
 
 /* Custom scrollbar */
@@ -143,4 +160,17 @@
 
 ::-webkit-scrollbar-thumb:hover {
   @apply bg-gray-400 dark:bg-gray-600;
+}
+
+/* Enhanced dark mode table styles */
+.dark .table th {
+  @apply text-slate-300 border-slate-700;
+}
+
+.dark .table td {
+  @apply border-slate-700 text-slate-300;
+}
+
+.dark .table tr:hover {
+  @apply bg-slate-800/50;
 }

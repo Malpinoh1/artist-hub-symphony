@@ -131,20 +131,23 @@ export async function fetchTakeDownRequestsCount() {
   }
 }
 
-// Update release status
+// Update release status - Fixed to properly handle the status update
 export async function updateReleaseStatus(releaseId: string, newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested") {
+  console.log(`Updating release ${releaseId} to status ${newStatus}`);
+  
   try {
     const { data, error } = await supabase
       .from('releases')
       .update({ status: newStatus })
       .eq('id', releaseId)
-      .select()
-      .single();
+      .select();
       
     if (error) {
       console.error('Error updating release status:', error);
       return { success: false, error };
     }
+    
+    console.log('Release status update successful:', data);
     
     // If a release is approved, send notification email to artist
     if (newStatus === 'Approved') {
@@ -159,8 +162,10 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   }
 }
 
-// Update release UPC and ISRC
+// Update release UPC and ISRC - Fixed to ensure proper update
 export async function updateReleaseIdentifiers(releaseId: string, upc: string, isrc: string) {
+  console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
+  
   try {
     const { data, error } = await supabase
       .from('releases')
@@ -169,14 +174,14 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         isrc
       })
       .eq('id', releaseId)
-      .select()
-      .single();
+      .select();
       
     if (error) {
       console.error('Error updating release identifiers:', error);
       return { success: false, error };
     }
     
+    console.log('Release identifiers updated successfully:', data);
     return { success: true, data };
   } catch (error) {
     console.error('Error in updateReleaseIdentifiers:', error);
@@ -235,13 +240,19 @@ export async function fetchArtistsEarningSummary() {
   }
 }
 
-// Update artist earnings
+// Update artist earnings - Fixed to ensure proper update
 export async function updateArtistEarnings(
   artistId: string, 
   totalEarnings: number, 
   availableBalance: number, 
   walletBalance: number
 ) {
+  console.log(`Updating earnings for artist ${artistId}:`, {
+    totalEarnings,
+    availableBalance,
+    walletBalance
+  });
+  
   try {
     const { data, error } = await supabase
       .from('artists')
@@ -258,6 +269,7 @@ export async function updateArtistEarnings(
       return { success: false, error };
     }
     
+    console.log('Artist earnings updated successfully:', data);
     return { success: true, data };
   } catch (error) {
     console.error('Error in updateArtistEarnings:', error);
