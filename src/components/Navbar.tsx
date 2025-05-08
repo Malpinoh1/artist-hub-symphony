@@ -1,9 +1,12 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import ThemeToggle from './ThemeToggle';
+import { signOut } from '../services/authService';
+import { toast } from 'sonner';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -41,7 +44,10 @@ const Navbar = () => {
   }, []);
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    const { success, error } = await signOut();
+    if (!success && error) {
+      toast.error("Failed to sign out. Please try again.");
+    }
   };
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -95,7 +101,8 @@ const Navbar = () => {
                 <Button asChild variant="outline">
                   <Link to="/dashboard">Dashboard</Link>
                 </Button>
-                <Button onClick={handleSignOut} variant="ghost">
+                <Button onClick={handleSignOut} variant="ghost" className="flex items-center gap-1">
+                  <LogOut size={16} />
                   Sign Out
                 </Button>
               </div>
@@ -153,8 +160,9 @@ const Navbar = () => {
                       handleSignOut();
                       closeMenu();
                     }}
-                    className="py-2 px-3 text-left rounded-lg text-slate-700 dark:text-slate-300"
+                    className="py-2 px-3 text-left rounded-lg text-slate-700 dark:text-slate-300 flex items-center gap-2"
                   >
+                    <LogOut size={16} />
                     Sign Out
                   </button>
                 </>

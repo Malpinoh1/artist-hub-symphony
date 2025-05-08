@@ -14,7 +14,6 @@ interface EmailRequest {
   to: string;
   subject: string;
   html: string;
-  from?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -24,31 +23,38 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, html, from = "MALPINOHdistro <onboarding@resend.dev>" }: EmailRequest = await req.json();
+    const { to, subject, html }: EmailRequest = await req.json();
 
     if (!to || !subject || !html) {
-      throw new Error("Missing required fields: to, subject, or html");
+      console.error("Missing required fields:", { to, subject, html: !!html });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
     }
 
-    console.log(`Sending email to ${to} with subject: ${subject}`);
+    console.log(`Sending email to: ${to}`);
+    console.log(`Subject: ${subject}`);
+    console.log(`Content length: ${html.length} characters`);
+
     const emailResponse = await resend.emails.send({
-      from,
+      from: "MALPINOHdistro <no-reply@resend.dev>",
       to: [to],
-      subject,
-      html,
+      subject: subject,
+      html: html,
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    console.log("Email sent response:", emailResponse);
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,
-      headers: {
-        "Content-Type": "application/json",
-        ...corsHeaders,
-      },
+      headers: { "Content-Type": "application/json", ...corsHeaders },
     });
   } catch (error: any) {
-    console.error("Error in send-email function:", error);
+    console.error("Error sending email:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
