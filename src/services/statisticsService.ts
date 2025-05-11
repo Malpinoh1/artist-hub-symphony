@@ -12,7 +12,7 @@ export type PerformanceStatistics = {
   date: string;
 };
 
-// Create function to add/update performance statistics - Fixed with better error handling and logging
+// Create function to add/update performance statistics
 export async function updatePerformanceStatistics(
   releaseId: string, 
   stats: {
@@ -50,6 +50,7 @@ export async function updatePerformanceStatistics(
           date: new Date().toISOString()
         })
         .eq('id', existingStats.id)
+        .select('*')
         .single();
         
       if (updateError) {
@@ -69,7 +70,7 @@ export async function updatePerformanceStatistics(
           ...stats,
           date: new Date().toISOString()
         })
-        .select()
+        .select('*')
         .single();
         
       if (insertError) {
@@ -112,5 +113,61 @@ export async function fetchReleaseStatistics(releaseId: string): Promise<Perform
   } catch (error) {
     console.error('Error fetching release statistics:', error);
     return null;
+  }
+}
+
+// Function to fetch all platform analytics
+export async function fetchPlatformAnalytics() {
+  try {
+    const { data, error } = await supabase
+      .from('platform_analytics')
+      .select('*')
+      .single();
+      
+    if (error) {
+      console.error("Error fetching platform analytics:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error fetching platform analytics:', error);
+    return null;
+  }
+}
+
+// Function to update platform analytics
+export async function updatePlatformAnalytics(analyticsData: {
+  spotify_plays: number;
+  spotify_growth: number;
+  apple_music_plays: number;
+  apple_music_growth: number;
+  youtube_music_plays: number;
+  youtube_music_growth: number;
+  deezer_plays: number;
+  deezer_growth: number;
+}) {
+  try {
+    console.log("Updating platform analytics:", analyticsData);
+    
+    const { data, error } = await supabase
+      .from('platform_analytics')
+      .upsert({
+        ...analyticsData,
+        last_updated: new Date().toISOString()
+      })
+      .select('*')
+      .single();
+      
+    if (error) {
+      console.error("Error updating platform analytics:", error);
+      throw error;
+    }
+    
+    console.log("Platform analytics updated successfully:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error updating platform analytics:', error);
+    return { success: false, error };
   }
 }

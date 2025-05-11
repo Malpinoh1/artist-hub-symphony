@@ -108,13 +108,19 @@ const PerformanceStatisticsEditor = ({
         other_streams: parseInt(otherStreams)
       };
       
+      console.log("Submitting stats:", stats);
+      console.log("For release:", releaseId);
+      
       const result = await updatePerformanceStatistics(releaseId, stats);
+      
+      console.log("Update result:", result);
       
       if (result.success) {
         toast.success("Performance statistics updated successfully");
         onUpdate();
         onClose();
       } else {
+        console.error("Failed to update performance statistics:", result.error);
         setError("Failed to update performance statistics");
         toast.error("Failed to update performance statistics");
       }
@@ -129,24 +135,24 @@ const PerformanceStatisticsEditor = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] dark:bg-slate-900 dark:border-slate-700">
         <DialogHeader>
-          <DialogTitle>Update Performance Statistics</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="dark:text-white">Update Performance Statistics</DialogTitle>
+          <DialogDescription className="dark:text-slate-400">
             Manually update streaming statistics for this release
           </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit}>
           {error && (
-            <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-md text-sm">
+            <div className="mb-4 p-3 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 rounded-md text-sm">
               {error}
             </div>
           )}
           
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalStreams" className="text-right">
+              <Label htmlFor="totalStreams" className="text-right dark:text-slate-300">
                 Total Streams
               </Label>
               <Input
@@ -154,12 +160,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={totalStreams}
                 readOnly
-                className="col-span-3 bg-slate-100 dark:bg-slate-800"
+                className="col-span-3 bg-slate-100 dark:bg-slate-800 dark:text-white"
               />
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="spotifyStreams" className="text-right">
+              <Label htmlFor="spotifyStreams" className="text-right dark:text-slate-300">
                 Spotify Streams
               </Label>
               <Input
@@ -167,12 +173,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={spotifyStreams}
                 onChange={(e) => setSpotifyStreams(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="appleMusicStreams" className="text-right">
+              <Label htmlFor="appleMusicStreams" className="text-right dark:text-slate-300">
                 Apple Music
               </Label>
               <Input
@@ -180,12 +186,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={appleMusicStreams}
                 onChange={(e) => setAppleMusicStreams(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="youtubeMusicStreams" className="text-right">
+              <Label htmlFor="youtubeMusicStreams" className="text-right dark:text-slate-300">
                 YouTube Music
               </Label>
               <Input
@@ -193,12 +199,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={youtubeMusicStreams}
                 onChange={(e) => setYoutubeMusicStreams(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
             <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="otherStreams" className="text-right">
+              <Label htmlFor="otherStreams" className="text-right dark:text-slate-300">
                 Other Platforms
               </Label>
               <Input
@@ -206,7 +212,7 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={otherStreams}
                 onChange={(e) => setOtherStreams(e.target.value)}
-                className="col-span-3"
+                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
           </div>
@@ -217,12 +223,14 @@ const PerformanceStatisticsEditor = ({
               variant="outline" 
               onClick={onClose}
               disabled={loading}
+              className="dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
             >
               Cancel
             </Button>
             <Button 
               type="submit"
               disabled={loading}
+              className={loading ? "opacity-70" : ""}
             >
               {loading ? "Updating..." : "Save Changes"}
             </Button>
