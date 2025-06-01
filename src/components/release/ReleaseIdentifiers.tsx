@@ -24,12 +24,16 @@ const ReleaseIdentifiers: React.FC<ReleaseIdentifiersProps> = ({
       <div className="space-y-2 text-sm">
         <div className="flex justify-between">
           <span className="text-slate-500 dark:text-slate-400">UPC:</span>
-          <span className="font-medium text-slate-700 dark:text-slate-300">{release.upc}</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {release.upc || 'Not assigned'}
+          </span>
         </div>
         
         <div className="flex justify-between">
           <span className="text-slate-500 dark:text-slate-400">ISRC:</span>
-          <span className="font-medium text-slate-700 dark:text-slate-300">{release.isrc}</span>
+          <span className="font-medium text-slate-700 dark:text-slate-300">
+            {release.isrc || 'Not assigned'}
+          </span>
         </div>
         
         <div className="flex justify-between">
