@@ -4,7 +4,6 @@ import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, LogOut } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import ThemeToggle from './ThemeToggle';
 import { signOut } from '../services/authService';
 import { toast } from 'sonner';
 
@@ -56,7 +55,7 @@ const Navbar = () => {
   const closeMenu = () => setIsOpen(false);
 
   const navClassNames = `fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-    isScrolled || isOpen ? 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg shadow-lg' : 'bg-transparent'
+    isScrolled || isOpen ? 'bg-white/90 backdrop-blur-lg shadow-lg' : 'bg-transparent'
   }`;
 
   const isActive = (path: string) => location.pathname === path;
@@ -88,15 +87,13 @@ const Navbar = () => {
                 to={link.path}
                 className={`py-2 px-3 mx-1 rounded-lg transition-colors ${
                   isActive(link.path)
-                    ? 'text-violet-600 dark:text-violet-400 font-medium'
-                    : 'text-slate-700 dark:text-slate-300 hover:text-violet-600 dark:hover:text-violet-400'
+                    ? 'text-violet-600 font-medium'
+                    : 'text-slate-700 hover:text-violet-600'
                 }`}
               >
                 {link.label}
               </Link>
             ))}
-            
-            <ThemeToggle />
 
             {isLoggedIn ? (
               <div className="flex space-x-2 ml-4">
@@ -117,7 +114,6 @@ const Navbar = () => {
 
           {/* Mobile Navigation Toggle */}
           <div className="flex items-center space-x-3 md:hidden">
-            <ThemeToggle />
             {isLoggedIn && (
               <Button onClick={handleSignOut} variant="destructive" size="sm" className="flex items-center gap-1">
                 <LogOut size={14} />
@@ -126,7 +122,7 @@ const Navbar = () => {
             )}
             <button
               onClick={toggleMenu}
-              className="p-2 text-slate-700 dark:text-slate-300 focus:outline-none"
+              className="p-2 text-slate-700 focus:outline-none"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -136,7 +132,7 @@ const Navbar = () => {
 
       {/* Mobile Navigation Menu */}
       {isOpen && (
-        <div className="md:hidden bg-white dark:bg-slate-900 shadow-lg">
+        <div className="md:hidden bg-white shadow-lg">
           <div className="container mx-auto px-4 py-3">
             <div className="flex flex-col space-y-2">
               {navLinks.map((link) => (
@@ -145,8 +141,8 @@ const Navbar = () => {
                   to={link.path}
                   className={`py-2 px-3 rounded-lg transition-colors ${
                     isActive(link.path)
-                      ? 'text-violet-600 dark:text-violet-400 font-medium bg-violet-50 dark:bg-violet-900/20'
-                      : 'text-slate-700 dark:text-slate-300'
+                      ? 'text-violet-600 font-medium bg-violet-50'
+                      : 'text-slate-700'
                   }`}
                   onClick={closeMenu}
                 >
@@ -158,7 +154,7 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/dashboard"
-                    className="py-2 px-3 rounded-lg text-slate-700 dark:text-slate-300"
+                    className="py-2 px-3 rounded-lg text-slate-700"
                     onClick={closeMenu}
                   >
                     Dashboard

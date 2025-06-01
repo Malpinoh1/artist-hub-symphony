@@ -152,15 +152,15 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-50">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
         <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="mb-6">
-              <h1 className="text-3xl font-display font-bold text-slate-900 dark:text-white">Admin Dashboard</h1>
-              <p className="text-slate-600 dark:text-slate-400 mt-2">Manage your distribution platform</p>
+              <h1 className="text-3xl font-display font-bold text-slate-900">Admin Dashboard</h1>
+              <p className="text-slate-600 mt-2">Manage your distribution platform</p>
             </div>
             
             {/* Dashboard Stats */}

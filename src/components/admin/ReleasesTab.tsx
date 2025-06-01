@@ -67,16 +67,16 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Approved':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+        return 'bg-green-100 text-green-700';
       case 'Rejected':
       case 'TakeDown':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+        return 'bg-red-100 text-red-700';
       case 'TakeDownRequested':
-        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+        return 'bg-orange-100 text-orange-700';
       case 'Processing':
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+        return 'bg-amber-100 text-amber-700';
       default:
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+        return 'bg-blue-100 text-blue-700';
     }
   };
   
@@ -190,7 +190,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     <div>
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500 dark:border-violet-400"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-violet-500"></div>
         </div>
       ) : (
         <div className="w-full overflow-x-auto">
@@ -243,7 +243,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                           <DropdownMenuLabel>Manage Release</DropdownMenuLabel>
                           <DropdownMenuItem
                             onClick={() => openStatusDialog(release)}
-                            className="text-violet-600 dark:text-violet-400 font-medium"
+                            className="text-violet-600 font-medium"
                           >
                             <Pencil className="mr-2 h-4 w-4" />
                             Update Status
