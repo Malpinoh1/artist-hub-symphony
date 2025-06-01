@@ -74,7 +74,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2">
-            <span className="font-display text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-violet-600 to-indigo-600">
+            <span className="font-display text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-800">
               MALPINOHdistro
             </span>
           </Link>
@@ -87,8 +87,8 @@ const Navbar = () => {
                 to={link.path}
                 className={`py-2 px-3 mx-1 rounded-lg transition-colors ${
                   isActive(link.path)
-                    ? 'text-violet-600 font-medium'
-                    : 'text-slate-700 hover:text-violet-600'
+                    ? 'text-blue-600 font-medium'
+                    : 'text-black hover:text-blue-600'
                 }`}
               >
                 {link.label}
@@ -106,7 +106,7 @@ const Navbar = () => {
                 </Button>
               </div>
             ) : (
-              <Button asChild className="ml-4 bg-violet-600 hover:bg-violet-700 text-white">
+              <Button asChild className="ml-4 bg-blue-600 hover:bg-blue-700 text-white">
                 <Link to="/auth">Get Started</Link>
               </Button>
             )}
@@ -122,7 +122,7 @@ const Navbar = () => {
             )}
             <button
               onClick={toggleMenu}
-              className="p-2 text-slate-700 focus:outline-none"
+              className="p-2 text-black focus:outline-none"
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -141,8 +141,8 @@ const Navbar = () => {
                   to={link.path}
                   className={`py-2 px-3 rounded-lg transition-colors ${
                     isActive(link.path)
-                      ? 'text-violet-600 font-medium bg-violet-50'
-                      : 'text-slate-700'
+                      ? 'text-blue-600 font-medium bg-blue-50'
+                      : 'text-black'
                   }`}
                   onClick={closeMenu}
                 >
@@ -154,7 +154,7 @@ const Navbar = () => {
                 <>
                   <Link
                     to="/dashboard"
-                    className="py-2 px-3 rounded-lg text-slate-700"
+                    className="py-2 px-3 rounded-lg text-black"
                     onClick={closeMenu}
                   >
                     Dashboard
@@ -173,7 +173,7 @@ const Navbar = () => {
               ) : (
                 <Link
                   to="/auth"
-                  className="py-2 px-3 rounded-lg text-white bg-violet-600 hover:bg-violet-700"
+                  className="py-2 px-3 rounded-lg text-white bg-blue-600 hover:bg-blue-700"
                   onClick={closeMenu}
                 >
                   Get Started
