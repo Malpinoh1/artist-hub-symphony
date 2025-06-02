@@ -14,6 +14,7 @@ interface EmailRequest {
   to: string;
   subject: string;
   html: string;
+  from?: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -23,7 +24,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, html }: EmailRequest = await req.json();
+    const { to, subject, html, from }: EmailRequest = await req.json();
 
     if (!to || !subject || !html) {
       console.error("Missing required fields:", { to, subject, html: !!html });
@@ -41,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Content length: ${html.length} characters`);
 
     const emailResponse = await resend.emails.send({
-      from: "MALPINOHdistro <no-reply@resend.dev>",
+      from: from || "MALPINOHdistro <no-reply@resend.dev>",
       to: [to],
       subject: subject,
       html: html,

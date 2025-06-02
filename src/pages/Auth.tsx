@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -13,6 +12,7 @@ import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { sendWelcomeEmail } from '../services/emailService';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -63,10 +63,17 @@ const Auth = () => {
       if (error) throw error;
       
       if (data.user) {
-        // New user created
+        // Send welcome email
+        try {
+          await sendWelcomeEmail(email, fullName);
+        } catch (emailError) {
+          console.error('Error sending welcome email:', emailError);
+          // Don't fail the signup if email fails
+        }
+        
         toast({
           title: "Account created",
-          description: "Your account has been created successfully",
+          description: "Welcome to MALPINOHdistro! Check your email for a welcome message.",
           variant: "default"
         });
         
@@ -135,7 +142,7 @@ const Auth = () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-white">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
@@ -143,29 +150,29 @@ const Auth = () => {
           <AnimatedCard>
             <div className="max-w-md mx-auto">
               <div className="mb-8 text-center">
-                <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-4">
+                <h1 className="text-3xl md:text-4xl font-semibold text-black mb-4">
                   {isLogin ? 'Welcome Back' : 'Create Account'}
                 </h1>
-                <p className="text-slate-600">
+                <p className="text-gray-600">
                   {isLogin 
                     ? 'Sign in to your MALPINOHDISTRO account' 
                     : 'Join MALPINOHDISTRO for music distribution'}
                 </p>
               </div>
               
-              <div className="glass-panel p-8">
+              <div className="p-8 bg-white border border-gray-200 rounded-lg shadow-sm">
                 <form onSubmit={isLogin ? handleLogin : handleSignUp}>
                   {!isLogin && (
                     <div className="mb-6">
-                      <label htmlFor="fullName" className="label">Full Name</label>
+                      <label htmlFor="fullName" className="block text-sm font-medium text-black mb-1">Full Name</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                          <User className="w-5 h-5 text-slate-400" />
+                          <User className="w-5 h-5 text-gray-400" />
                         </div>
                         <input
                           id="fullName"
                           type="text"
-                          className="input-field pl-10"
+                          className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                           placeholder="Enter your full name"
                           value={fullName}
                           onChange={(e) => setFullName(e.target.value)}
@@ -176,15 +183,15 @@ const Auth = () => {
                   )}
                   
                   <div className="mb-6">
-                    <label htmlFor="email" className="label">Email Address</label>
+                    <label htmlFor="email" className="block text-sm font-medium text-black mb-1">Email Address</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <Mail className="w-5 h-5 text-slate-400" />
+                        <Mail className="w-5 h-5 text-gray-400" />
                       </div>
                       <input
                         id="email"
                         type="email"
-                        className="input-field pl-10"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder="name@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
@@ -194,15 +201,15 @@ const Auth = () => {
                   </div>
                   
                   <div className="mb-6">
-                    <label htmlFor="password" className="label">Password</label>
+                    <label htmlFor="password" className="block text-sm font-medium text-black mb-1">Password</label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-                        <Lock className="w-5 h-5 text-slate-400" />
+                        <Lock className="w-5 h-5 text-gray-400" />
                       </div>
                       <input
                         id="password"
                         type="password"
-                        className="input-field pl-10"
+                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         placeholder={isLogin ? "Enter your password" : "Create a secure password"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -212,7 +219,7 @@ const Auth = () => {
                     </div>
                     {isLogin && (
                       <div className="mt-2 text-right">
-                        <a href="#" className="text-sm text-blue-600 hover:text-blue-700">
+                        <a href="/password-reset" className="text-sm text-blue-600 hover:text-blue-700">
                           Forgot password?
                         </a>
                       </div>
@@ -223,7 +230,7 @@ const Auth = () => {
                     <button
                       type="submit"
                       disabled={loading}
-                      className="btn-primary w-full flex items-center justify-center gap-2"
+                      className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50"
                     >
                       {loading ? (
                         <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -242,7 +249,7 @@ const Auth = () => {
                   </div>
                   
                   <div className="text-center">
-                    <p className="text-sm text-slate-600">
+                    <p className="text-sm text-gray-600">
                       {isLogin ? "Don't have an account? " : "Already have an account? "}
                       <button
                         type="button"

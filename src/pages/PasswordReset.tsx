@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { sendPasswordResetEmail } from '../services/emailService';
 
 const PasswordReset = () => {
   const { toast } = useToast();
@@ -29,11 +30,18 @@ const PasswordReset = () => {
     try {
       setLoading(true);
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      // First check if user exists
+      const { data: userData, error: userError } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth?mode=reset`
       });
 
-      if (error) throw error;
+      if (userError) {
+        throw userError;
+      }
+
+      // Send custom password reset email
+      const resetUrl = `${window.location.origin}/auth?mode=reset&email=${encodeURIComponent(email)}`;
+      await sendPasswordResetEmail(email, email.split('@')[0], resetUrl);
 
       setSent(true);
       toast({
@@ -54,16 +62,16 @@ const PasswordReset = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 p-4">
-      <div className="glass-panel max-w-md w-full p-8 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="max-w-md w-full p-8 bg-white border border-gray-200 rounded-lg shadow-sm">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-4">
-            <Mail className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+          <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4">
+            <Mail className="w-8 h-8 text-blue-600" />
           </div>
-          <h1 className="text-2xl font-display font-semibold text-slate-900 dark:text-white mb-2">
+          <h1 className="text-2xl font-semibold text-black mb-2">
             Reset Password
           </h1>
-          <p className="text-slate-600 dark:text-slate-400">
+          <p className="text-gray-600">
             Enter your email address and we'll send you a link to reset your password
           </p>
         </div>
@@ -71,7 +79,7 @@ const PasswordReset = () => {
         {!sent ? (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email" className="text-black">Email Address</Label>
               <Input
                 id="email"
                 type="email"
@@ -79,13 +87,14 @@ const PasswordReset = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
+                className="border-gray-300"
               />
             </div>
 
             <Button
               type="submit"
               disabled={loading}
-              className="w-full"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
             >
               {loading ? (
                 <>
@@ -99,19 +108,19 @@ const PasswordReset = () => {
           </form>
         ) : (
           <div className="text-center">
-            <div className="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-4">
-              <Mail className="w-8 h-8 text-green-600 dark:text-green-400" />
+            <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
+              <Mail className="w-8 h-8 text-green-600" />
             </div>
-            <h2 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">
+            <h2 className="text-xl font-semibold text-black mb-2">
               Check Your Email
             </h2>
-            <p className="text-slate-600 dark:text-slate-400 mb-6">
+            <p className="text-gray-600 mb-6">
               We've sent a password reset link to <strong>{email}</strong>
             </p>
             <Button
               variant="outline"
               onClick={() => setSent(false)}
-              className="w-full"
+              className="w-full border-gray-300 text-black hover:bg-gray-50"
             >
               Send Another Email
             </Button>
@@ -121,7 +130,7 @@ const PasswordReset = () => {
         <div className="mt-6 text-center">
           <Link 
             to="/auth" 
-            className="inline-flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            className="inline-flex items-center gap-2 text-sm text-blue-600 hover:underline"
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Sign In
