@@ -1,6 +1,6 @@
-
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Helmet } from 'react-helmet-async';
 import { 
   Music, 
   ChevronRight, 
@@ -79,12 +79,131 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // Structured data for SEO
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "MALPINOHdistro",
+    "url": "https://malpinohdistro.com.ng",
+    "logo": "https://malpinohdistro.com.ng/logo.png",
+    "description": "Global music distribution service for independent artists. Distribute your music to Spotify, Apple Music, and major streaming platforms worldwide.",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "telephone": "+234-xxx-xxx-xxxx",
+      "contactType": "Customer Support",
+      "email": "support@malpinohdistro.com.ng"
+    },
+    "sameAs": [
+      "https://instagram.com/malpinohdistro",
+      "https://twitter.com/malpinohdistro",
+      "https://facebook.com/malpinohdistro"
+    ],
+    "offers": {
+      "@type": "Offer",
+      "name": "Music Distribution Services",
+      "description": "Distribute your music to major streaming platforms worldwide"
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
+      <Helmet>
+        <title>MALPINOHdistro - Global Music Distribution Service | Spotify, Apple Music & More</title>
+        <meta name="description" content="Distribute your music worldwide with MALPINOHdistro. Get on Spotify, Apple Music, Audiomack, Boomplay & 100+ platforms. Affordable pricing, fast delivery, Nigerian music distribution specialists." />
+        <meta name="keywords" content="music distribution, Nigeria, Spotify, Apple Music, Audiomack, Boomplay, independent artists, music streaming, digital distribution, music marketing, royalties" />
+        
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://malpinohdistro.com.ng" />
+        <meta property="og:title" content="MALPINOHdistro - Global Music Distribution Service" />
+        <meta property="og:description" content="Distribute your music worldwide. Get on Spotify, Apple Music & 100+ platforms. Made for artists in Nigeria and beyond." />
+        <meta property="og:image" content="https://malpinohdistro.com.ng/og-image.png" />
+
+        {/* Twitter */}
+        <meta property="twitter:card" content="summary_large_image" />
+        <meta property="twitter:url" content="https://malpinohdistro.com.ng" />
+        <meta property="twitter:title" content="MALPINOHdistro - Global Music Distribution Service" />
+        <meta property="twitter:description" content="Distribute your music worldwide. Get on Spotify, Apple Music & 100+ platforms." />
+        <meta property="twitter:image" content="https://malpinohdistro.com.ng/og-image.png" />
+
+        {/* Additional SEO tags */}
+        <meta name="robots" content="index, follow" />
+        <meta name="author" content="MALPINOHdistro" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="canonical" href="https://malpinohdistro.com.ng" />
+        
+        {/* Structured Data */}
+        <script type="application/ld+json">
+          {JSON.stringify(structuredData)}
+        </script>
+
+        {/* Additional structured data for sitelinks */}
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "MALPINOHdistro",
+            "url": "https://malpinohdistro.com.ng",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://malpinohdistro.com.ng/search?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            },
+            "mainEntity": {
+              "@type": "ItemList",
+              "itemListElement": [
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 1,
+                  "name": "Login",
+                  "description": "Sign in to your artist dashboard",
+                  "url": "https://malpinohdistro.com.ng/auth"
+                },
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 2,
+                  "name": "Pricing",
+                  "description": "View our affordable music distribution plans",
+                  "url": "https://malpinohdistro.com.ng/pricing"
+                },
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 3,
+                  "name": "About",
+                  "description": "Learn about MALPINOHdistro and our mission",
+                  "url": "https://malpinohdistro.com.ng/about"
+                },
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 4,
+                  "name": "Services",
+                  "description": "Music distribution and marketing services",
+                  "url": "https://malpinohdistro.com.ng/services"
+                },
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 5,
+                  "name": "Contact",
+                  "description": "Get in touch with our support team",
+                  "url": "https://malpinohdistro.com.ng/contact"
+                },
+                {
+                  "@type": "SiteNavigationElement",
+                  "position": 6,
+                  "name": "Resources",
+                  "description": "Artist resources and guides",
+                  "url": "https://malpinohdistro.com.ng/resources"
+                }
+              ]
+            }
+          })}
+        </script>
+      </Helmet>
+      
       <Navbar />
       
       <main className="flex-grow pt-16">
-        {/* Hero Section */}
+        {/* Hero Section with improved SEO content */}
         <section className="py-16 sm:py-20 md:py-28 relative overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-slate-100 -z-10"></div>
           <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-40 -z-10"></div>
@@ -102,17 +221,28 @@ const Index = () => {
                 
                 <p className="text-lg md:text-xl text-slate-600 mb-8 max-w-2xl mx-auto">
                   Distribute your music to major streaming platforms worldwide with a personal touch. 
-                  Made for artists around the globe.
+                  Get on Spotify, Apple Music, Audiomack, Boomplay and 100+ platforms. Made for artists in Nigeria and beyond.
                 </p>
                 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link to="/dashboard" className="btn-primary px-8 py-3 text-base">
-                    Get Started
+                  <Link to="/auth" className="btn-primary px-8 py-3 text-base" title="Sign up for music distribution">
+                    Get Started - Login/Register
                   </Link>
-                  <Link to="/pricing" className="btn-secondary px-8 py-3 text-base">
+                  <Link to="/pricing" className="btn-secondary px-8 py-3 text-base" title="View our distribution pricing plans">
                     View Pricing
                   </Link>
                 </div>
+
+                {/* Quick navigation links for SEO */}
+                <nav className="mt-8 flex flex-wrap justify-center gap-4 text-sm" aria-label="Quick access">
+                  <Link to="/about" className="text-blue-600 hover:underline" title="About MALPINOHdistro">About Us</Link>
+                  <span className="text-slate-400">•</span>
+                  <Link to="/services" className="text-blue-600 hover:underline" title="Music distribution services">Our Services</Link>
+                  <span className="text-slate-400">•</span>
+                  <Link to="/contact" className="text-blue-600 hover:underline" title="Contact support">Contact Support</Link>
+                  <span className="text-slate-400">•</span>
+                  <Link to="/resources" className="text-blue-600 hover:underline" title="Artist resources and guides">Artist Resources</Link>
+                </nav>
               </AnimatedCard>
               
               <AnimatedCard delay={200}>
