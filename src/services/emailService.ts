@@ -2,6 +2,7 @@
 import { supabase } from "../integrations/supabase/client";
 import { ReactElement } from 'react';
 import ReactDOMServer from 'react-dom/server';
+import React from 'react';
 import WelcomeEmail from '../components/email/WelcomeEmail';
 import ReleaseApprovedEmail from '../components/email/ReleaseApprovedEmail';
 import EarningsUpdateEmail from '../components/email/EarningsUpdateEmail';
@@ -50,7 +51,7 @@ export const sendEmail = async (to: string, subject: string, htmlContent: string
 export const sendWelcomeEmail = async (to: string, name: string) => {
   const loginUrl = `${window.location.origin}/auth`;
   
-  const emailComponent = WelcomeEmail({ 
+  const emailComponent = React.createElement(WelcomeEmail, { 
     name, 
     loginUrl 
   });
@@ -65,7 +66,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
 export const sendReleaseApprovalEmail = async (to: string, name: string, releaseName: string, releaseId: string) => {
   const releaseUrl = `${window.location.origin}/release/${releaseId}`;
   
-  const emailComponent = ReleaseApprovedEmail({ 
+  const emailComponent = React.createElement(ReleaseApprovedEmail, { 
     name, 
     releaseName,
     releaseUrl 
@@ -81,7 +82,7 @@ export const sendReleaseApprovalEmail = async (to: string, name: string, release
 export const sendEarningsUpdateEmail = async (to: string, name: string, amount: number, period: string) => {
   const earningsUrl = `${window.location.origin}/earnings`;
   
-  const emailComponent = EarningsUpdateEmail({ 
+  const emailComponent = React.createElement(EarningsUpdateEmail, { 
     name, 
     amount,
     period,
@@ -106,7 +107,7 @@ export const sendWithdrawalConfirmationEmail = async (
 ) => {
   const earningsUrl = `${window.location.origin}/earnings`;
   
-  const emailComponent = WithdrawalConfirmationEmail({ 
+  const emailComponent = React.createElement(WithdrawalConfirmationEmail, { 
     name, 
     amount,
     withdrawalDate,
@@ -134,7 +135,7 @@ export const sendTakedownRequestEmail = async (
 ) => {
   const releaseUrl = `${window.location.origin}/release/${releaseId}`;
   
-  const emailComponent = TakedownRequestEmail({ 
+  const emailComponent = React.createElement(TakedownRequestEmail, { 
     name, 
     releaseName,
     requestDate,
@@ -151,7 +152,7 @@ export const sendTakedownRequestEmail = async (
 
 // Function to send password reset email
 export const sendPasswordResetEmail = async (to: string, name: string, resetUrl: string) => {
-  const emailComponent = PasswordResetEmail({ 
+  const emailComponent = React.createElement(PasswordResetEmail, { 
     name, 
     resetUrl 
   });
@@ -171,7 +172,7 @@ export const sendMarketingEmail = async (
   actionLabel?: string, 
   actionUrl?: string
 ) => {
-  const emailComponent = MarketingEmail({ 
+  const emailComponent = React.createElement(MarketingEmail, { 
     name, 
     title,
     content,
