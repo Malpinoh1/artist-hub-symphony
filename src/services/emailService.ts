@@ -49,7 +49,7 @@ export const sendEmail = async (to: string, subject: string, htmlContent: string
 
 // Function to send welcome email
 export const sendWelcomeEmail = async (to: string, name: string) => {
-  const loginUrl = `${window.location.origin}/auth`;
+  const loginUrl = `https://hewyffhdykietximpfbu.supabase.co/auth`;
   
   const emailComponent = React.createElement(WelcomeEmail, { 
     name, 
@@ -64,7 +64,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
 
 // Function to send release approval email
 export const sendReleaseApprovalEmail = async (to: string, name: string, releaseName: string, releaseId: string) => {
-  const releaseUrl = `${window.location.origin}/release/${releaseId}`;
+  const releaseUrl = `https://your-domain.com/release/${releaseId}`;
   
   const emailComponent = React.createElement(ReleaseApprovedEmail, { 
     name, 
@@ -80,7 +80,7 @@ export const sendReleaseApprovalEmail = async (to: string, name: string, release
 
 // Function to send earnings update email
 export const sendEarningsUpdateEmail = async (to: string, name: string, amount: number, period: string) => {
-  const earningsUrl = `${window.location.origin}/earnings`;
+  const earningsUrl = `https://your-domain.com/earnings`;
   
   const emailComponent = React.createElement(EarningsUpdateEmail, { 
     name, 
@@ -105,7 +105,7 @@ export const sendWithdrawalConfirmationEmail = async (
   paymentMethod: string, 
   referenceId: string
 ) => {
-  const earningsUrl = `${window.location.origin}/earnings`;
+  const earningsUrl = `https://your-domain.com/earnings`;
   
   const emailComponent = React.createElement(WithdrawalConfirmationEmail, { 
     name, 
@@ -133,7 +133,7 @@ export const sendTakedownRequestEmail = async (
   reason: string, 
   releaseId: string
 ) => {
-  const releaseUrl = `${window.location.origin}/release/${releaseId}`;
+  const releaseUrl = `https://your-domain.com/release/${releaseId}`;
   
   const emailComponent = React.createElement(TakedownRequestEmail, { 
     name, 

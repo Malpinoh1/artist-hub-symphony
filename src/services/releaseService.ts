@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 import type { Database } from "../integrations/supabase/types";
 import { toast } from "sonner";
@@ -154,19 +153,59 @@ export async function fetchUserStats(userId: string) {
 
 export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
   try {
+    console.log('Starting release submission for user:', userId);
+    
     // Get user email for notification
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError) {
       console.error("Error fetching user data:", userError);
-      throw userError;
+      throw new Error("Authentication failed. Please log in again.");
+    }
+    
+    if (!userData.user?.email) {
+      throw new Error("User email not found. Please log in again.");
     }
     
     const userEmail = userData.user.email;
+    console.log('User email found:', userEmail);
+
+    // Check if artist record exists, create if not
+    let { data: artistData, error: artistError } = await supabase
+      .from('artists')
+      .select('name')
+      .eq('id', userId)
+      .maybeSingle();
+      
+    if (artistError) {
+      console.error("Error checking artist data:", artistError);
+      throw new Error("Failed to verify artist information.");
+    }
+    
+    // Create artist record if it doesn't exist
+    if (!artistData) {
+      console.log('Creating new artist record for user:', userId);
+      const { data: newArtistData, error: createArtistError } = await supabase
+        .from('artists')
+        .insert({
+          id: userId,
+          name: releaseFormData.artist || releaseFormData.primaryArtist || 'Unknown Artist',
+          email: userEmail
+        })
+        .select('name')
+        .single();
+        
+      if (createArtistError) {
+        console.error("Error creating artist record:", createArtistError);
+        throw new Error("Failed to create artist profile.");
+      }
+      
+      artistData = newArtistData;
+    }
 
     // Upload cover art if provided
     let coverArtUrl = null;
     if (coverArt) {
-      // Create folder path with user ID to avoid filename conflicts
+      console.log('Uploading cover art...');
       const folderPath = `${userId}`;
       const coverArtFileName = `${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
       const coverArtPath = `${folderPath}/${coverArtFileName}`;
@@ -180,8 +219,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         
       if (coverUploadError) {
         console.error("Error uploading cover art:", coverUploadError);
-        toast.error("Failed to upload cover art. Please try again.");
-        throw coverUploadError;
+        throw new Error("Failed to upload cover art. Please try again.");
       }
       
       // Get public URL for the uploaded cover art
@@ -190,50 +228,42 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         .getPublicUrl(coverArtPath);
       
       coverArtUrl = publicUrlData?.publicUrl;
+      console.log('Cover art uploaded successfully');
     }
     
     // Upload audio files and store their URLs
     let audioFilesUrls = [];
-    for (const audioFile of audioFiles) {
-      // Create folder path with user ID to avoid filename conflicts
-      const folderPath = `${userId}`;
-      const audioFileName = `${Date.now()}_audio.${audioFile.name.split('.').pop()}`;
-      const audioPath = `${folderPath}/${audioFileName}`;
-      
-      const { data: audioUploadData, error: audioUploadError } = await supabase.storage
-        .from('audio_files')
-        .upload(audioPath, audioFile, {
-          cacheControl: '3600',
-          upsert: false
-        });
+    if (audioFiles && audioFiles.length > 0) {
+      console.log('Uploading audio files...');
+      for (const audioFile of audioFiles) {
+        const folderPath = `${userId}`;
+        const audioFileName = `${Date.now()}_audio.${audioFile.name.split('.').pop()}`;
+        const audioPath = `${folderPath}/${audioFileName}`;
         
-      if (audioUploadError) {
-        console.error("Error uploading audio file:", audioUploadError);
-        toast.error("Failed to upload audio file. Please try again.");
-        throw audioUploadError;
+        const { data: audioUploadData, error: audioUploadError } = await supabase.storage
+          .from('audio_files')
+          .upload(audioPath, audioFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+          
+        if (audioUploadError) {
+          console.error("Error uploading audio file:", audioUploadError);
+          throw new Error("Failed to upload audio file. Please try again.");
+        }
+        
+        // Get public URL for the uploaded audio file
+        const { data: audioUrlData } = supabase.storage
+          .from('audio_files')
+          .getPublicUrl(audioPath);
+        
+        audioFilesUrls.push(audioUrlData?.publicUrl);
       }
-      
-      // Get public URL for the uploaded audio file
-      const { data: audioUrlData } = supabase.storage
-        .from('audio_files')
-        .getPublicUrl(audioPath);
-      
-      audioFilesUrls.push(audioUrlData?.publicUrl);
-    }
-    
-    // Get artist name for email notification
-    const { data: artistData, error: artistError } = await supabase
-      .from('artists')
-      .select('name')
-      .eq('id', userId)
-      .single();
-      
-    if (artistError) {
-      console.error("Error fetching artist data:", artistError);
-      throw artistError;
+      console.log('Audio files uploaded successfully');
     }
     
     // Insert release record
+    console.log('Inserting release record...');
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
@@ -243,7 +273,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         status: 'Pending',
         cover_art_url: coverArtUrl,
         platforms: releaseFormData.platforms,
-        audio_file_url: audioFilesUrls[0] || null, // Store the first audio URL
+        audio_file_url: audioFilesUrls[0] || null,
         upc: releaseFormData.upc || null,
         isrc: releaseFormData.isrc || null,
       })
@@ -252,13 +282,19 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       
     if (releaseError) {
       console.error("Error inserting release:", releaseError);
-      toast.error("Failed to submit release. Please try again.");
-      throw releaseError;
+      throw new Error("Failed to submit release. Please try again.");
     }
     
+    console.log('Release inserted successfully:', insertedRelease.id);
+    
     // Send confirmation email
-    if (userEmail) {
+    try {
+      console.log('Sending confirmation email...');
       await sendReleaseSubmissionEmail(userEmail, releaseFormData.title, artistData.name);
+      console.log('Confirmation email sent successfully');
+    } catch (emailError) {
+      console.error('Error sending confirmation email:', emailError);
+      // Don't fail the entire submission if email fails
     }
     
     toast.success("Release submitted successfully!");
@@ -266,7 +302,9 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       
   } catch (error) {
     console.error('Error submitting release:', error);
-    return { success: false, error };
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+    toast.error(errorMessage);
+    return { success: false, error: errorMessage };
   }
 }
 
