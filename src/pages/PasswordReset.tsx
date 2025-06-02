@@ -30,18 +30,26 @@ const PasswordReset = () => {
     try {
       setLoading(true);
       
-      // First check if user exists
-      const { data: userData, error: userError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth?mode=reset`
+      // Use the custom domain for redirect
+      const resetUrl = `https://malpinohdistro.com.ng/reset-password?email=${encodeURIComponent(email)}`;
+      
+      // First check if user exists and send Supabase reset email
+      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: resetUrl
       });
 
-      if (userError) {
-        throw userError;
+      if (supabaseError) {
+        console.error('Supabase reset error:', supabaseError);
+        // Continue anyway to send custom email
       }
 
       // Send custom password reset email
-      const resetUrl = `${window.location.origin}/auth?mode=reset&email=${encodeURIComponent(email)}`;
-      await sendPasswordResetEmail(email, email.split('@')[0], resetUrl);
+      try {
+        await sendPasswordResetEmail(email, email.split('@')[0], resetUrl);
+      } catch (emailError) {
+        console.error('Custom email error:', emailError);
+        // Don't fail if custom email fails
+      }
 
       setSent(true);
       toast({

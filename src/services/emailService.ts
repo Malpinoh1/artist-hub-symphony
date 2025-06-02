@@ -49,7 +49,7 @@ export const sendEmail = async (to: string, subject: string, htmlContent: string
 
 // Function to send welcome email
 export const sendWelcomeEmail = async (to: string, name: string) => {
-  const loginUrl = `https://hewyffhdykietximpfbu.supabase.co/auth`;
+  const loginUrl = `https://malpinohdistro.com.ng/auth`;
   
   const emailComponent = React.createElement(WelcomeEmail, { 
     name, 
@@ -64,7 +64,7 @@ export const sendWelcomeEmail = async (to: string, name: string) => {
 
 // Function to send release approval email
 export const sendReleaseApprovalEmail = async (to: string, name: string, releaseName: string, releaseId: string) => {
-  const releaseUrl = `https://your-domain.com/release/${releaseId}`;
+  const releaseUrl = `https://malpinohdistro.com.ng/releases/${releaseId}`;
   
   const emailComponent = React.createElement(ReleaseApprovedEmail, { 
     name, 
@@ -80,7 +80,7 @@ export const sendReleaseApprovalEmail = async (to: string, name: string, release
 
 // Function to send earnings update email
 export const sendEarningsUpdateEmail = async (to: string, name: string, amount: number, period: string) => {
-  const earningsUrl = `https://your-domain.com/earnings`;
+  const earningsUrl = `https://malpinohdistro.com.ng/earnings`;
   
   const emailComponent = React.createElement(EarningsUpdateEmail, { 
     name, 
@@ -105,7 +105,7 @@ export const sendWithdrawalConfirmationEmail = async (
   paymentMethod: string, 
   referenceId: string
 ) => {
-  const earningsUrl = `https://your-domain.com/earnings`;
+  const earningsUrl = `https://malpinohdistro.com.ng/earnings`;
   
   const emailComponent = React.createElement(WithdrawalConfirmationEmail, { 
     name, 
@@ -133,7 +133,7 @@ export const sendTakedownRequestEmail = async (
   reason: string, 
   releaseId: string
 ) => {
-  const releaseUrl = `https://your-domain.com/release/${releaseId}`;
+  const releaseUrl = `https://malpinohdistro.com.ng/releases/${releaseId}`;
   
   const emailComponent = React.createElement(TakedownRequestEmail, { 
     name, 
@@ -199,7 +199,7 @@ export const sendReleaseSubmissionEmail = async (to: string, releaseTitle: strin
         <h2 style="color: #1f2937; margin-top: 0;">Release Submission Confirmation</h2>
         <p style="color: #374151;">Dear ${artistName},</p>
         <p style="color: #374151;">Your release <strong>${releaseTitle}</strong> has been successfully submitted for review.</p>
-        <p style="color: #374151;">Our team will review your submission and get back to you soon. You can check the status of your release in your dashboard.</p>
+        <p style="color: #374151;">Our team will review your submission and get back to you soon. You can check the status of your release in your dashboard at <a href="https://malpinohdistro.com.ng/dashboard" style="color: #2563eb;">https://malpinohdistro.com.ng/dashboard</a>.</p>
         <p style="color: #374151;">Please remember to complete your payment to process your release.</p>
       </div>
       <div style="margin-top: 20px; padding: 15px; background-color: #ecfdf5; border-radius: 5px; border-left: 4px solid #059669;">
