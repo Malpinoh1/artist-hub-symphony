@@ -22,7 +22,7 @@ import { Button } from '@/components/ui/button';
 interface ArtistsTabProps {
   artists: Artist[];
   loading: boolean;
-  onArtistUpdate: (id: string, status: string) => void;
+  onArtistUpdate: (id: string, status: string, updatedData?: any) => void;
 }
 
 const ArtistsTab: React.FC<ArtistsTabProps> = ({
@@ -79,8 +79,10 @@ const ArtistsTab: React.FC<ArtistsTabProps> = ({
       
       if (result.success) {
         toast.success('Artist status updated successfully');
-        onArtistUpdate(artistId, status);
+        // Pass the actual updated data from the backend
+        onArtistUpdate(artistId, status, result.data);
       } else {
+        console.error('Failed to update artist status:', result.error);
         toast.error('Failed to update artist status');
       }
     } catch (error) {

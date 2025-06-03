@@ -59,32 +59,53 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
   
-  // Handle release update
-  const handleReleaseUpdate = (id, status) => {
-    setReleases(prev => {
-      const updatedReleases = prev.map(release => 
+  // Handle release update - Updated to use actual data from backend
+  const handleReleaseUpdate = (id, status, updatedData = null) => {
+    if (updatedData) {
+      // Use the actual updated data from the backend
+      setReleases(prev => prev.map(release => 
+        release.id === id ? updatedData : release
+      ));
+    } else {
+      // Fallback to status-only update
+      setReleases(prev => prev.map(release => 
         release.id === id ? { ...release, status } : release
-      );
-      return updatedReleases;
-    });
+      ));
+    }
   };
   
-  // Handle withdrawal update
-  const handleWithdrawalUpdate = (id, status) => {
-    setWithdrawals(prev => prev.map(withdrawal => 
-      withdrawal.id === id ? { 
-        ...withdrawal, 
-        status,
-        processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
-      } : withdrawal
-    ));
+  // Handle withdrawal update - Updated to use actual data from backend
+  const handleWithdrawalUpdate = (id, status, updatedData = null) => {
+    if (updatedData) {
+      // Use the actual updated data from the backend
+      setWithdrawals(prev => prev.map(withdrawal => 
+        withdrawal.id === id ? updatedData : withdrawal
+      ));
+    } else {
+      // Fallback to status-only update
+      setWithdrawals(prev => prev.map(withdrawal => 
+        withdrawal.id === id ? { 
+          ...withdrawal, 
+          status,
+          processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
+        } : withdrawal
+      ));
+    }
   };
   
-  // Handle artist update
-  const handleArtistUpdate = (id, status) => {
-    setArtists(prev => prev.map(artist => 
-      artist.id === id ? { ...artist, status } : artist
-    ));
+  // Handle artist update - Updated to use actual data from backend
+  const handleArtistUpdate = (id, status, updatedData = null) => {
+    if (updatedData) {
+      // Use the actual updated data from the backend
+      setArtists(prev => prev.map(artist => 
+        artist.id === id ? updatedData : artist
+      ));
+    } else {
+      // Fallback to status-only update
+      setArtists(prev => prev.map(artist => 
+        artist.id === id ? { ...artist, status } : artist
+      ));
+    }
   };
 
   // Handle refresh data

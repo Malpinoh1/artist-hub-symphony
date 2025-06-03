@@ -40,7 +40,7 @@ import {
 interface ReleasesTabProps {
   releases: Release[];
   loading: boolean;
-  onReleaseUpdate: (id: string, status: string) => void;
+  onReleaseUpdate: (id: string, status: string, updatedData?: any) => void;
 }
 
 const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseUpdate }) => {
@@ -94,9 +94,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       
       if (result.success) {
         toast.success(`Release status updated to ${selectedStatus}`);
-        onReleaseUpdate(selectedRelease.id, selectedStatus);
+        // Pass the actual updated data from the backend
+        onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
         setStatusDialogOpen(false);
       } else {
+        console.error('Failed to update release status:', result.error);
         toast.error('Failed to update release status');
       }
     } catch (error) {
@@ -120,10 +122,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       
       if (result.success) {
         toast.success('Release identifiers updated successfully');
-        // Update the local state to reflect changes
-        onReleaseUpdate(selectedRelease.id, selectedRelease.status);
+        // Pass the actual updated data from the backend
+        onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
         setIdentifierDialogOpen(false);
       } else {
+        console.error('Failed to update release identifiers:', result.error);
         toast.error('Failed to update release identifiers');
       }
     } catch (error) {

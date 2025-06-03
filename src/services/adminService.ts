@@ -131,47 +131,43 @@ export async function fetchTakeDownRequestsCount() {
   }
 }
 
-// Update release status - Fixed to properly handle the status update
+// Update release status - Fixed to properly handle the status update and return updated data
 export async function updateReleaseStatus(releaseId: string, newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested") {
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
-    // First, verify the release exists
-    const { data: existingRelease, error: checkError } = await supabase
-      .from('releases')
-      .select('id, status')
-      .eq('id', releaseId)
-      .single();
-      
-    if (checkError) {
-      console.error('Error checking release existence:', checkError);
-      return { success: false, error: checkError };
-    }
-    
-    if (!existingRelease) {
-      console.error('Release not found:', releaseId);
-      return { success: false, error: 'Release not found' };
-    }
-    
-    console.log('Found existing release, current status:', existingRelease.status);
-    
-    // Now update the status
+    // Update the status and return the updated row
     const { data, error } = await supabase
       .from('releases')
       .update({ status: newStatus })
       .eq('id', releaseId)
-      .select();
+      .select(`
+        id,
+        title,
+        cover_art_url,
+        status,
+        release_date,
+        upc,
+        isrc,
+        artist_id,
+        artists(id, name, email)
+      `)
+      .single();
       
     if (error) {
       console.error('Error updating release status:', error);
       return { success: false, error };
     }
     
+    if (!data) {
+      console.error('No data returned after release status update');
+      return { success: false, error: 'No data returned' };
+    }
+    
     console.log('Release status update successful:', data);
     
     // If a release is approved, send notification email to artist
     if (newStatus === 'Approved') {
-      // Email notification logic can be added here
       console.log('Release approved, notification could be sent');
     }
     
@@ -182,29 +178,12 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   }
 }
 
-// Update release UPC and ISRC - Fixed to ensure proper update
+// Update release UPC and ISRC - Fixed to return updated data
 export async function updateReleaseIdentifiers(releaseId: string, upc: string, isrc: string) {
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
-    // First, verify the release exists
-    const { data: existingRelease, error: checkError } = await supabase
-      .from('releases')
-      .select('id')
-      .eq('id', releaseId)
-      .single();
-      
-    if (checkError) {
-      console.error('Error checking release existence:', checkError);
-      return { success: false, error: checkError };
-    }
-    
-    if (!existingRelease) {
-      console.error('Release not found for identifier update:', releaseId);
-      return { success: false, error: 'Release not found' };
-    }
-    
-    // Now update the identifiers
+    // Update the identifiers and return the updated row
     const { data, error } = await supabase
       .from('releases')
       .update({ 
@@ -212,11 +191,27 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         isrc
       })
       .eq('id', releaseId)
-      .select();
+      .select(`
+        id,
+        title,
+        cover_art_url,
+        status,
+        release_date,
+        upc,
+        isrc,
+        artist_id,
+        artists(id, name, email)
+      `)
+      .single();
       
     if (error) {
       console.error('Error updating release identifiers:', error);
       return { success: false, error };
+    }
+    
+    if (!data) {
+      console.error('No data returned after identifier update');
+      return { success: false, error: 'No data returned' };
     }
     
     console.log('Release identifiers updated successfully:', data);
@@ -227,35 +222,69 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
   }
 }
 
-// Update withdrawal status
+// Update withdrawal status - Fixed to return updated data
 export async function updateWithdrawalStatus(id: string, status: string) {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('withdrawals')
       .update({ 
         status,
         processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
       })
-      .eq('id', id);
+      .eq('id', id)
+      .select(`
+        id,
+        amount,
+        status,
+        created_at,
+        processed_at,
+        account_name,
+        account_number,
+        bank_name,
+        artists(id, name, email)
+      `)
+      .single();
       
-    if (error) throw error;
-    return { success: true };
+    if (error) {
+      console.error('Error updating withdrawal status:', error);
+      return { success: false, error };
+    }
+    
+    if (!data) {
+      console.error('No data returned after withdrawal status update');
+      return { success: false, error: 'No data returned' };
+    }
+    
+    console.log('Withdrawal status updated successfully:', data);
+    return { success: true, data };
   } catch (error) {
     console.error('Error updating withdrawal status:', error);
     return { success: false, error };
   }
 }
 
-// Update artist status
+// Update artist status - Fixed to return updated data
 export async function updateArtistStatus(id: string, status: string) {
   try {
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('artists')
       .update({ status })
-      .eq('id', id);
+      .eq('id', id)
+      .select('*')
+      .single();
       
-    if (error) throw error;
-    return { success: true };
+    if (error) {
+      console.error('Error updating artist status:', error);
+      return { success: false, error };
+    }
+    
+    if (!data) {
+      console.error('No data returned after artist status update');
+      return { success: false, error: 'No data returned' };
+    }
+    
+    console.log('Artist status updated successfully:', data);
+    return { success: true, data };
   } catch (error) {
     console.error('Error updating artist status:', error);
     return { success: false, error };
@@ -278,7 +307,7 @@ export async function fetchArtistsEarningSummary() {
   }
 }
 
-// Update artist earnings - Fixed to ensure proper update
+// Update artist earnings - Fixed to return updated data
 export async function updateArtistEarnings(
   artistId: string, 
   totalEarnings: number, 
@@ -292,24 +321,7 @@ export async function updateArtistEarnings(
   });
   
   try {
-    // First, verify the artist exists
-    const { data: existingArtist, error: checkError } = await supabase
-      .from('artists')
-      .select('id')
-      .eq('id', artistId)
-      .single();
-      
-    if (checkError) {
-      console.error('Error checking artist existence:', checkError);
-      return { success: false, error: checkError };
-    }
-    
-    if (!existingArtist) {
-      console.error('Artist not found for earnings update:', artistId);
-      return { success: false, error: 'Artist not found' };
-    }
-    
-    // Now update the earnings
+    // Update the earnings and return the updated row
     const { data, error } = await supabase
       .from('artists')
       .update({ 
@@ -318,11 +330,17 @@ export async function updateArtistEarnings(
         wallet_balance: walletBalance
       })
       .eq('id', artistId)
-      .select();
+      .select('id, name, email, wallet_balance, total_earnings, available_balance')
+      .single();
       
     if (error) {
       console.error('Error updating artist earnings:', error);
       return { success: false, error };
+    }
+    
+    if (!data) {
+      console.error('No data returned after earnings update');
+      return { success: false, error: 'No data returned' };
     }
     
     console.log('Artist earnings updated successfully:', data);
