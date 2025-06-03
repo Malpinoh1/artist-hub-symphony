@@ -4,10 +4,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { supabase } from "./integrations/supabase/client";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import AdminRoute from "./components/auth/AdminRoute";
 
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
@@ -100,10 +99,12 @@ const App = () => {
           if (entry.isIntersecting) {
             entry.target.classList.add('animated');
             
+            // If this element contains staggered children, animate them too
             if (entry.target.classList.contains('stagger-children')) {
               entry.target.classList.add('animated');
             }
             
+            // Once animated, no need to observe anymore
             animateOnScrollObserver.unobserve(entry.target);
           }
         });
@@ -111,10 +112,12 @@ const App = () => {
       { threshold: 0.1 }
     );
     
+    // Observe all elements with the animate-on-scroll class
     document.querySelectorAll('.animate-on-scroll').forEach((element) => {
       animateOnScrollObserver.observe(element);
     });
     
+    // Observe all elements with the stagger-children class
     document.querySelectorAll('.stagger-children').forEach((element) => {
       animateOnScrollObserver.observe(element);
     });
@@ -204,6 +207,7 @@ const App = () => {
                     </AdminRoute>
                   } 
                 />
+                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
