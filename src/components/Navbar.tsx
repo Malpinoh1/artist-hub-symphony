@@ -11,6 +11,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loading, setLoading] = useState(true);
   const location = useLocation();
 
   useEffect(() => {
@@ -27,14 +28,17 @@ const Navbar = () => {
 
   useEffect(() => {
     const checkAuthStatus = async () => {
+      setLoading(true);
       const { data } = await supabase.auth.getSession();
       setIsLoggedIn(!!data.session);
+      setLoading(false);
     };
 
     checkAuthStatus();
 
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      setIsLoggedIn(event === 'SIGNED_IN');
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsLoggedIn(!!session);
+      setLoading(false);
     });
 
     return () => {
@@ -68,6 +72,25 @@ const Navbar = () => {
     { path: '/resources', label: 'Resources' },
     { path: '/contact', label: 'Contact' },
   ];
+
+  if (loading) {
+    return (
+      <nav className={navClassNames}>
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex justify-between items-center">
+            <Link to="/" className="flex items-center space-x-2">
+              <span className="font-display text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-800">
+                MALPINOHdistro
+              </span>
+            </Link>
+            <div className="animate-pulse">
+              <div className="h-8 w-24 bg-gray-200 rounded"></div>
+            </div>
+          </div>
+        </div>
+      </nav>
+    );
+  }
 
   return (
     <nav className={navClassNames}>

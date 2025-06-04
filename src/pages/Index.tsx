@@ -388,7 +388,7 @@ const Index = () => {
           </div>
         </section>
         
-        {/* Testimonials Section */}
+        {/* Testimonials Section - Fixed text visibility */}
         <section className="py-20 bg-slate-900 text-white">
           <div className="container mx-auto px-4">
             <AnimatedCard>
@@ -406,7 +406,7 @@ const Index = () => {
             </AnimatedCard>
             
             <div className="max-w-4xl mx-auto relative">
-              <div className="glass-panel bg-slate-800/50 p-8 md:p-12">
+              <div className="glass-panel bg-slate-800/50 border-slate-700 p-8 md:p-12">
                 <div className="relative h-48">
                   {testimonials.map((testimonial, index) => (
                     <div
@@ -417,12 +417,12 @@ const Index = () => {
                           : 'opacity-0 transform translate-x-20'
                       }`}
                     >
-                      <div className="text-2xl md:text-3xl text-slate-100 italic font-serif mb-8">
+                      <div className="text-2xl md:text-3xl text-white italic font-serif mb-8">
                         "{testimonial.quote}"
                       </div>
                       <div>
                         <div className="font-medium text-white">{testimonial.author}</div>
-                        <div className="text-slate-400 text-sm">{testimonial.role}</div>
+                        <div className="text-slate-300 text-sm">{testimonial.role}</div>
                       </div>
                     </div>
                   ))}
@@ -445,7 +445,7 @@ const Index = () => {
           </div>
         </section>
         
-        {/* CTA Section */}
+        {/* CTA Section - Updated button text based on login status */}
         <section className="py-20 bg-gradient-to-br from-blue-600 to-blue-800 text-white">
           <div className="container mx-auto px-4">
             <div className="max-w-3xl mx-auto text-center">
@@ -457,7 +457,7 @@ const Index = () => {
                   Join MALPINOHdistro today and take your music career to the next level
                 </p>
                 <Link 
-                  to="/dashboard" 
+                  to="/auth" 
                   className="inline-flex items-center gap-2 bg-white text-blue-700 px-8 py-3 rounded-full text-lg font-medium hover:bg-blue-50 transition-colors shadow-lg hover:shadow-xl"
                 >
                   Get Started Now
