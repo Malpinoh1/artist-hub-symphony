@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -55,6 +54,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [releaseStatistics, setReleaseStatistics] = useState<PerformanceStatistics | null>(null);
   const [streamingLinks, setStreamingLinks] = useState<StreamingLink[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
+  const [updating, setUpdating] = useState(false);
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -87,14 +87,17 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
   
   const handleStatusChange = async () => {
-    if (!selectedRelease || !selectedStatus) return;
+    if (!selectedRelease || !selectedStatus || updating) return;
+    
+    setUpdating(true);
+    console.log(`Attempting to update release ${selectedRelease.id} status to ${selectedStatus}`);
     
     try {
       const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
       
-      if (result.success) {
+      if (result.success && result.data) {
+        console.log('Status update successful, updating UI with:', result.data);
         toast.success(`Release status updated to ${selectedStatus}`);
-        // Pass the actual updated data from the backend
         onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
         setStatusDialogOpen(false);
       } else {
@@ -104,6 +107,8 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     } catch (error) {
       console.error('Error updating release status:', error);
       toast.error('An error occurred while updating status');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -115,14 +120,17 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
 
   const handleIdentifiersUpdate = async () => {
-    if (!selectedRelease) return;
+    if (!selectedRelease || updating) return;
+    
+    setUpdating(true);
+    console.log(`Attempting to update identifiers for release ${selectedRelease.id}`);
     
     try {
       const result = await updateReleaseIdentifiers(selectedRelease.id, upc, isrc);
       
-      if (result.success) {
+      if (result.success && result.data) {
+        console.log('Identifiers update successful, updating UI with:', result.data);
         toast.success('Release identifiers updated successfully');
-        // Pass the actual updated data from the backend
         onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
         setIdentifierDialogOpen(false);
       } else {
@@ -132,6 +140,8 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     } catch (error) {
       console.error('Error updating release identifiers:', error);
       toast.error('An error occurred while updating identifiers');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -310,11 +320,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)} disabled={updating}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleStatusChange}>
-                  Save changes
+                <Button type="button" onClick={handleStatusChange} disabled={updating}>
+                  {updating ? 'Updating...' : 'Save changes'}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -356,11 +366,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIdentifierDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={() => setIdentifierDialogOpen(false)} disabled={updating}>
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleIdentifiersUpdate}>
-                  Save changes
+                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating}>
+                  {updating ? 'Updating...' : 'Save changes'}
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -11,8 +11,10 @@ export type StreamingLink = {
 // Create function to add/update streaming links
 export async function manageStreamingLinks(releaseId: string, links: StreamingLink[]) {
   try {
+    console.log(`Managing streaming links for release ${releaseId}:`, links);
+    
     // First, delete existing links for this release
-    const { error: deleteError } = await (supabase as any)
+    const { error: deleteError } = await supabase
       .from('streaming_links')
       .delete()
       .eq('release_id', releaseId);
@@ -30,14 +32,17 @@ export async function manageStreamingLinks(releaseId: string, links: StreamingLi
         url: link.url
       }));
       
-      const { error: insertError } = await (supabase as any)
+      const { data: insertData, error: insertError } = await supabase
         .from('streaming_links')
-        .insert(linksToInsert);
+        .insert(linksToInsert)
+        .select('*');
         
       if (insertError) {
         console.error("Error inserting streaming links:", insertError);
         throw insertError;
       }
+      
+      console.log("Streaming links inserted successfully:", insertData);
     }
     
     return { success: true };
@@ -50,20 +55,26 @@ export async function manageStreamingLinks(releaseId: string, links: StreamingLi
 // Function to fetch streaming links for a release
 export async function fetchStreamingLinks(releaseId: string): Promise<StreamingLink[]> {
   try {
+    console.log(`Fetching streaming links for release ${releaseId}`);
+    
     // Get streaming links for this release
-    const { data: streamingLinksData, error: streamingLinksError } = await (supabase as any)
+    const { data: streamingLinksData, error: streamingLinksError } = await supabase
       .from('streaming_links')
       .select('*')
       .eq('release_id', releaseId);
       
     if (streamingLinksError) {
+      console.error("Error fetching streaming links:", streamingLinksError);
       throw streamingLinksError;
     }
     
-    return streamingLinksData?.map((link: any) => ({
+    const links = streamingLinksData?.map((link: any) => ({
       platform: link.platform,
       url: link.url
     })) || [];
+    
+    console.log("Streaming links fetched successfully:", links);
+    return links;
     
   } catch (error) {
     console.error('Error fetching streaming links:', error);
