@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 import { sendReleaseApprovalEmail } from "./emailService";
 
@@ -194,17 +195,22 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
     console.log('Release status update successful:', data);
     
     // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved' && data.artists && data.artists.length > 0) {
+    if (newStatus === 'Approved' && data.artists) {
       console.log('Release approved, sending notification email');
       try {
+        // Handle both array and single object cases
         const artist = Array.isArray(data.artists) ? data.artists[0] : data.artists;
-        await sendReleaseApprovalEmail(
-          artist.email,
-          artist.name,
-          data.title,
-          data.id
-        );
-        console.log('Approval email sent successfully');
+        if (artist && artist.email && artist.name) {
+          await sendReleaseApprovalEmail(
+            artist.email,
+            artist.name,
+            data.title,
+            data.id
+          );
+          console.log('Approval email sent successfully');
+        } else {
+          console.warn('Artist data incomplete, skipping email');
+        }
       } catch (emailError) {
         console.error('Error sending approval email:', emailError);
         // Don't fail the whole operation if email fails
