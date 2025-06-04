@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { HelmetProvider } from 'react-helmet-async';
 import { Toaster } from "@/components/ui/toaster";
@@ -33,7 +34,7 @@ import ResetPassword from "./pages/ResetPassword";
 const queryClient = new QueryClient();
 
 // Create a custom ProtectedRoute component for admin routes
-const AdminRoute = ({ children }) => {
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAdmin, setIsAdmin] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
@@ -65,11 +66,11 @@ const AdminRoute = ({ children }) => {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  return isAdmin ? children : <Navigate to="/" replace />;
+  return isAdmin ? <>{children}</> : <Navigate to="/" replace />;
 };
 
 // Protected route for authenticated users
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
@@ -87,7 +88,7 @@ const ProtectedRoute = ({ children }) => {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 
-  return isAuthenticated ? children : <Navigate to="/auth" replace />;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/auth" replace />;
 };
 
 const App = () => {
