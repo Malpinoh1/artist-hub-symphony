@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
@@ -79,13 +80,13 @@ const Index = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Structured data for SEO
+  // Structured data for SEO - Updated with new logo
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Organization",
     "name": "MALPINOHdistro",
     "url": "https://malpinohdistro.com.ng",
-    "logo": "https://malpinohdistro.com.ng/logo.png",
+    "logo": "https://malpinohdistro.com.ng/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png",
     "description": "Global music distribution service for independent artists. Distribute your music to Spotify, Apple Music, and major streaming platforms worldwide.",
     "contactPoint": {
       "@type": "ContactPoint",
@@ -117,14 +118,14 @@ const Index = () => {
         <meta property="og:url" content="https://malpinohdistro.com.ng" />
         <meta property="og:title" content="MALPINOHdistro - Global Music Distribution Service" />
         <meta property="og:description" content="Distribute your music worldwide. Get on Spotify, Apple Music & 100+ platforms. Made for artists in Nigeria and beyond." />
-        <meta property="og:image" content="https://malpinohdistro.com.ng/og-image.png" />
+        <meta property="og:image" content="https://malpinohdistro.com.ng/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png" />
 
         {/* Twitter */}
         <meta property="twitter:card" content="summary_large_image" />
         <meta property="twitter:url" content="https://malpinohdistro.com.ng" />
         <meta property="twitter:title" content="MALPINOHdistro - Global Music Distribution Service" />
         <meta property="twitter:description" content="Distribute your music worldwide. Get on Spotify, Apple Music & 100+ platforms." />
-        <meta property="twitter:image" content="https://malpinohdistro.com.ng/og-image.png" />
+        <meta property="twitter:image" content="https://malpinohdistro.com.ng/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png" />
 
         {/* Additional SEO tags */}
         <meta name="robots" content="index, follow" />

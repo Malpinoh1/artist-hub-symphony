@@ -1,5 +1,5 @@
-
 import { supabase } from "../integrations/supabase/client";
+import { sendReleaseApprovalEmail } from "./emailService";
 
 // Define types for our admin service data
 export interface Artist {
@@ -136,7 +136,34 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
-    // Update the status and return the updated row
+    // First, get the current release data with artist info
+    const { data: currentRelease, error: fetchError } = await supabase
+      .from('releases')
+      .select(`
+        id,
+        title,
+        cover_art_url,
+        status,
+        release_date,
+        upc,
+        isrc,
+        artist_id,
+        artists(id, name, email)
+      `)
+      .eq('id', releaseId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current release:', fetchError);
+      return { success: false, error: fetchError };
+    }
+
+    if (!currentRelease) {
+      console.error('Release not found');
+      return { success: false, error: { message: 'Release not found' } };
+    }
+
+    // Update the status
     const { data, error } = await supabase
       .from('releases')
       .update({ status: newStatus })
@@ -161,14 +188,27 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
     
     if (!data) {
       console.error('No data returned after release status update');
-      return { success: false, error: 'No data returned' };
+      return { success: false, error: { message: 'No data returned' } };
     }
     
     console.log('Release status update successful:', data);
     
     // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved') {
-      console.log('Release approved, notification could be sent');
+    if (newStatus === 'Approved' && data.artists && data.artists.length > 0) {
+      console.log('Release approved, sending notification email');
+      try {
+        const artist = Array.isArray(data.artists) ? data.artists[0] : data.artists;
+        await sendReleaseApprovalEmail(
+          artist.email,
+          artist.name,
+          data.title,
+          data.id
+        );
+        console.log('Approval email sent successfully');
+      } catch (emailError) {
+        console.error('Error sending approval email:', emailError);
+        // Don't fail the whole operation if email fails
+      }
     }
     
     return { success: true, data };
