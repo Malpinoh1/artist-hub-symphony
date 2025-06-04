@@ -132,43 +132,42 @@ export async function fetchTakeDownRequestsCount() {
   }
 }
 
-// Update release status - Fixed to properly handle the status update and return updated data
+// Update release status - Fixed to handle the database query properly
 export async function updateReleaseStatus(releaseId: string, newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested") {
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
-    // First, get the current release data with artist info
-    const { data: currentRelease, error: fetchError } = await supabase
+    // First, check if the release exists
+    const { data: existingRelease, error: checkError } = await supabase
       .from('releases')
-      .select(`
-        id,
-        title,
-        cover_art_url,
-        status,
-        release_date,
-        upc,
-        isrc,
-        artist_id,
-        artists(id, name, email)
-      `)
+      .select('id, title, artist_id')
       .eq('id', releaseId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError) {
-      console.error('Error fetching current release:', fetchError);
-      return { success: false, error: fetchError };
+    if (checkError) {
+      console.error('Error checking existing release:', checkError);
+      return { success: false, error: checkError };
     }
 
-    if (!currentRelease) {
+    if (!existingRelease) {
       console.error('Release not found');
       return { success: false, error: { message: 'Release not found' } };
     }
 
     // Update the status
-    const { data, error } = await supabase
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ status: newStatus })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release status:', updateError);
+      return { success: false, error: updateError };
+    }
+    
+    // Fetch the updated release with artist info
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -180,32 +179,28 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (error) {
-      console.error('Error updating release status:', error);
-      return { success: false, error };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    if (!data) {
-      console.error('No data returned after release status update');
-      return { success: false, error: { message: 'No data returned' } };
-    }
-    
-    console.log('Release status update successful:', data);
+    console.log('Release status update successful:', updatedRelease);
     
     // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved' && data.artists) {
+    if (newStatus === 'Approved' && updatedRelease.artists) {
       console.log('Release approved, sending notification email');
       try {
         // Handle both array and single object cases
-        const artist = Array.isArray(data.artists) ? data.artists[0] : data.artists;
+        const artist = Array.isArray(updatedRelease.artists) ? updatedRelease.artists[0] : updatedRelease.artists;
         if (artist && artist.email && artist.name) {
           await sendReleaseApprovalEmail(
             artist.email,
             artist.name,
-            data.title,
-            data.id
+            updatedRelease.title,
+            updatedRelease.id
           );
           console.log('Approval email sent successfully');
         } else {
@@ -217,26 +212,52 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
       }
     }
     
-    return { success: true, data };
+    return { success: true, data: updatedRelease };
   } catch (error) {
     console.error('Error in updateReleaseStatus:', error);
     return { success: false, error };
   }
 }
 
-// Update release UPC and ISRC - Fixed to return updated data
+// Update release UPC and ISRC - Fixed to handle the database query properly
 export async function updateReleaseIdentifiers(releaseId: string, upc: string, isrc: string) {
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
-    // Update the identifiers and return the updated row
-    const { data, error } = await supabase
+    // First, check if the release exists
+    const { data: existingRelease, error: checkError } = await supabase
+      .from('releases')
+      .select('id')
+      .eq('id', releaseId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing release:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingRelease) {
+      console.error('Release not found');
+      return { success: false, error: { message: 'Release not found' } };
+    }
+
+    // Update the identifiers
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ 
-        upc,
-        isrc
+        upc: upc || null,
+        isrc: isrc || null
       })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release identifiers:', updateError);
+      return { success: false, error: updateError };
+    }
+    
+    // Fetch the updated release
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -248,36 +269,59 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (error) {
-      console.error('Error updating release identifiers:', error);
-      return { success: false, error };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    if (!data) {
-      console.error('No data returned after identifier update');
-      return { success: false, error: 'No data returned' };
-    }
-    
-    console.log('Release identifiers updated successfully:', data);
-    return { success: true, data };
+    console.log('Release identifiers updated successfully:', updatedRelease);
+    return { success: true, data: updatedRelease };
   } catch (error) {
     console.error('Error in updateReleaseIdentifiers:', error);
     return { success: false, error };
   }
 }
 
-// Update withdrawal status - Fixed to return updated data
+// Update withdrawal status - Fixed to handle the database query properly
 export async function updateWithdrawalStatus(id: string, status: string) {
   try {
-    const { data, error } = await supabase
+    // First, check if the withdrawal exists
+    const { data: existingWithdrawal, error: checkError } = await supabase
+      .from('withdrawals')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing withdrawal:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingWithdrawal) {
+      console.error('Withdrawal not found');
+      return { success: false, error: { message: 'Withdrawal not found' } };
+    }
+
+    // Update the status
+    const { error: updateError } = await supabase
       .from('withdrawals')
       .update({ 
         status,
         processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
       })
-      .eq('id', id)
+      .eq('id', id);
+      
+    if (updateError) {
+      console.error('Error updating withdrawal status:', updateError);
+      return { success: false, error: updateError };
+    }
+    
+    // Fetch the updated withdrawal
+    const { data: updatedWithdrawal, error: fetchError } = await supabase
+      .from('withdrawals')
       .select(`
         id,
         amount,
@@ -289,48 +333,67 @@ export async function updateWithdrawalStatus(id: string, status: string) {
         bank_name,
         artists(id, name, email)
       `)
+      .eq('id', id)
       .single();
       
-    if (error) {
-      console.error('Error updating withdrawal status:', error);
-      return { success: false, error };
+    if (fetchError) {
+      console.error('Error fetching updated withdrawal:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    if (!data) {
-      console.error('No data returned after withdrawal status update');
-      return { success: false, error: 'No data returned' };
-    }
-    
-    console.log('Withdrawal status updated successfully:', data);
-    return { success: true, data };
+    console.log('Withdrawal status updated successfully:', updatedWithdrawal);
+    return { success: true, data: updatedWithdrawal };
   } catch (error) {
     console.error('Error updating withdrawal status:', error);
     return { success: false, error };
   }
 }
 
-// Update artist status - Fixed to return updated data
+// Update artist status - Fixed to handle the database query properly
 export async function updateArtistStatus(id: string, status: string) {
   try {
-    const { data, error } = await supabase
+    // First, check if the artist exists
+    const { data: existingArtist, error: checkError } = await supabase
+      .from('artists')
+      .select('id')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing artist:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingArtist) {
+      console.error('Artist not found');
+      return { success: false, error: { message: 'Artist not found' } };
+    }
+
+    // Update the status
+    const { error: updateError } = await supabase
       .from('artists')
       .update({ status })
-      .eq('id', id)
+      .eq('id', id);
+      
+    if (updateError) {
+      console.error('Error updating artist status:', updateError);
+      return { success: false, error: updateError };
+    }
+    
+    // Fetch the updated artist
+    const { data: updatedArtist, error: fetchError } = await supabase
+      .from('artists')
       .select('*')
+      .eq('id', id)
       .single();
       
-    if (error) {
-      console.error('Error updating artist status:', error);
-      return { success: false, error };
+    if (fetchError) {
+      console.error('Error fetching updated artist:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    if (!data) {
-      console.error('No data returned after artist status update');
-      return { success: false, error: 'No data returned' };
-    }
-    
-    console.log('Artist status updated successfully:', data);
-    return { success: true, data };
+    console.log('Artist status updated successfully:', updatedArtist);
+    return { success: true, data: updatedArtist };
   } catch (error) {
     console.error('Error updating artist status:', error);
     return { success: false, error };
@@ -353,7 +416,6 @@ export async function fetchArtistsEarningSummary() {
   }
 }
 
-// Update artist earnings - Fixed to return updated data
 export async function updateArtistEarnings(
   artistId: string, 
   totalEarnings: number, 
@@ -367,30 +429,52 @@ export async function updateArtistEarnings(
   });
   
   try {
-    // Update the earnings and return the updated row
-    const { data, error } = await supabase
+    // First, check if the artist exists
+    const { data: existingArtist, error: checkError } = await supabase
+      .from('artists')
+      .select('id')
+      .eq('id', artistId)
+      .maybeSingle();
+
+    if (checkError) {
+      console.error('Error checking existing artist:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingArtist) {
+      console.error('Artist not found');
+      return { success: false, error: { message: 'Artist not found' } };
+    }
+
+    // Update the earnings
+    const { error: updateError } = await supabase
       .from('artists')
       .update({ 
         total_earnings: totalEarnings,
         available_balance: availableBalance,
         wallet_balance: walletBalance
       })
-      .eq('id', artistId)
+      .eq('id', artistId);
+      
+    if (updateError) {
+      console.error('Error updating artist earnings:', updateError);
+      return { success: false, error: updateError };
+    }
+    
+    // Fetch the updated artist
+    const { data: updatedArtist, error: fetchError } = await supabase
+      .from('artists')
       .select('id, name, email, wallet_balance, total_earnings, available_balance')
+      .eq('id', artistId)
       .single();
       
-    if (error) {
-      console.error('Error updating artist earnings:', error);
-      return { success: false, error };
+    if (fetchError) {
+      console.error('Error fetching updated artist:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    if (!data) {
-      console.error('No data returned after earnings update');
-      return { success: false, error: 'No data returned' };
-    }
-    
-    console.log('Artist earnings updated successfully:', data);
-    return { success: true, data };
+    console.log('Artist earnings updated successfully:', updatedArtist);
+    return { success: true, data: updatedArtist };
   } catch (error) {
     console.error('Error in updateArtistEarnings:', error);
     return { success: false, error };
