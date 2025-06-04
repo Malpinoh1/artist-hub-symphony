@@ -18,6 +18,8 @@ interface UserProfile {
   avatar_url?: string;
   bio?: string;
   website?: string;
+  email_notifications?: boolean;
+  marketing_emails?: boolean;
 }
 
 const Settings = () => {
@@ -25,6 +27,7 @@ const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [formData, setFormData] = useState({
     full_name: '',
     username: '',
@@ -49,6 +52,8 @@ const Settings = () => {
         return;
       }
 
+      setCurrentUser(session.user);
+
       const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
@@ -67,8 +72,37 @@ const Settings = () => {
           username: profileData.username || '',
           bio: profileData.bio || '',
           website: profileData.website || '',
-          email_notifications: true,
-          marketing_emails: false,
+          email_notifications: profileData.email_notifications ?? true,
+          marketing_emails: profileData.marketing_emails ?? false,
+          dark_mode: false
+        });
+      } else {
+        // Create profile if it doesn't exist
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            id: session.user.id,
+            username: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || session.user.email || '',
+            email_notifications: true,
+            marketing_emails: false
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error("Error creating profile:", createError);
+          throw createError;
+        }
+
+        setUserProfile(newProfile);
+        setFormData({
+          full_name: newProfile.full_name || '',
+          username: newProfile.username || '',
+          bio: newProfile.bio || '',
+          website: newProfile.website || '',
+          email_notifications: newProfile.email_notifications ?? true,
+          marketing_emails: newProfile.marketing_emails ?? false,
           dark_mode: false
         });
       }
@@ -90,7 +124,7 @@ const Settings = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (!userProfile) return;
+    if (!userProfile || !currentUser) return;
 
     try {
       setSaving(true);
@@ -101,15 +135,28 @@ const Settings = () => {
           full_name: formData.full_name,
           username: formData.username,
           bio: formData.bio,
-          website: formData.website
+          website: formData.website,
+          email_notifications: formData.email_notifications,
+          marketing_emails: formData.marketing_emails
         })
         .eq('id', userProfile.id);
 
       if (error) throw error;
 
+      // Update local state
+      setUserProfile(prev => prev ? {
+        ...prev,
+        full_name: formData.full_name,
+        username: formData.username,
+        bio: formData.bio,
+        website: formData.website,
+        email_notifications: formData.email_notifications,
+        marketing_emails: formData.marketing_emails
+      } : null);
+
       toast({
         title: "Profile updated",
-        description: "Your profile has been updated successfully."
+        description: "Your profile and preferences have been updated successfully."
       });
 
     } catch (error) {
@@ -158,48 +205,52 @@ const Settings = () => {
                   <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
                     <User className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                   </div>
-                  <h2 className="text-xl font-semibold dark:text-white">Profile Information</h2>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Profile Information</h2>
                 </div>
 
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="full_name">Full Name</Label>
+                      <Label htmlFor="full_name" className="text-slate-700 dark:text-slate-300">Full Name</Label>
                       <Input
                         id="full_name"
                         value={formData.full_name}
                         onChange={(e) => handleInputChange('full_name', e.target.value)}
                         placeholder="Enter your full name"
+                        className="mt-1"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="username">Username</Label>
+                      <Label htmlFor="username" className="text-slate-700 dark:text-slate-300">Username</Label>
                       <Input
                         id="username"
                         value={formData.username}
                         onChange={(e) => handleInputChange('username', e.target.value)}
                         placeholder="Enter your username"
+                        className="mt-1"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <Label htmlFor="bio">Bio</Label>
+                    <Label htmlFor="bio" className="text-slate-700 dark:text-slate-300">Bio</Label>
                     <Input
                       id="bio"
                       value={formData.bio}
                       onChange={(e) => handleInputChange('bio', e.target.value)}
                       placeholder="Tell us about yourself"
+                      className="mt-1"
                     />
                   </div>
 
                   <div>
-                    <Label htmlFor="website">Website</Label>
+                    <Label htmlFor="website" className="text-slate-700 dark:text-slate-300">Website</Label>
                     <Input
                       id="website"
                       value={formData.website}
                       onChange={(e) => handleInputChange('website', e.target.value)}
                       placeholder="https://yourwebsite.com"
+                      className="mt-1"
                     />
                   </div>
 
@@ -214,20 +265,20 @@ const Settings = () => {
               </div>
             </AnimatedCard>
 
-            {/* Account Settings */}
+            {/* Communication Preferences */}
             <AnimatedCard>
               <div className="glass-panel p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                    <SettingsIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <Bell className="w-5 h-5 text-green-600 dark:text-green-400" />
                   </div>
-                  <h2 className="text-xl font-semibold dark:text-white">Preferences</h2>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Email Preferences</h2>
                 </div>
 
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium dark:text-white">Email Notifications</p>
+                      <p className="font-medium text-slate-900 dark:text-white">Email Notifications</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">Receive updates about your releases</p>
                     </div>
                     <Switch
@@ -238,13 +289,19 @@ const Settings = () => {
 
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium dark:text-white">Marketing Emails</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">Receive promotional content</p>
+                      <p className="font-medium text-slate-900 dark:text-white">Marketing Emails</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">Receive promotional content and updates</p>
                     </div>
                     <Switch
                       checked={formData.marketing_emails}
                       onCheckedChange={(checked) => handleInputChange('marketing_emails', checked)}
                     />
+                  </div>
+
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      <strong>Secure Email Delivery:</strong> All emails are delivered using SSL encryption to ensure your privacy and security.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -257,12 +314,12 @@ const Settings = () => {
                   <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
                     <Shield className="w-5 h-5 text-red-600 dark:text-red-400" />
                   </div>
-                  <h2 className="text-xl font-semibold dark:text-white">Security</h2>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Security</h2>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="font-medium mb-2 dark:text-white">Change Password</h3>
+                    <h3 className="font-medium mb-2 text-slate-900 dark:text-white">Change Password</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Update your account password</p>
                     <Button variant="outline" className="w-full">
                       <Key className="w-4 h-4 mr-2" />
@@ -271,7 +328,7 @@ const Settings = () => {
                   </div>
 
                   <div>
-                    <h3 className="font-medium mb-2 dark:text-white">Two-Factor Authentication</h3>
+                    <h3 className="font-medium mb-2 text-slate-900 dark:text-white">Two-Factor Authentication</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Add an extra layer of security</p>
                     <Button variant="outline" className="w-full">
                       <Shield className="w-4 h-4 mr-2" />
