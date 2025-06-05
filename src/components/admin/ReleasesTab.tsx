@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Table,
@@ -96,10 +97,14 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
       
       if (result.success && result.data) {
-        console.log('Status update successful, updating UI with:', result.data);
-        toast.success(`Release status updated to ${selectedStatus}`);
+        console.log('Status update successful, calling onReleaseUpdate with:', result.data);
+        
+        // Force a complete refresh of the release data
         onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
+        
+        toast.success(`Release status updated to ${selectedStatus}`);
         setStatusDialogOpen(false);
+        setSelectedRelease(null);
       } else {
         console.error('Failed to update release status:', result.error);
         toast.error('Failed to update release status');
@@ -129,10 +134,14 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       const result = await updateReleaseIdentifiers(selectedRelease.id, upc, isrc);
       
       if (result.success && result.data) {
-        console.log('Identifiers update successful, updating UI with:', result.data);
-        toast.success('Release identifiers updated successfully');
+        console.log('Identifiers update successful, calling onReleaseUpdate with:', result.data);
+        
+        // Force a complete refresh of the release data
         onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
+        
+        toast.success('Release identifiers updated successfully');
         setIdentifierDialogOpen(false);
+        setSelectedRelease(null);
       } else {
         console.error('Failed to update release identifiers:', result.error);
         toast.error('Failed to update release identifiers');
@@ -185,17 +194,21 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     setLinksDialogOpen(true);
   };
 
-  const handleStatsUpdate = () => {
+  const handleStatsUpdate = async () => {
     if (selectedRelease) {
-      fetchReleaseStats(selectedRelease.id);
+      await fetchReleaseStats(selectedRelease.id);
       toast.success("Statistics updated successfully");
+      setStatsDialogOpen(false);
+      setSelectedRelease(null);
     }
   };
 
-  const handleLinksUpdate = () => {
+  const handleLinksUpdate = async () => {
     if (selectedRelease) {
-      fetchReleaseLinks(selectedRelease.id);
+      await fetchReleaseLinks(selectedRelease.id);
       toast.success("Streaming links updated successfully");
+      setLinksDialogOpen(false);
+      setSelectedRelease(null);
     }
   };
 

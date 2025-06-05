@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Send, Users, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, Users, Mail, CheckCircle, AlertCircle, Sparkles, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -117,8 +117,8 @@ const MarketingEmailsTab = () => {
       }
 
       toast({
-        title: "Marketing Emails Sent",
-        description: `Successfully sent ${successCount} emails. ${failureCount > 0 ? `${failureCount} failed.` : ''}`,
+        title: "Marketing Campaign Sent",
+        description: `Successfully delivered to ${successCount} recipients. ${failureCount > 0 ? `${failureCount} failed.` : ''}`,
         variant: successCount > 0 ? "default" : "destructive"
       });
 
@@ -149,131 +149,215 @@ const MarketingEmailsTab = () => {
     return recipient.username;
   };
 
+  const getPreviewContent = () => {
+    return emailData.content || "Your marketing message will appear here...";
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">Marketing Emails</h2>
-          <p className="text-slate-600 dark:text-slate-400">Send promotional emails to opted-in users</p>
+      {/* Header with MALPINOHdistro Branding */}
+      <div className="flex items-center justify-between p-6 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg text-white">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-white/20 rounded-full">
+            <Mail className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">MALPINOHdistro Marketing</h2>
+            <p className="text-blue-100">Send professional marketing emails to your community</p>
+          </div>
         </div>
-        <Button onClick={fetchMarketingRecipients} variant="outline">
-          <Users className="w-4 h-4 mr-2" />
-          Refresh Recipients
-        </Button>
+        <div className="flex items-center gap-2 text-blue-100">
+          <Globe className="w-5 h-5" />
+          <span className="text-sm">SSL Secured</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Email Composition */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Mail className="w-5 h-5" />
-              Compose Marketing Email
+        <Card className="lg:col-span-2 border-l-4 border-l-blue-500">
+          <CardHeader className="bg-slate-50 dark:bg-slate-800">
+            <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+              <Sparkles className="w-5 h-5 text-blue-500" />
+              Compose Marketing Campaign
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="subject">Email Subject *</Label>
+          <CardContent className="space-y-6 pt-6">
+            <div className="space-y-2">
+              <Label htmlFor="subject" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Email Subject *
+              </Label>
               <Input
                 id="subject"
                 value={emailData.subject}
                 onChange={(e) => handleInputChange('subject', e.target.value)}
-                placeholder="Enter email subject"
+                placeholder="e.g., Exclusive New Music Release from MALPINOHdistro"
+                className="border-slate-300 focus:border-blue-500"
               />
             </div>
 
-            <div>
-              <Label htmlFor="content">Email Content *</Label>
+            <div className="space-y-2">
+              <Label htmlFor="content" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Email Content *
+              </Label>
               <Textarea
                 id="content"
                 value={emailData.content}
                 onChange={(e) => handleInputChange('content', e.target.value)}
-                placeholder="Enter your marketing message (HTML supported)"
-                rows={8}
+                placeholder="Write your marketing message here... You can use HTML for formatting."
+                rows={10}
+                className="border-slate-300 focus:border-blue-500 resize-none"
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                HTML formatting is supported. This will be sent with MALPINOHdistro branding.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="actionLabel">Action Button Label (Optional)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="actionLabel" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Call-to-Action Button (Optional)
+                </Label>
                 <Input
                   id="actionLabel"
                   value={emailData.actionLabel}
                   onChange={(e) => handleInputChange('actionLabel', e.target.value)}
-                  placeholder="e.g., Visit Website"
+                  placeholder="e.g., Listen Now, Visit Store"
+                  className="border-slate-300 focus:border-blue-500"
                 />
               </div>
-              <div>
-                <Label htmlFor="actionUrl">Action Button URL (Optional)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="actionUrl" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Button URL (Optional)
+                </Label>
                 <Input
                   id="actionUrl"
                   value={emailData.actionUrl}
                   onChange={(e) => handleInputChange('actionUrl', e.target.value)}
                   placeholder="https://malpinohdistro.com.ng"
+                  className="border-slate-300 focus:border-blue-500"
                 />
               </div>
             </div>
 
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Security Notice:</strong> All emails are sent via SSL-encrypted connections using Resend's secure infrastructure.
-              </p>
+            {/* Email Preview */}
+            <div className="border rounded-lg p-4 bg-slate-50 dark:bg-slate-800">
+              <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Preview:</h4>
+              <div className="bg-white dark:bg-slate-900 p-4 rounded border text-sm">
+                <div className="border-b pb-2 mb-3">
+                  <strong>From:</strong> MALPINOHdistro &lt;noreply@malpinohdistro.com.ng&gt;<br/>
+                  <strong>Subject:</strong> {emailData.subject || "Your subject line"}
+                </div>
+                <div dangerouslySetInnerHTML={{ __html: getPreviewContent() }} />
+                {emailData.actionLabel && emailData.actionUrl && (
+                  <div className="mt-4">
+                    <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
+                      {emailData.actionLabel}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Security Notice */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-green-800 dark:text-green-200">
+                    SSL-Secured Email Delivery
+                  </p>
+                  <p className="text-xs text-green-700 dark:text-green-300 mt-1">
+                    All emails are sent via encrypted connections using Resend's secure infrastructure with MALPINOHdistro branding.
+                  </p>
+                </div>
+              </div>
             </div>
 
             <Button 
               onClick={handleSendMarketingEmails}
-              disabled={sending || recipients.length === 0}
-              className="w-full"
+              disabled={sending || recipients.length === 0 || !emailData.subject.trim() || !emailData.content.trim()}
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3"
+              size="lg"
             >
-              <Send className="w-4 h-4 mr-2" />
-              {sending ? 'Sending...' : `Send to ${recipients.length} Recipients`}
+              <Send className="w-5 h-5 mr-2" />
+              {sending ? 'Sending Campaign...' : `Send to ${recipients.length} Recipients`}
             </Button>
           </CardContent>
         </Card>
 
         {/* Recipients Summary */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              Recipients
+        <Card className="border-l-4 border-l-green-500">
+          <CardHeader className="bg-green-50 dark:bg-green-900/20">
+            <CardTitle className="flex items-center gap-2 text-slate-900 dark:text-white">
+              <Users className="w-5 h-5 text-green-600" />
+              Campaign Recipients
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-6">
             {loadingRecipients ? (
-              <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mx-auto mb-2"></div>
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-blue-500 mx-auto mb-3"></div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Loading recipients...</p>
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                    <span className="text-sm font-medium text-green-800 dark:text-green-200">
-                      Opted In
-                    </span>
+                <div className="flex items-center justify-between p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-500 rounded-full">
+                      <CheckCircle className="w-4 h-4 text-white" />
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-green-800 dark:text-green-200">
+                        Opted-In Users
+                      </span>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        Ready to receive emails
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-lg font-bold text-green-800 dark:text-green-200">
+                  <span className="text-2xl font-bold text-green-800 dark:text-green-200">
                     {recipients.length}
                   </span>
                 </div>
 
+                <Button 
+                  onClick={fetchMarketingRecipients} 
+                  variant="outline" 
+                  size="sm"
+                  className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Refresh Recipients
+                </Button>
+
                 {recipients.length > 0 ? (
-                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 border-b pb-2">
+                      Recipient List:
+                    </h4>
                     {recipients.map((recipient) => (
-                      <div key={recipient.id} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-800 rounded">
-                        <CheckCircle className="w-3 h-3 text-green-500" />
-                        <span className="text-sm text-slate-700 dark:text-slate-300">
-                          {recipient.full_name || recipient.username}
-                        </span>
+                      <div key={recipient.id} className="flex items-center gap-2 p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                        <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
+                            {recipient.full_name || recipient.username}
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {recipient.username}
+                          </p>
+                        </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-4">
-                    <AlertCircle className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                  <div className="text-center py-8">
+                    <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                      <AlertCircle className="w-8 h-8 text-slate-400" />
+                    </div>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                      No Recipients Found
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
                       No users have opted in for marketing emails yet.
                     </p>
                   </div>

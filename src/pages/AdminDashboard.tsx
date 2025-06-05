@@ -19,6 +19,7 @@ import ArtistsTab from '@/components/admin/ArtistsTab';
 import DashboardStats from '@/components/admin/DashboardStats';
 import AdminNav from '@/components/admin/AdminNav';
 import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
+import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
@@ -59,13 +60,19 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
   
-  // Handle release update - Updated to use actual data from backend
+  // Handle release update - Force complete data refresh
   const handleReleaseUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleReleaseUpdate called with:', { id, status, updatedData });
+    
     if (updatedData) {
       // Use the actual updated data from the backend
-      setReleases(prev => prev.map(release => 
-        release.id === id ? updatedData : release
-      ));
+      setReleases(prev => {
+        const newReleases = prev.map(release => 
+          release.id === id ? { ...release, ...updatedData } : release
+        );
+        console.log('AdminDashboard: Updated releases array:', newReleases);
+        return newReleases;
+      });
     } else {
       // Fallback to status-only update
       setReleases(prev => prev.map(release => 
@@ -167,6 +174,8 @@ const AdminDashboard = () => {
         return <AdminAnalyticsEditor />;
       case 'takedown':
         return <TakeDownRequestsTab />;
+      case 'marketing':
+        return <MarketingEmailsTab />;
       default:
         return null;
     }
@@ -250,6 +259,17 @@ const AdminDashboard = () => {
                   }`}
                 >
                   Analytics
+                </button>
+                
+                <button 
+                  onClick={() => handleTabChange('marketing')}
+                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
+                    activeTab === 'marketing'
+                      ? 'border-blue-500 text-blue-600 font-medium'
+                      : 'border-transparent hover:text-blue-500'
+                  }`}
+                >
+                  Marketing Emails
                 </button>
                 
                 <button 
