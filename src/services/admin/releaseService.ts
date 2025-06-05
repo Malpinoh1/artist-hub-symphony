@@ -50,11 +50,20 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
-    // Update the status directly
-    const { data: updatedRelease, error: updateError } = await supabase
+    // First update the status
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ status: newStatus })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release status:', updateError);
+      return { success: false, error: updateError };
+    }
+
+    // Then fetch the updated release with artist data
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -66,16 +75,17 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (updateError) {
-      console.error('Error updating release status:', updateError);
-      return { success: false, error: updateError };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
 
     if (!updatedRelease) {
-      console.error('No release returned after update');
-      return { success: false, error: { message: 'No release returned after update' } };
+      console.error('No release found after update');
+      return { success: false, error: { message: 'No release found after update' } };
     }
     
     console.log('Release status updated successfully:', updatedRelease);
@@ -111,13 +121,23 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
-    const { data: updatedRelease, error: updateError } = await supabase
+    // First update the identifiers
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ 
         upc: upc || null,
         isrc: isrc || null
       })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release identifiers:', updateError);
+      return { success: false, error: updateError };
+    }
+
+    // Then fetch the updated release with artist data
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -129,16 +149,17 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (updateError) {
-      console.error('Error updating release identifiers:', updateError);
-      return { success: false, error: updateError };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
 
     if (!updatedRelease) {
-      console.error('No release returned after identifier update');
-      return { success: false, error: { message: 'No release returned after update' } };
+      console.error('No release found after identifier update');
+      return { success: false, error: { message: 'No release found after update' } };
     }
     
     console.log('Release identifiers updated successfully:', updatedRelease);

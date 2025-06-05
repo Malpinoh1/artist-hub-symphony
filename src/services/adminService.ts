@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 import { sendReleaseApprovalEmail } from "./emailService";
 
@@ -52,29 +53,3 @@ export * from './admin/releaseService';
 export * from './admin/withdrawalService';
 export * from './admin/artistService';
 export * from './admin/otherService';
-
-// Keep backwards compatibility
-export {
-  fetchAdminReleases,
-  updateReleaseStatus,
-  updateReleaseIdentifiers,
-  type Release
-} from './admin/releaseService';
-
-export {
-  fetchAdminWithdrawals,
-  updateWithdrawalStatus,
-  type Withdrawal
-} from './admin/withdrawalService';
-
-export {
-  fetchAdminArtists,
-  updateArtistStatus,
-  fetchArtistsEarningSummary,
-  updateArtistEarnings,
-  type Artist
-} from './admin/artistService';
-
-export {
-  fetchTakeDownRequestsCount
-} from './admin/otherService';
