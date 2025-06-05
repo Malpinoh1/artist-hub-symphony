@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -52,19 +53,22 @@ const Settings = () => {
       }
 
       setCurrentUser(session.user);
+      console.log("Current user:", session.user.id);
 
-      const { data: profileData, error } = await supabase
+      // Try to fetch existing profile
+      const { data: profileData, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
         .maybeSingle();
 
-      if (error) {
-        console.error("Error fetching profile:", error);
-        throw error;
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error("Error fetching profile:", fetchError);
+        throw fetchError;
       }
 
       if (profileData) {
+        console.log("Profile found:", profileData);
         setUserProfile(profileData);
         setFormData({
           full_name: profileData.full_name || '',
@@ -76,34 +80,53 @@ const Settings = () => {
           dark_mode: false
         });
       } else {
-        // Create profile if it doesn't exist
+        console.log("No profile found, creating one...");
+        // Create profile using upsert to avoid RLS issues
+        const newProfileData = {
+          id: session.user.id,
+          username: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.email || '',
+          email_notifications: true,
+          marketing_emails: false,
+          bio: '',
+          website: '',
+          avatar_url: null
+        };
+
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .insert({
-            id: session.user.id,
-            username: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || session.user.email || '',
-            email_notifications: true,
-            marketing_emails: false
+          .upsert(newProfileData, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
           })
           .select()
           .single();
 
         if (createError) {
           console.error("Error creating profile:", createError);
-          throw createError;
+          // If creation fails, set default form data anyway
+          setFormData({
+            full_name: session.user.user_metadata?.full_name || session.user.email || '',
+            username: session.user.email || '',
+            bio: '',
+            website: '',
+            email_notifications: true,
+            marketing_emails: false,
+            dark_mode: false
+          });
+        } else {
+          console.log("Profile created:", newProfile);
+          setUserProfile(newProfile);
+          setFormData({
+            full_name: newProfile.full_name || '',
+            username: newProfile.username || '',
+            bio: newProfile.bio || '',
+            website: newProfile.website || '',
+            email_notifications: newProfile.email_notifications ?? true,
+            marketing_emails: newProfile.marketing_emails ?? false,
+            dark_mode: false
+          });
         }
-
-        setUserProfile(newProfile);
-        setFormData({
-          full_name: newProfile.full_name || '',
-          username: newProfile.username || '',
-          bio: newProfile.bio || '',
-          website: newProfile.website || '',
-          email_notifications: newProfile.email_notifications ?? true,
-          marketing_emails: newProfile.marketing_emails ?? false,
-          dark_mode: false
-        });
       }
 
       setLoading(false);
@@ -111,10 +134,23 @@ const Settings = () => {
       console.error("Error loading user profile:", error);
       toast({
         title: "Failed to load profile",
-        description: "There was an error loading your profile data.",
+        description: "There was an error loading your profile data. Using default values.",
         variant: "destructive"
       });
+      
+      // Set loading to false and use default form data
       setLoading(false);
+      if (currentUser) {
+        setFormData({
+          full_name: currentUser.user_metadata?.full_name || currentUser.email || '',
+          username: currentUser.email || '',
+          bio: '',
+          website: '',
+          email_notifications: true,
+          marketing_emails: false,
+          dark_mode: false
+        });
+      }
     }
   };
 
@@ -123,35 +159,45 @@ const Settings = () => {
   };
 
   const handleSaveProfile = async () => {
-    if (!userProfile || !currentUser) return;
+    if (!currentUser) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to save your profile.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     try {
       setSaving(true);
+      console.log("Saving profile data:", formData);
 
-      const { error } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name,
-          username: formData.username,
-          bio: formData.bio,
-          website: formData.website,
-          email_notifications: formData.email_notifications,
-          marketing_emails: formData.marketing_emails
-        })
-        .eq('id', userProfile.id);
-
-      if (error) throw error;
-
-      // Update local state
-      setUserProfile(prev => prev ? {
-        ...prev,
-        full_name: formData.full_name,
-        username: formData.username,
-        bio: formData.bio,
-        website: formData.website,
+      const profileData = {
+        id: currentUser.id,
+        full_name: formData.full_name.trim(),
+        username: formData.username.trim(),
+        bio: formData.bio.trim(),
+        website: formData.website.trim(),
         email_notifications: formData.email_notifications,
         marketing_emails: formData.marketing_emails
-      } : null);
+      };
+
+      const { data: updatedProfile, error } = await supabase
+        .from('profiles')
+        .upsert(profileData, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        })
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Error saving profile:", error);
+        throw error;
+      }
+
+      console.log("Profile saved successfully:", updatedProfile);
+      setUserProfile(updatedProfile);
 
       toast({
         title: "Profile updated",
@@ -162,12 +208,31 @@ const Settings = () => {
       console.error("Error updating profile:", error);
       toast({
         title: "Update failed",
-        description: "Could not update your profile.",
+        description: "Could not update your profile. Please try again.",
         variant: "destructive"
       });
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleChangePassword = () => {
+    toast({
+      title: "Password Reset",
+      description: "A password reset link will be sent to your email.",
+    });
+    
+    // Send password reset email
+    supabase.auth.resetPasswordForEmail(currentUser?.email || '', {
+      redirectTo: `${window.location.origin}/reset-password`
+    });
+  };
+
+  const handleEnable2FA = () => {
+    toast({
+      title: "Two-Factor Authentication",
+      description: "2FA setup is coming soon. This feature will be available in a future update.",
+    });
   };
 
   if (loading) {
@@ -320,7 +385,11 @@ const Settings = () => {
                   <div>
                     <h3 className="font-medium mb-2 text-slate-900 dark:text-white">Change Password</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Update your account password</p>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleChangePassword}
+                    >
                       <Key className="w-4 h-4 mr-2" />
                       Change Password
                     </Button>
@@ -329,7 +398,11 @@ const Settings = () => {
                   <div>
                     <h3 className="font-medium mb-2 text-slate-900 dark:text-white">Two-Factor Authentication</h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Add an extra layer of security</p>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleEnable2FA}
+                    >
                       <Shield className="w-4 h-4 mr-2" />
                       Enable 2FA
                     </Button>
