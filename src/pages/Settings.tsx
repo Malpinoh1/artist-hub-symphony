@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key } from 'lucide-react';
 import Navbar from '../components/Navbar';

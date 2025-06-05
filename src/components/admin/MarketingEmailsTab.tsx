@@ -45,7 +45,7 @@ const MarketingEmailsTab = () => {
 
       if (error) throw error;
 
-      setRecipients(data || []);
+      setRecipients(data as MarketingRecipient[] || []);
     } catch (error) {
       console.error('Error fetching marketing recipients:', error);
       toast({
@@ -89,7 +89,7 @@ const MarketingEmailsTab = () => {
       // Send emails to all opted-in recipients
       for (const recipient of recipients) {
         try {
-          const userEmail = await getUserEmail(recipient.id);
+          const userEmail = getUserEmail(recipient);
           if (userEmail) {
             const result = await sendMarketingEmail(
               userEmail,
@@ -144,16 +144,9 @@ const MarketingEmailsTab = () => {
     }
   };
 
-  const getUserEmail = async (userId: string) => {
-    try {
-      // Get user email from auth.users via RPC or admin API
-      // For now, we'll use the username as email (since it's typically the email)
-      const recipient = recipients.find(r => r.id === userId);
-      return recipient?.username; // Assuming username is the email
-    } catch (error) {
-      console.error('Error getting user email:', error);
-      return null;
-    }
+  const getUserEmail = (recipient: MarketingRecipient) => {
+    // Assuming username is the email
+    return recipient.username;
   };
 
   return (

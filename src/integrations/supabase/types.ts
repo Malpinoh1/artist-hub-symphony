@@ -255,8 +255,10 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          email_notifications: boolean | null
           full_name: string
           id: string
+          marketing_emails: boolean | null
           updated_at: string
           username: string
           website: string | null
@@ -265,8 +267,10 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email_notifications?: boolean | null
           full_name: string
           id: string
+          marketing_emails?: boolean | null
           updated_at?: string
           username: string
           website?: string | null
@@ -275,8 +279,10 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          email_notifications?: boolean | null
           full_name?: string
           id?: string
+          marketing_emails?: boolean | null
           updated_at?: string
           username?: string
           website?: string | null
