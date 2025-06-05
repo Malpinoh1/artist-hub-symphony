@@ -17,7 +17,6 @@ import ReleasesTab from '@/components/admin/ReleasesTab';
 import WithdrawalsTab from '@/components/admin/WithdrawalsTab';
 import ArtistsTab from '@/components/admin/ArtistsTab';
 import DashboardStats from '@/components/admin/DashboardStats';
-import AdminNav from '@/components/admin/AdminNav';
 import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
 import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
 
@@ -34,7 +33,6 @@ const AdminDashboard = () => {
     setLoading(true);
     
     try {
-      // Fetch all data in parallel
       const [releasesData, withdrawalsData, artistsData, takeDownCount, artistsEarningsData] = await Promise.all([
         fetchAdminReleases(),
         fetchAdminWithdrawals(),
@@ -43,11 +41,19 @@ const AdminDashboard = () => {
         fetchArtistsEarningSummary()
       ]);
       
-      setReleases(releasesData);
-      setWithdrawals(withdrawalsData);
-      setArtists(artistsData);
-      setArtistsEarnings(artistsEarningsData);
-      setTakeDownRequestsCount(takeDownCount);
+      console.log('Fetched dashboard data:', {
+        releases: releasesData?.length,
+        withdrawals: withdrawalsData?.length,
+        artists: artistsData?.length,
+        takeDownCount,
+        artistsEarnings: artistsEarningsData?.length
+      });
+      
+      setReleases(releasesData || []);
+      setWithdrawals(withdrawalsData || []);
+      setArtists(artistsData || []);
+      setArtistsEarnings(artistsEarningsData || []);
+      setTakeDownRequestsCount(takeDownCount || 0);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load admin dashboard data');
@@ -60,12 +66,11 @@ const AdminDashboard = () => {
     fetchDashboardData();
   }, []);
   
-  // Handle release update - Force complete data refresh
+  // Handle release update with proper data refresh
   const handleReleaseUpdate = (id, status, updatedData = null) => {
     console.log('AdminDashboard: handleReleaseUpdate called with:', { id, status, updatedData });
     
     if (updatedData) {
-      // Use the actual updated data from the backend
       setReleases(prev => {
         const newReleases = prev.map(release => 
           release.id === id ? { ...release, ...updatedData } : release
@@ -74,49 +79,41 @@ const AdminDashboard = () => {
         return newReleases;
       });
     } else {
-      // Fallback to status-only update
-      setReleases(prev => prev.map(release => 
-        release.id === id ? { ...release, status } : release
-      ));
+      // Fallback - just refresh all data
+      console.log('AdminDashboard: No updated data provided, refreshing all data');
+      fetchDashboardData();
     }
   };
   
-  // Handle withdrawal update - Updated to use actual data from backend
+  // Handle withdrawal update
   const handleWithdrawalUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleWithdrawalUpdate called with:', { id, status, updatedData });
+    
     if (updatedData) {
-      // Use the actual updated data from the backend
       setWithdrawals(prev => prev.map(withdrawal => 
         withdrawal.id === id ? updatedData : withdrawal
       ));
     } else {
-      // Fallback to status-only update
-      setWithdrawals(prev => prev.map(withdrawal => 
-        withdrawal.id === id ? { 
-          ...withdrawal, 
-          status,
-          processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
-        } : withdrawal
-      ));
+      fetchDashboardData();
     }
   };
   
-  // Handle artist update - Updated to use actual data from backend
+  // Handle artist update
   const handleArtistUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleArtistUpdate called with:', { id, status, updatedData });
+    
     if (updatedData) {
-      // Use the actual updated data from the backend
       setArtists(prev => prev.map(artist => 
         artist.id === id ? updatedData : artist
       ));
     } else {
-      // Fallback to status-only update
-      setArtists(prev => prev.map(artist => 
-        artist.id === id ? { ...artist, status } : artist
-      ));
+      fetchDashboardData();
     }
   };
 
   // Handle refresh data
   const handleRefreshData = () => {
+    console.log('AdminDashboard: Refreshing all data');
     fetchDashboardData();
   };
   
@@ -181,6 +178,20 @@ const AdminDashboard = () => {
     }
   };
 
+  const tabs = [
+    { id: 'releases', label: 'Releases' },
+    { id: 'withdrawals', label: 'Withdrawals' },
+    { id: 'artists', label: 'Artists' },
+    { id: 'earnings', label: 'Earnings Summary' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'marketing', label: 'Marketing Emails' },
+    { 
+      id: 'takedown', 
+      label: 'Take Down Requests',
+      badge: takeDownRequestsCount > 0 ? takeDownRequestsCount : null
+    },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Navbar />
@@ -206,87 +217,24 @@ const AdminDashboard = () => {
             {/* Tabs Navigation */}
             <div className="border-b border-gray-200 mb-6">
               <div className="flex overflow-x-auto space-x-1">
-                <button 
-                  onClick={() => handleTabChange('releases')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'releases'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Releases
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('withdrawals')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'withdrawals'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Withdrawals
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('artists')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'artists'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Artists
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('earnings')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'earnings'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Earnings Summary
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('analytics')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'analytics'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Analytics
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('marketing')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap ${
-                    activeTab === 'marketing'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  Marketing Emails
-                </button>
-                
-                <button 
-                  onClick={() => handleTabChange('takedown')}
-                  className={`px-4 py-2 border-b-2 whitespace-nowrap flex items-center ${
-                    activeTab === 'takedown'
-                      ? 'border-blue-500 text-blue-600 font-medium'
-                      : 'border-transparent hover:text-blue-500'
-                  }`}
-                >
-                  <span>Take Down Requests</span>
-                  {takeDownRequestsCount > 0 && (
-                    <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
-                      {takeDownRequestsCount}
-                    </span>
-                  )}
-                </button>
+                {tabs.map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`px-4 py-2 border-b-2 whitespace-nowrap flex items-center ${
+                      activeTab === tab.id
+                        ? 'border-blue-500 text-blue-600 font-medium'
+                        : 'border-transparent hover:text-blue-500'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.badge && (
+                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
               </div>
             </div>
             

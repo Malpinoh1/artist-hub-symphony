@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Table,
   TableBody,
@@ -9,8 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { MoreVertical, Pencil, Barcode, Database, BarChart, Link } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreVertical, Pencil, Barcode, BarChart, Link } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
 import { Release, updateReleaseStatus, updateReleaseIdentifiers } from '@/services/adminService';
 import { toast } from 'sonner';
@@ -96,18 +96,17 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     try {
       const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
       
+      console.log('Update result:', result);
+      
       if (result.success && result.data) {
         console.log('Status update successful, calling onReleaseUpdate with:', result.data);
-        
-        // Force a complete refresh of the release data
         onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
-        
         toast.success(`Release status updated to ${selectedStatus}`);
         setStatusDialogOpen(false);
         setSelectedRelease(null);
       } else {
         console.error('Failed to update release status:', result.error);
-        toast.error('Failed to update release status');
+        toast.error(`Failed to update release status: ${result.error?.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating release status:', error);
@@ -133,18 +132,17 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     try {
       const result = await updateReleaseIdentifiers(selectedRelease.id, upc, isrc);
       
+      console.log('Identifiers update result:', result);
+      
       if (result.success && result.data) {
         console.log('Identifiers update successful, calling onReleaseUpdate with:', result.data);
-        
-        // Force a complete refresh of the release data
         onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
-        
         toast.success('Release identifiers updated successfully');
         setIdentifierDialogOpen(false);
         setSelectedRelease(null);
       } else {
         console.error('Failed to update release identifiers:', result.error);
-        toast.error('Failed to update release identifiers');
+        toast.error(`Failed to update release identifiers: ${result.error?.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Error updating release identifiers:', error);
