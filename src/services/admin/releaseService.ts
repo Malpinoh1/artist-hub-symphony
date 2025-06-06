@@ -50,11 +50,37 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
+    // First, check if the release exists
+    const { data: existingRelease, error: checkError } = await supabase
+      .from('releases')
+      .select('id, status')
+      .eq('id', releaseId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error('Error checking release existence:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingRelease) {
+      console.error('Release not found');
+      return { success: false, error: { message: 'Release not found' } };
+    }
+
     // Update the status
-    const { data: updateData, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ status: newStatus })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release status:', updateError);
+      return { success: false, error: updateError };
+    }
+
+    // Fetch the updated release with all required data
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -66,31 +92,27 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (updateError) {
-      console.error('Error updating release status:', updateError);
-      return { success: false, error: updateError };
-    }
-
-    if (!updateData) {
-      console.error('No release found after update');
-      return { success: false, error: { message: 'No release found after update' } };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    console.log('Release status updated successfully:', updateData);
+    console.log('Release status updated successfully:', updatedRelease);
     
     // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved' && updateData.artists) {
+    if (newStatus === 'Approved' && updatedRelease.artists) {
       console.log('Release approved, sending notification email');
       try {
-        const artist = Array.isArray(updateData.artists) ? updateData.artists[0] : updateData.artists;
+        const artist = Array.isArray(updatedRelease.artists) ? updatedRelease.artists[0] : updatedRelease.artists;
         if (artist && artist.email && artist.name) {
           await sendReleaseApprovalEmail(
             artist.email,
             artist.name,
-            updateData.title,
-            updateData.id
+            updatedRelease.title,
+            updatedRelease.id
           );
           console.log('Approval email sent successfully');
         }
@@ -99,7 +121,7 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
       }
     }
     
-    return { success: true, data: updateData };
+    return { success: true, data: updatedRelease };
   } catch (error) {
     console.error('Error in updateReleaseStatus:', error);
     return { success: false, error };
@@ -111,14 +133,40 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
+    // First, check if the release exists
+    const { data: existingRelease, error: checkError } = await supabase
+      .from('releases')
+      .select('id')
+      .eq('id', releaseId)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error('Error checking release existence:', checkError);
+      return { success: false, error: checkError };
+    }
+
+    if (!existingRelease) {
+      console.error('Release not found');
+      return { success: false, error: { message: 'Release not found' } };
+    }
+
     // Update the identifiers
-    const { data: updateData, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('releases')
       .update({ 
         upc: upc || null,
         isrc: isrc || null
       })
-      .eq('id', releaseId)
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release identifiers:', updateError);
+      return { success: false, error: updateError };
+    }
+
+    // Fetch the updated release with all required data
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
       .select(`
         id,
         title,
@@ -130,20 +178,16 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         artist_id,
         artists(id, name, email)
       `)
+      .eq('id', releaseId)
       .single();
       
-    if (updateError) {
-      console.error('Error updating release identifiers:', updateError);
-      return { success: false, error: updateError };
-    }
-
-    if (!updateData) {
-      console.error('No release found after identifier update');
-      return { success: false, error: { message: 'No release found after update' } };
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
     }
     
-    console.log('Release identifiers updated successfully:', updateData);
-    return { success: true, data: updateData };
+    console.log('Release identifiers updated successfully:', updatedRelease);
+    return { success: true, data: updatedRelease };
   } catch (error) {
     console.error('Error in updateReleaseIdentifiers:', error);
     return { success: false, error };
