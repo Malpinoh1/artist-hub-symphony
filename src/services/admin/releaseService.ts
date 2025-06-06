@@ -50,20 +50,11 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
-    // First update the status
-    const { error: updateError } = await supabase
+    // Update the status
+    const { data: updateData, error: updateError } = await supabase
       .from('releases')
       .update({ status: newStatus })
-      .eq('id', releaseId);
-      
-    if (updateError) {
-      console.error('Error updating release status:', updateError);
-      return { success: false, error: updateError };
-    }
-
-    // Then fetch the updated release with artist data
-    const { data: updatedRelease, error: fetchError } = await supabase
-      .from('releases')
+      .eq('id', releaseId)
       .select(`
         id,
         title,
@@ -75,32 +66,31 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
         artist_id,
         artists(id, name, email)
       `)
-      .eq('id', releaseId)
       .single();
       
-    if (fetchError) {
-      console.error('Error fetching updated release:', fetchError);
-      return { success: false, error: fetchError };
+    if (updateError) {
+      console.error('Error updating release status:', updateError);
+      return { success: false, error: updateError };
     }
 
-    if (!updatedRelease) {
+    if (!updateData) {
       console.error('No release found after update');
       return { success: false, error: { message: 'No release found after update' } };
     }
     
-    console.log('Release status updated successfully:', updatedRelease);
+    console.log('Release status updated successfully:', updateData);
     
     // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved' && updatedRelease.artists) {
+    if (newStatus === 'Approved' && updateData.artists) {
       console.log('Release approved, sending notification email');
       try {
-        const artist = Array.isArray(updatedRelease.artists) ? updatedRelease.artists[0] : updatedRelease.artists;
+        const artist = Array.isArray(updateData.artists) ? updateData.artists[0] : updateData.artists;
         if (artist && artist.email && artist.name) {
           await sendReleaseApprovalEmail(
             artist.email,
             artist.name,
-            updatedRelease.title,
-            updatedRelease.id
+            updateData.title,
+            updateData.id
           );
           console.log('Approval email sent successfully');
         }
@@ -109,7 +99,7 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
       }
     }
     
-    return { success: true, data: updatedRelease };
+    return { success: true, data: updateData };
   } catch (error) {
     console.error('Error in updateReleaseStatus:', error);
     return { success: false, error };
@@ -121,23 +111,14 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
   console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
   
   try {
-    // First update the identifiers
-    const { error: updateError } = await supabase
+    // Update the identifiers
+    const { data: updateData, error: updateError } = await supabase
       .from('releases')
       .update({ 
         upc: upc || null,
         isrc: isrc || null
       })
-      .eq('id', releaseId);
-      
-    if (updateError) {
-      console.error('Error updating release identifiers:', updateError);
-      return { success: false, error: updateError };
-    }
-
-    // Then fetch the updated release with artist data
-    const { data: updatedRelease, error: fetchError } = await supabase
-      .from('releases')
+      .eq('id', releaseId)
       .select(`
         id,
         title,
@@ -149,21 +130,20 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
         artist_id,
         artists(id, name, email)
       `)
-      .eq('id', releaseId)
       .single();
       
-    if (fetchError) {
-      console.error('Error fetching updated release:', fetchError);
-      return { success: false, error: fetchError };
+    if (updateError) {
+      console.error('Error updating release identifiers:', updateError);
+      return { success: false, error: updateError };
     }
 
-    if (!updatedRelease) {
+    if (!updateData) {
       console.error('No release found after identifier update');
       return { success: false, error: { message: 'No release found after update' } };
     }
     
-    console.log('Release identifiers updated successfully:', updatedRelease);
-    return { success: true, data: updatedRelease };
+    console.log('Release identifiers updated successfully:', updateData);
+    return { success: true, data: updateData };
   } catch (error) {
     console.error('Error in updateReleaseIdentifiers:', error);
     return { success: false, error };

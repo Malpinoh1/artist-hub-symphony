@@ -60,8 +60,8 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     { label: 'Pending', value: 'Pending' },
     { label: 'Approved', value: 'Approved' },
     { label: 'Rejected', value: 'Rejected' },
-    { label: 'TakeDown', value: 'TakeDown' },
-    { label: 'TakeDownRequested', value: 'TakeDownRequested' },
+    { label: 'Take Down', value: 'TakeDown' },
+    { label: 'Take Down Requested', value: 'TakeDownRequested' },
   ];
   
   const getStatusColor = (status: string) => {
@@ -81,28 +81,33 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
   
   const openStatusDialog = (release: Release) => {
+    console.log('Opening status dialog for release:', release);
     setSelectedRelease(release);
     setSelectedStatus(release.status);
     setStatusDialogOpen(true);
   };
   
   const handleStatusChange = async () => {
-    if (!selectedRelease || !selectedStatus || updating) return;
+    if (!selectedRelease || !selectedStatus || updating) {
+      console.log('Cannot update status: missing data or already updating');
+      return;
+    }
     
     setUpdating(true);
-    console.log(`Attempting to update release ${selectedRelease.id} status to ${selectedStatus}`);
+    console.log(`Attempting to update release ${selectedRelease.id} status from ${selectedRelease.status} to ${selectedStatus}`);
     
     try {
       const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
       
-      console.log('Update result:', result);
+      console.log('Status update result:', result);
       
       if (result.success && result.data) {
-        console.log('Status update successful, calling onReleaseUpdate with:', result.data);
+        console.log('Status update successful, updating UI with:', result.data);
         onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
         toast.success(`Release status updated to ${selectedStatus}`);
         setStatusDialogOpen(false);
         setSelectedRelease(null);
+        setSelectedStatus('');
       } else {
         console.error('Failed to update release status:', result.error);
         toast.error(`Failed to update release status: ${result.error?.message || 'Unknown error'}`);
@@ -116,6 +121,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
 
   const openIdentifiersDialog = (release: Release) => {
+    console.log('Opening identifiers dialog for release:', release);
     setSelectedRelease(release);
     setUpc(release.upc || '');
     setIsrc(release.isrc || '');
@@ -123,7 +129,10 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
 
   const handleIdentifiersUpdate = async () => {
-    if (!selectedRelease || updating) return;
+    if (!selectedRelease || updating) {
+      console.log('Cannot update identifiers: missing data or already updating');
+      return;
+    }
     
     setUpdating(true);
     console.log(`Attempting to update identifiers for release ${selectedRelease.id}`);
@@ -134,11 +143,13 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       console.log('Identifiers update result:', result);
       
       if (result.success && result.data) {
-        console.log('Identifiers update successful, calling onReleaseUpdate with:', result.data);
+        console.log('Identifiers update successful, updating UI with:', result.data);
         onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
         toast.success('Release identifiers updated successfully');
         setIdentifierDialogOpen(false);
         setSelectedRelease(null);
+        setUpc('');
+        setIsrc('');
       } else {
         console.error('Failed to update release identifiers:', result.error);
         toast.error(`Failed to update release identifiers: ${result.error?.message || 'Unknown error'}`);
@@ -330,10 +341,23 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setStatusDialogOpen(false)} disabled={updating}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setStatusDialogOpen(false);
+                    setSelectedRelease(null);
+                    setSelectedStatus('');
+                  }} 
+                  disabled={updating}
+                >
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleStatusChange} disabled={updating}>
+                <Button 
+                  type="button" 
+                  onClick={handleStatusChange} 
+                  disabled={updating || !selectedStatus}
+                >
                   {updating ? 'Updating...' : 'Save changes'}
                 </Button>
               </DialogFooter>
@@ -376,10 +400,24 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 </div>
               </div>
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIdentifierDialogOpen(false)} disabled={updating}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setIdentifierDialogOpen(false);
+                    setSelectedRelease(null);
+                    setUpc('');
+                    setIsrc('');
+                  }} 
+                  disabled={updating}
+                >
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating}>
+                <Button 
+                  type="button" 
+                  onClick={handleIdentifiersUpdate} 
+                  disabled={updating}
+                >
                   {updating ? 'Updating...' : 'Save changes'}
                 </Button>
               </DialogFooter>
