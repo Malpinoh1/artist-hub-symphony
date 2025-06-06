@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -13,6 +12,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
+import MarketingOptInPopup from '../components/MarketingOptInPopup';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { sendWelcomeEmail } from '../services/emailService';
@@ -26,6 +26,8 @@ const Auth = () => {
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showMarketingPopup, setShowMarketingPopup] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
   
   useEffect(() => {
     // Check if user is already logged in
@@ -106,8 +108,16 @@ const Auth = () => {
           variant: "default"
         });
         
-        // Navigate to dashboard
-        navigate('/dashboard');
+        // Show marketing opt-in popup for new users
+        setNewUserEmail(email);
+        setShowMarketingPopup(true);
+        
+        // Navigate to dashboard after popup is closed
+        setTimeout(() => {
+          if (!showMarketingPopup) {
+            navigate('/dashboard');
+          }
+        }, 1000);
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
@@ -168,6 +178,11 @@ const Auth = () => {
     } finally {
       setLoading(false);
     }
+  };
+  
+  const handleMarketingPopupClose = () => {
+    setShowMarketingPopup(false);
+    navigate('/dashboard');
   };
   
   return (
@@ -330,6 +345,12 @@ const Auth = () => {
           </AnimatedCard>
         </div>
       </main>
+      
+      <MarketingOptInPopup
+        isOpen={showMarketingPopup}
+        onClose={handleMarketingPopupClose}
+        userEmail={newUserEmail}
+      />
       
       <Footer />
     </div>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key } from 'lucide-react';
 import Navbar from '../components/Navbar';
@@ -34,7 +33,7 @@ const Settings = () => {
     bio: '',
     website: '',
     email_notifications: true,
-    marketing_emails: false,
+    marketing_emails: true, // Changed default to true
     dark_mode: false
   });
 
@@ -76,7 +75,7 @@ const Settings = () => {
           bio: profileData.bio || '',
           website: profileData.website || '',
           email_notifications: profileData.email_notifications ?? true,
-          marketing_emails: profileData.marketing_emails ?? false,
+          marketing_emails: profileData.marketing_emails ?? true, // Default to true
           dark_mode: false
         });
       } else {
@@ -87,7 +86,7 @@ const Settings = () => {
           username: session.user.email || '',
           full_name: session.user.user_metadata?.full_name || session.user.email || '',
           email_notifications: true,
-          marketing_emails: false,
+          marketing_emails: true, // Auto opt-in for new users
           bio: '',
           website: '',
           avatar_url: null
@@ -111,7 +110,7 @@ const Settings = () => {
             bio: '',
             website: '',
             email_notifications: true,
-            marketing_emails: false,
+            marketing_emails: true,
             dark_mode: false
           });
         } else {
@@ -123,7 +122,7 @@ const Settings = () => {
             bio: newProfile.bio || '',
             website: newProfile.website || '',
             email_notifications: newProfile.email_notifications ?? true,
-            marketing_emails: newProfile.marketing_emails ?? false,
+            marketing_emails: newProfile.marketing_emails ?? true,
             dark_mode: false
           });
         }
@@ -147,7 +146,7 @@ const Settings = () => {
           bio: '',
           website: '',
           email_notifications: true,
-          marketing_emails: false,
+          marketing_emails: true,
           dark_mode: false
         });
       }
@@ -364,7 +363,7 @@ const Settings = () => {
 
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      <strong>Secure Email Delivery:</strong> All emails are delivered using SSL encryption to ensure your privacy and security.
+                      <strong>Secure Email Delivery:</strong> All emails are delivered using SSL encryption and proper authentication to ensure they reach your inbox, not spam folder.
                     </p>
                   </div>
                 </div>

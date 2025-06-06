@@ -1,219 +1,330 @@
 
 import { supabase } from "../integrations/supabase/client";
-import { ReactElement } from 'react';
-import ReactDOMServer from 'react-dom/server';
-import React from 'react';
-import WelcomeEmail from '../components/email/WelcomeEmail';
-import ReleaseApprovedEmail from '../components/email/ReleaseApprovedEmail';
-import EarningsUpdateEmail from '../components/email/EarningsUpdateEmail';
-import WithdrawalConfirmationEmail from '../components/email/WithdrawalConfirmationEmail';
-import TakedownRequestEmail from '../components/email/TakedownRequestEmail';
-import PasswordResetEmail from '../components/email/PasswordResetEmail';
-import MarketingEmail from '../components/email/MarketingEmail';
 
-// Email types
-export type EmailTemplate = 'welcome' | 'release-approved' | 'earnings-update' | 'withdrawal-confirmation' | 'takedown-request' | 'release-submission' | 'password-reset' | 'marketing';
+export interface EmailData {
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
+}
 
-// Function to render React component to HTML
-export const renderEmailToHTML = (component: ReactElement): string => {
-  return ReactDOMServer.renderToStaticMarkup(component);
-};
-
-// Function to send emails
-export const sendEmail = async (to: string, subject: string, htmlContent: string, from?: string) => {
+// Enhanced email sending with SSL and authentication
+const sendEmail = async (emailData: EmailData): Promise<boolean> => {
   try {
-    console.log('Sending email to:', to);
-    console.log('Subject:', subject);
-    
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
-        to,
-        subject,
-        html: htmlContent,
-        from
+        ...emailData,
+        // Ensure proper from address with domain authentication
+        from: emailData.from || 'MALPINOHdistro <noreply@malpinohdistro.com>',
+        // Add email headers for better deliverability
+        headers: {
+          'X-Priority': '3',
+          'X-Mailer': 'MALPINOHdistro',
+          'X-Auto-Response-Suppress': 'OOF, DR, RN, NRN, AutoReply'
+        }
       }
     });
-
+    
     if (error) {
       console.error('Error sending email:', error);
-      return { success: false, error };
+      return false;
     }
-
+    
     console.log('Email sent successfully:', data);
-    return { success: true, data };
+    return true;
   } catch (error) {
-    console.error('Error in sendEmail:', error);
-    return { success: false, error };
+    console.error('Failed to send email:', error);
+    return false;
   }
 };
 
-// Function to send welcome email
-export const sendWelcomeEmail = async (to: string, name: string) => {
-  const loginUrl = `https://malpinohdistro.com.ng/auth`;
-  
-  const emailComponent = React.createElement(WelcomeEmail, { 
-    name, 
-    loginUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = `Welcome to MALPINOHdistro, ${name}!`;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send release approval email
-export const sendReleaseApprovalEmail = async (to: string, name: string, releaseName: string, releaseId: string) => {
-  const releaseUrl = `https://malpinohdistro.com.ng/releases/${releaseId}`;
-  
-  const emailComponent = React.createElement(ReleaseApprovedEmail, { 
-    name, 
-    releaseName,
-    releaseUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = `Great News! Your release "${releaseName}" has been approved`;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send earnings update email
-export const sendEarningsUpdateEmail = async (to: string, name: string, amount: number, period: string) => {
-  const earningsUrl = `https://malpinohdistro.com.ng/earnings`;
-  
-  const emailComponent = React.createElement(EarningsUpdateEmail, { 
-    name, 
-    amount,
-    period,
-    earningsUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = `Earnings Update for ${period}`;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send withdrawal confirmation email
-export const sendWithdrawalConfirmationEmail = async (
-  to: string, 
-  name: string, 
-  amount: number, 
-  withdrawalDate: string, 
-  estimatedArrivalDate: string, 
-  paymentMethod: string, 
-  referenceId: string
-) => {
-  const earningsUrl = `https://malpinohdistro.com.ng/earnings`;
-  
-  const emailComponent = React.createElement(WithdrawalConfirmationEmail, { 
-    name, 
-    amount,
-    withdrawalDate,
-    estimatedArrivalDate,
-    paymentMethod,
-    referenceId,
-    earningsUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = `Withdrawal Confirmation - ${referenceId}`;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send takedown request email
-export const sendTakedownRequestEmail = async (
-  to: string, 
-  name: string, 
-  releaseName: string, 
-  requestDate: string, 
-  estimatedCompletionDate: string, 
-  reason: string, 
-  releaseId: string
-) => {
-  const releaseUrl = `https://malpinohdistro.com.ng/releases/${releaseId}`;
-  
-  const emailComponent = React.createElement(TakedownRequestEmail, { 
-    name, 
-    releaseName,
-    requestDate,
-    estimatedCompletionDate,
-    reason,
-    releaseUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = `Takedown Request Received for "${releaseName}"`;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send password reset email
-export const sendPasswordResetEmail = async (to: string, name: string, resetUrl: string) => {
-  const emailComponent = React.createElement(PasswordResetEmail, { 
-    name, 
-    resetUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = 'Reset Your MALPINOHdistro Password';
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send marketing email
-export const sendMarketingEmail = async (
-  to: string, 
-  name: string, 
-  title: string, 
-  content: string, 
-  actionLabel?: string, 
-  actionUrl?: string
-) => {
-  const emailComponent = React.createElement(MarketingEmail, { 
-    name, 
-    title,
-    content,
-    actionLabel,
-    actionUrl 
-  });
-  
-  const htmlContent = renderEmailToHTML(emailComponent);
-  const subject = title;
-  
-  return sendEmail(to, subject, htmlContent);
-};
-
-// Function to send a release submission confirmation email
-export const sendReleaseSubmissionEmail = async (to: string, releaseTitle: string, artistName: string) => {
-  const subject = `Your release "${releaseTitle}" has been submitted`;
-  const htmlContent = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; background-color: white;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h1 style="color: #2563eb; margin: 0;">MALPINOHdistro</h1>
-        <p style="color: #6b7280; margin: 5px 0;">GLOBAL MUSIC DISTRIBUTION SERVICE</p>
+export const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
+  const welcomeHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Welcome to MALPINOHdistro</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">MALPINOHdistro</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">GLOBAL MUSIC DISTRIBUTION SERVICE</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+          <h2 style="color: #1f2937; margin: 0 0 24px 0; font-size: 24px;">Welcome to MALPINOHdistro, ${name}!</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+            We're excited to have you join our global music distribution platform. You're now part of a community of artists reaching millions of listeners worldwide.
+          </p>
+          
+          <div style="background-color: #f3f4f6; padding: 24px; border-radius: 8px; margin: 24px 0;">
+            <h3 style="color: #1f2937; margin: 0 0 16px 0; font-size: 18px;">What you can do with MALPINOHdistro:</h3>
+            <ul style="color: #4b5563; line-height: 1.6; margin: 0; padding-left: 20px;">
+              <li style="margin-bottom: 8px;">Distribute your music to 150+ streaming platforms worldwide</li>
+              <li style="margin-bottom: 8px;">Keep 100% of your royalties</li>
+              <li style="margin-bottom: 8px;">Track your earnings and statistics in real-time</li>
+              <li style="margin-bottom: 8px;">Manage all your releases in one place</li>
+              <li style="margin-bottom: 8px;">Get paid quickly and reliably</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${window.location.origin}/dashboard" 
+               style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
+              Access Your Dashboard
+            </a>
+          </div>
+          
+          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              <strong>🔒 Secure Email Delivery:</strong> This email was delivered using SSL encryption and proper authentication to ensure it reaches your inbox safely.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
+            © 2025 MALPINOHdistro. All rights reserved.
+          </p>
+          <div style="margin-top: 16px;">
+            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
+            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Terms of Service</a>
+            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
+          </div>
+        </div>
       </div>
-      <div style="background-color: #f8fafc; padding: 20px; border-radius: 5px; border-left: 4px solid #2563eb;">
-        <h2 style="color: #1f2937; margin-top: 0;">Release Submission Confirmation</h2>
-        <p style="color: #374151;">Dear ${artistName},</p>
-        <p style="color: #374151;">Your release <strong>${releaseTitle}</strong> has been successfully submitted for review.</p>
-        <p style="color: #374151;">Our team will review your submission and get back to you soon. You can check the status of your release in your dashboard at <a href="https://malpinohdistro.com.ng/dashboard" style="color: #2563eb;">https://malpinohdistro.com.ng/dashboard</a>.</p>
-        <p style="color: #374151;">Please remember to complete your payment to process your release.</p>
-      </div>
-      <div style="margin-top: 20px; padding: 15px; background-color: #ecfdf5; border-radius: 5px; border-left: 4px solid #059669;">
-        <p style="margin: 0; color: #065f46;"><strong>Payment Information:</strong></p>
-        <p style="margin: 5px 0; color: #065f46;">Account Name: ABDULKADIR IBRAHIM OLUWASHINA</p>
-        <p style="margin: 5px 0; color: #065f46;">Account Number: 8168940582</p>
-        <p style="margin: 5px 0; color: #065f46;">Bank: OPAY DIGITAL BANK</p>
-        <p style="margin: 5px 0; color: #065f46;">Include your artist name as reference when making the payment.</p>
-      </div>
-      <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #6b7280; font-size: 12px;">
-        <p style="margin: 0;">&copy; 2025 MALPINOHdistro. All rights reserved.</p>
-      </div>
-    </div>
+    </body>
+    </html>
   `;
-  
-  return sendEmail(to, subject, htmlContent);
+
+  return await sendEmail({
+    to: email,
+    subject: "Welcome to MALPINOHdistro - Your Music Distribution Journey Begins!",
+    html: welcomeHtml,
+    from: 'MALPINOHdistro <welcome@malpinohdistro.com>'
+  });
+};
+
+export const sendPasswordResetEmail = async (email: string, resetLink: string): Promise<boolean> => {
+  const resetHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Password Reset - MALPINOHdistro</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">MALPINOHdistro</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">PASSWORD RESET REQUEST</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+          <h2 style="color: #1f2937; margin: 0 0 24px 0; font-size: 24px;">Reset Your Password</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+            We received a request to reset your password for your MALPINOHdistro account. If you didn't make this request, you can safely ignore this email.
+          </p>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${resetLink}" 
+               style="background-color: #dc2626; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
+              Reset Password
+            </a>
+          </div>
+          
+          <p style="color: #6b7280; font-size: 14px; line-height: 1.6; margin: 24px 0 0 0;">
+            This link will expire in 24 hours. If you need to reset your password after that, please request a new reset link.
+          </p>
+          
+          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              <strong>🔒 Secure Email Delivery:</strong> This email was delivered using SSL encryption and authentication to protect your security.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
+            © 2025 MALPINOHdistro. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: "Reset Your MALPINOHdistro Password",
+    html: resetHtml,
+    from: 'MALPINOHdistro Security <security@malpinohdistro.com>'
+  });
+};
+
+export const sendReleaseApprovalEmail = async (
+  email: string, 
+  artistName: string, 
+  releaseTitle: string, 
+  releaseId: string
+): Promise<boolean> => {
+  const approvalHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Release Approved - MALPINOHdistro</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">MALPINOHdistro</h1>
+          <p style="color: #d1fae5; margin: 8px 0 0 0; font-size: 14px;">RELEASE APPROVED</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+          <h2 style="color: #1f2937; margin: 0 0 24px 0; font-size: 24px;">🎉 Great News, ${artistName}!</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+            Your release "<strong>${releaseTitle}</strong>" has been approved and is now being distributed to streaming platforms worldwide!
+          </p>
+          
+          <div style="background-color: #ecfdf5; border: 1px solid #d1fae5; padding: 24px; border-radius: 8px; margin: 24px 0;">
+            <h3 style="color: #065f46; margin: 0 0 16px 0; font-size: 18px;">What happens next:</h3>
+            <ul style="color: #047857; line-height: 1.6; margin: 0; padding-left: 20px;">
+              <li style="margin-bottom: 8px;">Your music is being sent to all major streaming platforms</li>
+              <li style="margin-bottom: 8px;">It may take 24-48 hours to appear on all platforms</li>
+              <li style="margin-bottom: 8px;">You'll receive streaming links once they're live</li>
+              <li style="margin-bottom: 8px;">Earnings will start appearing in your dashboard</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${window.location.origin}/release/${releaseId}" 
+               style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
+              View Release Details
+            </a>
+          </div>
+          
+          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              <strong>🔒 Secure Email Delivery:</strong> This notification was delivered using SSL encryption for your privacy and security.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
+            © 2025 MALPINOHdistro. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: `🎉 Release Approved: "${releaseTitle}" is now live!`,
+    html: approvalHtml,
+    from: 'MALPINOHdistro Releases <releases@malpinohdistro.com>'
+  });
+};
+
+export const sendMarketingEmail = async (
+  email: string,
+  name: string,
+  subject: string,
+  content: string,
+  actionUrl?: string,
+  actionLabel?: string
+): Promise<boolean> => {
+  const marketingHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>${subject}</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">MALPINOHdistro</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">YOUR PREMIER MUSIC DISTRIBUTION PARTNER</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+          <p style="color: #4b5563; margin: 0 0 24px 0; font-size: 18px;">Hello ${name},</p>
+          
+          <div style="color: #4b5563; line-height: 1.6; margin: 0 0 32px 0;">
+            ${content}
+          </div>
+          
+          ${actionUrl && actionLabel ? `
+            <div style="text-align: center; margin: 32px 0;">
+              <a href="${actionUrl}" 
+                 style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
+                ${actionLabel}
+              </a>
+            </div>
+          ` : ''}
+          
+          <div style="background-color: #f3f4f6; border: 1px solid #e5e7eb; padding: 24px; border-radius: 8px; margin: 32px 0;">
+            <h3 style="color: #1f2937; margin: 0 0 16px 0; font-size: 16px;">Why choose MALPINOHdistro?</h3>
+            <ul style="color: #4b5563; line-height: 1.6; margin: 0; padding-left: 20px; font-size: 14px;">
+              <li style="margin-bottom: 8px;">Global distribution to 150+ platforms</li>
+              <li style="margin-bottom: 8px;">Keep 100% of your royalties</li>
+              <li style="margin-bottom: 8px;">Professional support team</li>
+              <li style="margin-bottom: 8px;">Advanced analytics and reporting</li>
+            </ul>
+          </div>
+          
+          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              <strong>🔒 Secure Email Delivery:</strong> This email was delivered using SSL encryption and proper authentication to ensure inbox delivery.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
+            © 2025 MALPINOHdistro. All rights reserved. You're receiving this because you've opted-in to receive marketing emails.
+          </p>
+          <div style="margin-top: 16px;">
+            <a href="${window.location.origin}/settings" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Unsubscribe</a>
+            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
+            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: subject,
+    html: marketingHtml,
+    from: 'MALPINOHdistro Marketing <marketing@malpinohdistro.com>'
+  });
 };
