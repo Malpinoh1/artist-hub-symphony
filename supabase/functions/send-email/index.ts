@@ -26,10 +26,14 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { to, subject, html, from }: EmailRequest = await req.json();
 
+    // Validate required fields
     if (!to || !subject || !html) {
-      console.error("Missing required fields:", { to, subject, html: !!html });
+      console.error("Missing required fields:", { to: !!to, subject: !!subject, html: !!html });
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ 
+          error: "Missing required fields",
+          details: "Email address, subject, and content are required"
+        }),
         {
           status: 400,
           headers: { "Content-Type": "application/json", ...corsHeaders },
@@ -37,30 +41,74 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Sending email to: ${to}`);
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      console.error("Invalid email format:", to);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid email format",
+          details: "Please provide a valid email address"
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    console.log(`Attempting to send email to: ${to}`);
     console.log(`Subject: ${subject}`);
+    console.log(`From: ${from || "MALPINOHdistro <noreply@resend.dev>"}`);
     console.log(`Content length: ${html.length} characters`);
 
-    // Use verified resend.dev domain to avoid verification issues
+    // Send email with enhanced configuration for better deliverability
     const emailResponse = await resend.emails.send({
       from: from || "MALPINOHdistro <noreply@resend.dev>",
       to: [to],
       subject: subject,
       html: html,
-      // Add headers for better deliverability
       headers: {
         'X-Entity-Ref-ID': Math.random().toString(36).substring(7),
+        'X-Mailer': 'MALPINOHdistro-EmailService',
+        'X-Priority': '1',
+        'Importance': 'high',
       },
+      tags: [
+        {
+          name: 'category',
+          value: 'transactional'
+        },
+        {
+          name: 'environment',
+          value: 'production'
+        }
+      ]
     });
 
-    console.log("Email sent response:", emailResponse);
+    console.log("Email sent successfully:", emailResponse);
 
-    // Check if there's an error in the response
+    // Check for errors in the response
     if (emailResponse.error) {
       console.error("Resend API error:", emailResponse.error);
+      
+      // Handle specific Resend errors
+      let errorMessage = "Failed to send email";
+      if (emailResponse.error.message) {
+        if (emailResponse.error.message.includes("Invalid email")) {
+          errorMessage = "Invalid email address format";
+        } else if (emailResponse.error.message.includes("rate limit")) {
+          errorMessage = "Email sending rate limit exceeded. Please try again later.";
+        } else if (emailResponse.error.message.includes("authentication")) {
+          errorMessage = "Email service authentication failed";
+        } else {
+          errorMessage = emailResponse.error.message;
+        }
+      }
+      
       return new Response(
         JSON.stringify({ 
-          error: emailResponse.error.message || "Failed to send email",
+          error: errorMessage,
           details: emailResponse.error 
         }),
         {
@@ -70,16 +118,43 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    return new Response(JSON.stringify(emailResponse), {
-      status: 200,
-      headers: { "Content-Type": "application/json", ...corsHeaders },
-    });
-  } catch (error: any) {
-    console.error("Error sending email:", error);
+    // Success response
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({
+        success: true,
+        id: emailResponse.data?.id || 'unknown',
+        message: "Email sent successfully"
+      }), 
       {
-        status: 500,
+        status: 200,
+        headers: { "Content-Type": "application/json", ...corsHeaders },
+      }
+    );
+
+  } catch (error: any) {
+    console.error("Unexpected error in send-email function:", error);
+    
+    // Handle different types of errors
+    let errorMessage = "Internal server error";
+    let statusCode = 500;
+    
+    if (error.name === 'SyntaxError') {
+      errorMessage = "Invalid request format";
+      statusCode = 400;
+    } else if (error.message?.includes("fetch")) {
+      errorMessage = "Email service temporarily unavailable";
+      statusCode = 503;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    return new Response(
+      JSON.stringify({ 
+        error: errorMessage,
+        details: error.stack || error.toString()
+      }),
+      {
+        status: statusCode,
         headers: { "Content-Type": "application/json", ...corsHeaders },
       }
     );
