@@ -41,14 +41,34 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Subject: ${subject}`);
     console.log(`Content length: ${html.length} characters`);
 
+    // Use verified resend.dev domain to avoid verification issues
     const emailResponse = await resend.emails.send({
-      from: from || "MALPINOHdistro <no-reply@resend.dev>",
+      from: from || "MALPINOHdistro <noreply@resend.dev>",
       to: [to],
       subject: subject,
       html: html,
+      // Add headers for better deliverability
+      headers: {
+        'X-Entity-Ref-ID': Math.random().toString(36).substring(7),
+      },
     });
 
     console.log("Email sent response:", emailResponse);
+
+    // Check if there's an error in the response
+    if (emailResponse.error) {
+      console.error("Resend API error:", emailResponse.error);
+      return new Response(
+        JSON.stringify({ 
+          error: emailResponse.error.message || "Failed to send email",
+          details: emailResponse.error 
+        }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
 
     return new Response(JSON.stringify(emailResponse), {
       status: 200,

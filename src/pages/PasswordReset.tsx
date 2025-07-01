@@ -1,6 +1,7 @@
+
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Mail, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Mail, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,16 +14,21 @@ const PasswordReset = () => {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email) {
-      toast({
-        title: 'Email required',
-        description: 'Please enter your email address',
-        variant: 'destructive'
-      });
+      setError('Please enter your email address');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Please enter a valid email address');
       return;
     }
 
@@ -30,7 +36,7 @@ const PasswordReset = () => {
       setLoading(true);
       
       // Use the custom domain for redirect
-      const resetUrl = `https://malpinohdistro.com.ng/reset-password?email=${encodeURIComponent(email)}`;
+      const resetUrl = `https://malpinohdistro.com.ng/reset-password`;
       
       // First check if user exists and send Supabase reset email
       const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
@@ -44,7 +50,11 @@ const PasswordReset = () => {
 
       // Send custom password reset email
       try {
-        await sendPasswordResetEmail(email, resetUrl);
+        const emailResult = await sendPasswordResetEmail(email, resetUrl);
+        if (!emailResult.success) {
+          console.error('Custom email error:', emailResult.error);
+          // Don't fail completely if custom email fails
+        }
       } catch (emailError) {
         console.error('Custom email error:', emailError);
         // Don't fail if custom email fails
@@ -53,11 +63,12 @@ const PasswordReset = () => {
       setSent(true);
       toast({
         title: 'Reset email sent',
-        description: 'Check your email for password reset instructions'
+        description: 'Check your email (including spam folder) for password reset instructions'
       });
 
     } catch (error: any) {
       console.error('Password reset error:', error);
+      setError(error.message || 'Could not send reset email. Please try again.');
       toast({
         title: 'Reset failed',
         description: error.message || 'Could not send reset email',
@@ -69,8 +80,8 @@ const PasswordReset = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white p-4">
-      <div className="max-w-md w-full p-8 bg-white border border-gray-200 rounded-lg shadow-sm">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 p-4">
+      <div className="max-w-md w-full p-8 bg-white border border-gray-200 rounded-xl shadow-lg">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center mb-4">
             <Mail className="w-8 h-8 text-blue-600" />
@@ -94,8 +105,14 @@ const PasswordReset = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter your email"
                 required
-                className="border-gray-300"
+                className={`border-gray-300 ${error ? 'border-red-500' : ''}`}
               />
+              {error && (
+                <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                  <AlertCircle className="w-4 h-4" />
+                  {error}
+                </div>
+              )}
             </div>
 
             <Button
@@ -112,11 +129,15 @@ const PasswordReset = () => {
                 'Send Reset Link'
               )}
             </Button>
+
+            <div className="text-center text-sm text-gray-500 mt-4">
+              <p>Check your spam folder if you don't see the email</p>
+            </div>
           </form>
         ) : (
           <div className="text-center">
             <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Mail className="w-8 h-8 text-green-600" />
+              <CheckCircle className="w-8 h-8 text-green-600" />
             </div>
             <h2 className="text-xl font-semibold text-black mb-2">
               Check Your Email
@@ -124,9 +145,18 @@ const PasswordReset = () => {
             <p className="text-gray-600 mb-6">
               We've sent a password reset link to <strong>{email}</strong>
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-blue-800 text-sm">
+                <strong>Don't see the email?</strong> Check your spam or junk folder. 
+                The email may take a few minutes to arrive.
+              </p>
+            </div>
             <Button
               variant="outline"
-              onClick={() => setSent(false)}
+              onClick={() => {
+                setSent(false);
+                setError('');
+              }}
               className="w-full border-gray-300 text-black hover:bg-gray-50"
             >
               Send Another Email

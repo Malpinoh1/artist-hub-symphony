@@ -1,4 +1,3 @@
-
 import { supabase } from "../integrations/supabase/client";
 
 export interface EmailData {
@@ -13,15 +12,14 @@ export interface EmailResult {
   error?: string;
 }
 
-// Enhanced email sending with SSL and authentication
+// Enhanced email sending with better error handling and fallback
 const sendEmail = async (emailData: EmailData): Promise<EmailResult> => {
   try {
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
         ...emailData,
-        // Ensure proper from address with domain authentication
-        from: emailData.from || 'MALPINOHdistro <noreply@malpinohdistro.com>',
-        // Add email headers for better deliverability
+        // Use verified domain or fallback to resend.dev
+        from: emailData.from || 'MALPINOHdistro <noreply@resend.dev>',
         headers: {
           'X-Priority': '3',
           'X-Mailer': 'MALPINOHdistro',
@@ -80,7 +78,7 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<Ema
           </div>
           
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${window.location.origin}/dashboard" 
+            <a href="https://malpinohdistro.com.ng/dashboard" 
                style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
               Access Your Dashboard
             </a>
@@ -99,9 +97,9 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<Ema
             © 2025 MALPINOHdistro. All rights reserved.
           </p>
           <div style="margin-top: 16px;">
-            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
-            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Terms of Service</a>
-            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
+            <a href="https://malpinohdistro.com.ng/privacy" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
+            <a href="https://malpinohdistro.com.ng/terms" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Terms of Service</a>
+            <a href="https://malpinohdistro.com.ng/contact" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
           </div>
         </div>
       </div>
@@ -113,7 +111,7 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<Ema
     to: email,
     subject: "Welcome to MALPINOHdistro - Your Music Distribution Journey Begins!",
     html: welcomeHtml,
-    from: 'MALPINOHdistro <welcome@malpinohdistro.com>'
+    from: 'MALPINOHdistro <noreply@resend.dev>'
   });
 };
 
@@ -175,7 +173,7 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
     to: email,
     subject: "Reset Your MALPINOHdistro Password",
     html: resetHtml,
-    from: 'MALPINOHdistro Security <security@malpinohdistro.com>'
+    from: 'MALPINOHdistro Security <noreply@resend.dev>'
   });
 };
 
@@ -219,16 +217,10 @@ export const sendReleaseSubmissionEmail = async (
           </div>
           
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${window.location.origin}/dashboard" 
+            <a href="https://malpinohdistro.com.ng/dashboard" 
                style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
               View Dashboard
             </a>
-          </div>
-          
-          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
-            <p style="color: #1e40af; margin: 0; font-size: 14px;">
-              <strong>🔒 Secure Email Delivery:</strong> This confirmation was delivered using SSL encryption for your security.
-            </p>
           </div>
         </div>
         
@@ -247,7 +239,7 @@ export const sendReleaseSubmissionEmail = async (
     to: email,
     subject: `Release Submitted: "${releaseTitle}" - Under Review`,
     html: submissionHtml,
-    from: 'MALPINOHdistro Releases <releases@malpinohdistro.com>'
+    from: 'MALPINOHdistro Releases <noreply@resend.dev>'
   });
 };
 
@@ -292,16 +284,10 @@ export const sendReleaseApprovalEmail = async (
           </div>
           
           <div style="text-align: center; margin: 32px 0;">
-            <a href="${window.location.origin}/release/${releaseId}" 
+            <a href="https://malpinohdistro.com.ng/release/${releaseId}" 
                style="background-color: #10b981; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
               View Release Details
             </a>
-          </div>
-          
-          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
-            <p style="color: #1e40af; margin: 0; font-size: 14px;">
-              <strong>🔒 Secure Email Delivery:</strong> This notification was delivered using SSL encryption for your privacy and security.
-            </p>
           </div>
         </div>
         
@@ -320,7 +306,7 @@ export const sendReleaseApprovalEmail = async (
     to: email,
     subject: `🎉 Release Approved: "${releaseTitle}" is now live!`,
     html: approvalHtml,
-    from: 'MALPINOHdistro Releases <releases@malpinohdistro.com>'
+    from: 'MALPINOHdistro Releases <noreply@resend.dev>'
   });
 };
 
@@ -374,12 +360,6 @@ export const sendMarketingEmail = async (
               <li style="margin-bottom: 8px;">Advanced analytics and reporting</li>
             </ul>
           </div>
-          
-          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
-            <p style="color: #1e40af; margin: 0; font-size: 14px;">
-              <strong>🔒 Secure Email Delivery:</strong> This email was delivered using SSL encryption and proper authentication to ensure inbox delivery.
-            </p>
-          </div>
         </div>
         
         <!-- Footer -->
@@ -388,9 +368,9 @@ export const sendMarketingEmail = async (
             © 2025 MALPINOHdistro. All rights reserved. You're receiving this because you've opted-in to receive marketing emails.
           </p>
           <div style="margin-top: 16px;">
-            <a href="${window.location.origin}/settings" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Unsubscribe</a>
-            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
-            <a href="#" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
+            <a href="https://malpinohdistro.com.ng/settings" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Unsubscribe</a>
+            <a href="https://malpinohdistro.com.ng/privacy" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Privacy Policy</a>
+            <a href="https://malpinohdistro.com.ng/contact" style="color: #3b82f6; text-decoration: none; margin: 0 12px; font-size: 12px;">Contact Support</a>
           </div>
         </div>
       </div>
@@ -402,6 +382,6 @@ export const sendMarketingEmail = async (
     to: email,
     subject: subject,
     html: marketingHtml,
-    from: 'MALPINOHdistro Marketing <marketing@malpinohdistro.com>'
+    from: 'MALPINOHdistro Marketing <noreply@resend.dev>'
   });
 };

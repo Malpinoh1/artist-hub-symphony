@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -7,7 +8,9 @@ import {
   LogIn, 
   UserPlus,
   Eye,
-  EyeOff
+  EyeOff,
+  AlertCircle,
+  CheckCircle
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -28,6 +31,7 @@ const Auth = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showMarketingPopup, setShowMarketingPopup] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
+  const [error, setError] = useState('');
   
   useEffect(() => {
     // Check if user is already logged in
@@ -43,6 +47,7 @@ const Auth = () => {
   
   const handleGoogleAuth = async () => {
     setLoading(true);
+    setError('');
     
     try {
       const { error } = await supabase.auth.signInWithOAuth({
@@ -56,6 +61,7 @@ const Auth = () => {
       
     } catch (error: any) {
       console.error('Error with Google auth:', error);
+      setError('Google authentication failed. Please try again.');
       toast({
         title: "Google authentication failed",
         description: error.message || "An error occurred during Google authentication",
@@ -68,13 +74,22 @@ const Auth = () => {
   
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email || !password || !fullName) {
-      toast({
-        title: "Missing information",
-        description: "Please fill in all required fields",
-        variant: "destructive"
-      });
+      setError("Please fill in all required fields");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
       return;
     }
     
@@ -87,24 +102,35 @@ const Auth = () => {
         options: {
           data: {
             full_name: fullName,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/dashboard`
         }
       });
       
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('already registered')) {
+          setError('An account with this email already exists. Please sign in instead.');
+          return;
+        }
+        throw error;
+      }
       
       if (data.user) {
         // Send welcome email
         try {
-          await sendWelcomeEmail(email, fullName);
+          const emailResult = await sendWelcomeEmail(email, fullName);
+          if (!emailResult.success) {
+            console.error('Error sending welcome email:', emailResult.error);
+            // Don't fail the signup if email fails
+          }
         } catch (emailError) {
           console.error('Error sending welcome email:', emailError);
           // Don't fail the signup if email fails
         }
         
         toast({
-          title: "Account created",
-          description: "Welcome to MALPINOHdistro! Check your email for a welcome message.",
+          title: "Account created successfully!",
+          description: "Welcome to MALPINOHdistro! Please check your email to verify your account.",
           variant: "default"
         });
         
@@ -121,6 +147,7 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error('Error signing up:', error);
+      setError(error.message || "An error occurred during sign up");
       toast({
         title: "Sign up failed",
         description: error.message || "An error occurred during sign up",
@@ -133,13 +160,17 @@ const Auth = () => {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
     
     if (!email || !password) {
-      toast({
-        title: "Missing credentials",
-        description: "Please enter both email and password",
-        variant: "destructive"
-      });
+      setError("Please enter both email and password");
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address");
       return;
     }
     
@@ -151,7 +182,14 @@ const Auth = () => {
         password
       });
       
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          setError('Invalid email or password. Please check your credentials and try again.');
+        } else {
+          setError(error.message);
+        }
+        return;
+      }
       
       // Check if user is admin
       if (data.user) {
@@ -170,6 +208,7 @@ const Auth = () => {
       }
     } catch (error: any) {
       console.error('Error logging in:', error);
+      setError(error.message || "An error occurred during login");
       toast({
         title: "Login failed",
         description: error.message || "Invalid email or password",
@@ -186,7 +225,7 @@ const Auth = () => {
   };
   
   return (
-    <div className="min-h-screen flex flex-col bg-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
@@ -199,12 +238,22 @@ const Auth = () => {
                 </h1>
                 <p className="text-gray-600">
                   {isLogin 
-                    ? 'Sign in to your MALPINOHDISTRO account' 
-                    : 'Join MALPINOHDISTRO for music distribution'}
+                    ? 'Sign in to your MALPINOHdistro account' 
+                    : 'Join MALPINOHdistro for music distribution'}
                 </p>
               </div>
               
-              <div className="p-8 bg-white border border-gray-200 rounded-lg shadow-sm">
+              <div className="p-8 bg-white border border-gray-200 rounded-xl shadow-lg">
+                {/* Error Display */}
+                {error && (
+                  <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-700">
+                      <AlertCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">{error}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Google Auth Button */}
                 <button
                   onClick={handleGoogleAuth}
@@ -278,7 +327,7 @@ const Auth = () => {
                         id="password"
                         type={showPassword ? "text" : "password"}
                         className="w-full pl-10 pr-12 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder={isLogin ? "Enter your password" : "Create a secure password"}
+                        placeholder={isLogin ? "Enter your password" : "Create a secure password (min 6 characters)"}
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
@@ -326,6 +375,14 @@ const Auth = () => {
                       )}
                     </button>
                   </div>
+
+                  {/* SSL Security Notice */}
+                  <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700 text-sm">
+                      <CheckCircle className="w-4 h-4" />
+                      <span>Your data is protected with SSL encryption</span>
+                    </div>
+                  </div>
                   
                   <div className="text-center">
                     <p className="text-sm text-gray-600">
@@ -333,7 +390,10 @@ const Auth = () => {
                       <button
                         type="button"
                         className="text-blue-600 font-medium hover:text-blue-700"
-                        onClick={() => setIsLogin(!isLogin)}
+                        onClick={() => {
+                          setIsLogin(!isLogin);
+                          setError('');
+                        }}
                       >
                         {isLogin ? "Sign up" : "Sign in"}
                       </button>
