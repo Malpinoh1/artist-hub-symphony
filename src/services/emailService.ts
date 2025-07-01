@@ -8,8 +8,13 @@ export interface EmailData {
   from?: string;
 }
 
+export interface EmailResult {
+  success: boolean;
+  error?: string;
+}
+
 // Enhanced email sending with SSL and authentication
-const sendEmail = async (emailData: EmailData): Promise<boolean> => {
+const sendEmail = async (emailData: EmailData): Promise<EmailResult> => {
   try {
     const { data, error } = await supabase.functions.invoke('send-email', {
       body: {
@@ -27,18 +32,18 @@ const sendEmail = async (emailData: EmailData): Promise<boolean> => {
     
     if (error) {
       console.error('Error sending email:', error);
-      return false;
+      return { success: false, error: error.message };
     }
     
     console.log('Email sent successfully:', data);
-    return true;
+    return { success: true };
   } catch (error) {
     console.error('Failed to send email:', error);
-    return false;
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 };
 
-export const sendWelcomeEmail = async (email: string, name: string): Promise<boolean> => {
+export const sendWelcomeEmail = async (email: string, name: string): Promise<EmailResult> => {
   const welcomeHtml = `
     <!DOCTYPE html>
     <html>
@@ -112,7 +117,7 @@ export const sendWelcomeEmail = async (email: string, name: string): Promise<boo
   });
 };
 
-export const sendPasswordResetEmail = async (email: string, resetLink: string): Promise<boolean> => {
+export const sendPasswordResetEmail = async (email: string, resetLink: string): Promise<EmailResult> => {
   const resetHtml = `
     <!DOCTYPE html>
     <html>
@@ -174,12 +179,84 @@ export const sendPasswordResetEmail = async (email: string, resetLink: string): 
   });
 };
 
+export const sendReleaseSubmissionEmail = async (
+  email: string,
+  releaseTitle: string,
+  artistName: string
+): Promise<EmailResult> => {
+  const submissionHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Release Submitted - MALPINOHdistro</title>
+    </head>
+    <body style="margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
+      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 20px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: bold;">MALPINOHdistro</h1>
+          <p style="color: #e0e7ff; margin: 8px 0 0 0; font-size: 14px;">RELEASE SUBMISSION CONFIRMED</p>
+        </div>
+        
+        <!-- Content -->
+        <div style="padding: 40px 30px;">
+          <h2 style="color: #1f2937; margin: 0 0 24px 0; font-size: 24px;">Thank you, ${artistName}!</h2>
+          
+          <p style="color: #4b5563; line-height: 1.6; margin: 0 0 20px 0;">
+            We've successfully received your release submission for "<strong>${releaseTitle}</strong>". Our team will now review your submission.
+          </p>
+          
+          <div style="background-color: #f3f4f6; padding: 24px; border-radius: 8px; margin: 24px 0;">
+            <h3 style="color: #1f2937; margin: 0 0 16px 0; font-size: 18px;">What happens next:</h3>
+            <ul style="color: #4b5563; line-height: 1.6; margin: 0; padding-left: 20px;">
+              <li style="margin-bottom: 8px;">Our team will review your release within 24-48 hours</li>
+              <li style="margin-bottom: 8px;">You'll receive an email notification once approved</li>
+              <li style="margin-bottom: 8px;">Your music will then be distributed to all platforms</li>
+              <li style="margin-bottom: 8px;">You can track the progress in your dashboard</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${window.location.origin}/dashboard" 
+               style="background-color: #3b82f6; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 600; display: inline-block;">
+              View Dashboard
+            </a>
+          </div>
+          
+          <div style="background-color: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0;">
+            <p style="color: #1e40af; margin: 0; font-size: 14px;">
+              <strong>🔒 Secure Email Delivery:</strong> This confirmation was delivered using SSL encryption for your security.
+            </p>
+          </div>
+        </div>
+        
+        <!-- Footer -->
+        <div style="background-color: #f9fafb; padding: 30px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="color: #6b7280; margin: 0 0 16px 0; font-size: 14px;">
+            © 2025 MALPINOHdistro. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return await sendEmail({
+    to: email,
+    subject: `Release Submitted: "${releaseTitle}" - Under Review`,
+    html: submissionHtml,
+    from: 'MALPINOHdistro Releases <releases@malpinohdistro.com>'
+  });
+};
+
 export const sendReleaseApprovalEmail = async (
   email: string, 
   artistName: string, 
   releaseTitle: string, 
   releaseId: string
-): Promise<boolean> => {
+): Promise<EmailResult> => {
   const approvalHtml = `
     <!DOCTYPE html>
     <html>
@@ -252,9 +329,9 @@ export const sendMarketingEmail = async (
   name: string,
   subject: string,
   content: string,
-  actionUrl?: string,
-  actionLabel?: string
-): Promise<boolean> => {
+  actionLabel?: string,
+  actionUrl?: string
+): Promise<EmailResult> => {
   const marketingHtml = `
     <!DOCTYPE html>
     <html>

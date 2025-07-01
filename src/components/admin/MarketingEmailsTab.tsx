@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Send, Users, Mail, CheckCircle, AlertCircle, Sparkles, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';

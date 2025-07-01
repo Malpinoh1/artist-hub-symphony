@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Mail, RefreshCw } from 'lucide-react';
@@ -45,7 +44,7 @@ const PasswordReset = () => {
 
       // Send custom password reset email
       try {
-        await sendPasswordResetEmail(email, email.split('@')[0], resetUrl);
+        await sendPasswordResetEmail(email, resetUrl);
       } catch (emailError) {
         console.error('Custom email error:', emailError);
         // Don't fail if custom email fails
