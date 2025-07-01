@@ -1,3 +1,4 @@
+
 import { supabase } from '../integrations/supabase/client';
 
 export interface EmailResult {
@@ -287,37 +288,4 @@ export const sendReleaseApprovalEmail = async (email: string, artistName: string
     html,
     from: 'MALPINOHdistro <success@resend.dev>'
   });
-};
-
-export const sendMarketingEmail = async (recipients: string[], subject: string, content: string): Promise<EmailResult> => {
-  try {
-    const results = await Promise.allSettled(
-      recipients.map(email => 
-        sendEmail({
-          to: email,
-          subject,
-          html: content,
-          from: 'MALPINOHdistro <marketing@resend.dev>'
-        })
-      )
-    );
-
-    const failures = results.filter(result => 
-      result.status === 'rejected' || 
-      (result.status === 'fulfilled' && !result.value.success)
-    );
-
-    if (failures.length === results.length) {
-      return { success: false, error: 'All emails failed to send' };
-    } else if (failures.length > 0) {
-      return { 
-        success: true, 
-        error: `${failures.length}/${results.length} emails failed to send` 
-      };
-    }
-
-    return { success: true };
-  } catch (error: any) {
-    return { success: false, error: error.message };
-  }
 };
