@@ -1,4 +1,5 @@
 
+
 import { supabase } from '../integrations/supabase/client';
 
 export interface EmailResult {
@@ -102,7 +103,7 @@ export const sendWelcomeEmail = async (email: string, fullName: string): Promise
     to: email,
     subject: '🎵 Welcome to MALPINOHdistro - Let\'s Get Your Music Out There!',
     html,
-    from: 'MALPINOHdistro <welcome@resend.dev>'
+    from: 'MALPINOHdistro <welcome@malpinohdistro.com.ng>'
   });
 };
 
@@ -151,7 +152,7 @@ export const sendPasswordResetEmail = async (email: string, resetUrl: string): P
     to: email,
     subject: '🔒 Reset Your MALPINOHdistro Password',
     html,
-    from: 'MALPINOHdistro Security <security@resend.dev>'
+    from: 'MALPINOHdistro Security <security@malpinohdistro.com.ng>'
   });
 };
 
@@ -194,7 +195,7 @@ export const sendMarketingEmail = async (email: string, name: string, subject: s
     to: email,
     subject,
     html,
-    from: 'MALPINOHdistro <marketing@resend.dev>'
+    from: 'MALPINOHdistro <marketing@malpinohdistro.com.ng>'
   });
 };
 
@@ -245,7 +246,7 @@ export const sendReleaseSubmissionEmail = async (email: string, releaseTitle: st
     to: email,
     subject: `🎵 "${releaseTitle}" - Release Submitted Successfully!`,
     html,
-    from: 'MALPINOHdistro <releases@resend.dev>'
+    from: 'MALPINOHdistro <releases@malpinohdistro.com.ng>'
   });
 };
 
@@ -286,6 +287,7 @@ export const sendReleaseApprovalEmail = async (email: string, artistName: string
     to: email,
     subject: `🎉 "${releaseTitle}" is Now Live - Congratulations!`,
     html,
-    from: 'MALPINOHdistro <success@resend.dev>'
+    from: 'MALPINOHdistro <success@malpinohdistro.com.ng>'
   });
 };
+

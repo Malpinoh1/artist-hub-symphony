@@ -59,12 +59,12 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Attempting to send email to: ${to}`);
     console.log(`Subject: ${subject}`);
-    console.log(`From: ${from || "MALPINOHdistro <noreply@resend.dev>"}`);
+    console.log(`From: ${from || "MALPINOHdistro <noreply@malpinohdistro.com.ng>"}`);
     console.log(`Content length: ${html.length} characters`);
 
     // Send email with enhanced configuration for better deliverability
     const emailResponse = await resend.emails.send({
-      from: from || "MALPINOHdistro <noreply@resend.dev>",
+      from: from || "MALPINOHdistro <noreply@malpinohdistro.com.ng>",
       to: [to],
       subject: subject,
       html: html,
