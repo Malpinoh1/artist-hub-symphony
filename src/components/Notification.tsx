@@ -90,7 +90,7 @@ const Notification: React.FC<NotificationProps> = ({
       {autoClose && duration > 0 && (
         <div className="mt-3 w-full bg-gray-200 rounded-full h-1 overflow-hidden">
           <div 
-            className={`h-full ${getProgressBarColor()} animate-shrink-width`}
+            className={`h-full ${getProgressBarColor()}`}
             style={{
               animation: `shrink-width ${duration}ms linear forwards`
             }}
@@ -98,15 +98,14 @@ const Notification: React.FC<NotificationProps> = ({
         </div>
       )}
 
-      <style jsx>{`
-        @keyframes shrink-width {
-          from { width: 100%; }
-          to { width: 0%; }
-        }
-        .animate-shrink-width {
-          animation: shrink-width ${duration}ms linear forwards;
-        }
-      `}</style>
+      <style>
+        {`
+          @keyframes shrink-width {
+            from { width: 100%; }
+            to { width: 0%; }
+          }
+        `}
+      </style>
     </div>
   );
 };

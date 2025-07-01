@@ -1,4 +1,3 @@
-
 import { supabase } from '../integrations/supabase/client';
 
 export interface EmailResult {
@@ -6,7 +5,7 @@ export interface EmailResult {
   error?: string;
 }
 
-const EDGE_FUNCTION_URL = `${supabase.supabaseUrl}/functions/v1/send-email`;
+const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
 
 const sendEmail = async (emailData: {
   to: string;
@@ -23,7 +22,7 @@ const sendEmail = async (emailData: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || supabase.supabaseKey}`,
+        'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify(emailData),
     });
@@ -155,6 +154,49 @@ export const sendPasswordResetEmail = async (email: string, resetUrl: string): P
   });
 };
 
+export const sendMarketingEmail = async (email: string, name: string, subject: string, content: string, actionLabel?: string, actionUrl?: string): Promise<EmailResult> => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+      <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #1e40af; font-size: 28px; margin: 0; font-weight: bold;">MALPINOHdistro</h1>
+          <div style="width: 60px; height: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); margin: 16px auto; border-radius: 2px;"></div>
+        </div>
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 16px;">Hello ${name}!</h2>
+          <div style="color: #6b7280; font-size: 16px; line-height: 1.6;">
+            ${content}
+          </div>
+        </div>
+
+        ${actionLabel && actionUrl ? `
+          <div style="text-align: center; margin: 32px 0;">
+            <a href="${actionUrl}" 
+               style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
+              ${actionLabel}
+            </a>
+          </div>
+        ` : ''}
+
+        <div style="text-align: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            © 2024 MALPINOHdistro. All rights reserved.<br>
+            Questions? Contact us at support@malpinohdistro.com.ng
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject,
+    html,
+    from: 'MALPINOHdistro <marketing@resend.dev>'
+  });
+};
+
 export const sendReleaseSubmissionEmail = async (email: string, releaseTitle: string, artistName: string): Promise<EmailResult> => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
@@ -179,12 +221,6 @@ export const sendReleaseSubmissionEmail = async (email: string, releaseTitle: st
             <p style="margin: 8px 0;">🚀 <strong>Distribution:</strong> Once approved, your music will be sent to all selected platforms</p>
             <p style="margin: 8px 0;">📊 <strong>Go Live:</strong> Most platforms will have your music live within 3-7 days</p>
           </div>
-        </div>
-
-        <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 24px;">
-          <p style="color: #1e40af; font-size: 14px; margin: 0;">
-            💡 <strong>Tip:</strong> You can track your release status and view analytics in your dashboard once it's approved.
-          </p>
         </div>
 
         <div style="text-align: center; margin-top: 32px;">
@@ -212,7 +248,7 @@ export const sendReleaseSubmissionEmail = async (email: string, releaseTitle: st
   });
 };
 
-export const sendReleaseApprovalEmail = async (email: string, releaseTitle: string, artistName: string): Promise<EmailResult> => {
+export const sendReleaseApprovalEmail = async (email: string, artistName: string, releaseTitle: string): Promise<EmailResult> => {
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
       <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
@@ -225,22 +261,6 @@ export const sendReleaseApprovalEmail = async (email: string, releaseTitle: stri
           <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 16px;">Congratulations ${artistName}!</h2>
           <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
             Excellent news! Your release <strong>"${releaseTitle}"</strong> has been approved and is now being distributed to all selected platforms.
-          </p>
-        </div>
-
-        <div style="background: #ecfdf5; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
-          <h3 style="color: #059669; font-size: 18px; margin-bottom: 16px;">🚀 Your Music is Going Live!</h3>
-          <div style="color: #065f46; font-size: 14px; line-height: 1.6;">
-            <p style="margin: 8px 0;">🎵 <strong>Spotify:</strong> Live within 1-3 days</p>
-            <p style="margin: 8px 0;">🍎 <strong>Apple Music:</strong> Live within 1-2 days</p>
-            <p style="margin: 8px 0;">▶️ <strong>YouTube Music:</strong> Live within 2-5 days</p>
-            <p style="margin: 8px 0;">🎶 <strong>Other Platforms:</strong> Live within 3-7 days</p>
-          </div>
-        </div>
-
-        <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 24px;">
-          <p style="color: #1e40af; font-size: 14px; margin: 0;">
-            📊 <strong>Track Your Success:</strong> Monitor streams, earnings, and analytics in your dashboard once your music goes live.
           </p>
         </div>
 

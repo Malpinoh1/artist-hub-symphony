@@ -1,4 +1,3 @@
-
 import { supabase } from "../../integrations/supabase/client";
 import { sendReleaseApprovalEmail } from "../emailService";
 
@@ -111,8 +110,7 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
           await sendReleaseApprovalEmail(
             artist.email,
             artist.name,
-            updatedRelease.title,
-            updatedRelease.id
+            updatedRelease.title
           );
           console.log('Approval email sent successfully');
         }
