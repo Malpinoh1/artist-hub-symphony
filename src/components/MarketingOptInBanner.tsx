@@ -20,17 +20,54 @@ const MarketingOptInBanner: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
-      const { data: profile } = await supabase
+      console.log('Checking marketing status for user:', session.user.id);
+
+      // First try to get existing profile
+      const { data: profile, error: fetchError } = await supabase
         .from('profiles')
-        .select('marketing_emails, full_name')
+        .select('marketing_emails, full_name, username')
         .eq('id', session.user.id)
-        .single();
+        .maybeSingle();
+
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        console.error('Error fetching profile:', fetchError);
+        return;
+      }
 
       if (profile) {
+        console.log('Found profile:', profile);
         setUserProfile(profile);
-        // Show banner if user hasn't opted into marketing emails
+        // Show banner only if marketing_emails is explicitly false or null
+        // Don't show if it's already true
         if (profile.marketing_emails === false || profile.marketing_emails === null) {
           setShowBanner(true);
+        }
+      } else {
+        console.log('No profile found, creating one with default opt-in');
+        // Create profile with marketing_emails = true by default
+        const newProfileData = {
+          id: session.user.id,
+          username: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.email || '',
+          marketing_emails: true, // Default to opted-in
+          email_notifications: true
+        };
+
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .upsert(newProfileData, { 
+            onConflict: 'id',
+            ignoreDuplicates: false 
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating profile:', createError);
+        } else {
+          console.log('Profile created with marketing opt-in:', newProfile);
+          setUserProfile(newProfile);
+          // Don't show banner since user is already opted-in by default
         }
       }
     } catch (error) {
@@ -44,13 +81,26 @@ const MarketingOptInBanner: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      console.log('Opting user into marketing emails:', session.user.id);
+
       const { error } = await supabase
         .from('profiles')
-        .update({ marketing_emails: true })
-        .eq('id', session.user.id);
+        .upsert({ 
+          id: session.user.id,
+          marketing_emails: true,
+          username: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.email || ''
+        }, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating marketing preference:', error);
+        throw error;
+      }
 
+      console.log('Successfully opted into marketing emails');
       toast({
         title: "Welcome to our updates!",
         description: "You'll now receive our latest news, features, and exclusive artist opportunities.",
@@ -75,13 +125,26 @@ const MarketingOptInBanner: React.FC = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      console.log('User dismissing marketing banner (opting out):', session.user.id);
+
       const { error } = await supabase
         .from('profiles')
-        .update({ marketing_emails: false })
-        .eq('id', session.user.id);
+        .upsert({ 
+          id: session.user.id,
+          marketing_emails: false,
+          username: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.email || ''
+        }, { 
+          onConflict: 'id',
+          ignoreDuplicates: false 
+        });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating marketing preference:', error);
+        throw error;
+      }
 
+      console.log('Successfully opted out of marketing emails');
       setShowBanner(false);
     } catch (error) {
       console.error('Error updating marketing preferences:', error);

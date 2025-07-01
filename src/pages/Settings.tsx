@@ -33,7 +33,7 @@ const Settings = () => {
     bio: '',
     website: '',
     email_notifications: true,
-    marketing_emails: true, // Changed default to true
+    marketing_emails: true,
     dark_mode: false
   });
 
@@ -52,7 +52,7 @@ const Settings = () => {
       }
 
       setCurrentUser(session.user);
-      console.log("Current user:", session.user.id);
+      console.log("Fetching profile for user:", session.user.id);
 
       // Try to fetch existing profile
       const { data: profileData, error: fetchError } = await supabase
@@ -75,18 +75,18 @@ const Settings = () => {
           bio: profileData.bio || '',
           website: profileData.website || '',
           email_notifications: profileData.email_notifications ?? true,
-          marketing_emails: profileData.marketing_emails ?? true, // Default to true
+          marketing_emails: profileData.marketing_emails ?? true,
           dark_mode: false
         });
       } else {
-        console.log("No profile found, creating one...");
-        // Create profile using upsert to avoid RLS issues
+        console.log("No profile found, creating one with default settings");
+        // Create profile with proper defaults
         const newProfileData = {
           id: session.user.id,
           username: session.user.email || '',
-          full_name: session.user.user_metadata?.full_name || session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
           email_notifications: true,
-          marketing_emails: true, // Auto opt-in for new users
+          marketing_emails: true, // Default to opted-in
           bio: '',
           website: '',
           avatar_url: null
@@ -103,9 +103,9 @@ const Settings = () => {
 
         if (createError) {
           console.error("Error creating profile:", createError);
-          // If creation fails, set default form data anyway
+          // Set default form data anyway
           setFormData({
-            full_name: session.user.user_metadata?.full_name || session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
             username: session.user.email || '',
             bio: '',
             website: '',
@@ -114,7 +114,7 @@ const Settings = () => {
             dark_mode: false
           });
         } else {
-          console.log("Profile created:", newProfile);
+          console.log("Profile created successfully:", newProfile);
           setUserProfile(newProfile);
           setFormData({
             full_name: newProfile.full_name || '',
@@ -137,11 +137,10 @@ const Settings = () => {
         variant: "destructive"
       });
       
-      // Set loading to false and use default form data
       setLoading(false);
       if (currentUser) {
         setFormData({
-          full_name: currentUser.user_metadata?.full_name || currentUser.email || '',
+          full_name: currentUser.user_metadata?.full_name || currentUser.email?.split('@')[0] || '',
           username: currentUser.email || '',
           bio: '',
           website: '',
@@ -173,8 +172,8 @@ const Settings = () => {
 
       const profileData = {
         id: currentUser.id,
-        full_name: formData.full_name.trim(),
-        username: formData.username.trim(),
+        full_name: formData.full_name.trim() || currentUser.email?.split('@')[0] || '',
+        username: formData.username.trim() || currentUser.email || '',
         bio: formData.bio.trim(),
         website: formData.website.trim(),
         email_notifications: formData.email_notifications,
@@ -198,10 +197,20 @@ const Settings = () => {
       console.log("Profile saved successfully:", updatedProfile);
       setUserProfile(updatedProfile);
 
-      toast({
-        title: "Profile updated",
-        description: "Your profile and preferences have been updated successfully."
-      });
+      // Show specific message for marketing email changes
+      if (formData.marketing_emails !== userProfile?.marketing_emails) {
+        toast({
+          title: formData.marketing_emails ? "Marketing emails enabled" : "Marketing emails disabled",
+          description: formData.marketing_emails 
+            ? "You'll now receive marketing updates and exclusive opportunities." 
+            : "You won't receive marketing emails, but will still get important notifications.",
+        });
+      } else {
+        toast({
+          title: "Profile updated",
+          description: "Your profile and preferences have been updated successfully."
+        });
+      }
 
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -364,6 +373,12 @@ const Settings = () => {
                   <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       <strong>Secure Email Delivery:</strong> All emails are delivered using SSL encryption and proper authentication to ensure they reach your inbox, not spam folder.
+                    </p>
+                  </div>
+
+                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                    <p className="text-xs text-green-700 dark:text-green-300">
+                      Marketing Status: <strong>{formData.marketing_emails ? 'Opted In ✓' : 'Opted Out'}</strong>
                     </p>
                   </div>
                 </div>

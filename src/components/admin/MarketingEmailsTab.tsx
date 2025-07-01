@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Send, Users, Mail, CheckCircle, AlertCircle, Sparkles, Globe } from 'lucide-react';
+import { Send, Users, Mail, CheckCircle, AlertCircle, Sparkles, Globe, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,6 +22,7 @@ const MarketingEmailsTab = () => {
   const [sending, setSending] = useState(false);
   const [recipients, setRecipients] = useState<MarketingRecipient[]>([]);
   const [loadingRecipients, setLoadingRecipients] = useState(true);
+  const [debugInfo, setDebugInfo] = useState<string>('');
   const [emailData, setEmailData] = useState({
     subject: '',
     content: '',
@@ -35,16 +37,44 @@ const MarketingEmailsTab = () => {
   const fetchMarketingRecipients = async () => {
     try {
       setLoadingRecipients(true);
+      console.log('Fetching marketing recipients...');
       
-      // Fetch users who have opted in for marketing emails
-      const { data, error } = await supabase
+      // Fetch all profiles first for debugging
+      const { data: allProfiles, error: allError } = await supabase
         .from('profiles')
         .select('id, full_name, username, marketing_emails')
-        .eq('marketing_emails', true);
+        .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (allError) {
+        console.error('Error fetching all profiles:', allError);
+        throw allError;
+      }
 
-      setRecipients(data as MarketingRecipient[] || []);
+      console.log('All profiles found:', allProfiles?.length || 0);
+      console.log('All profiles data:', allProfiles);
+
+      // Filter for opted-in users
+      const optedInUsers = allProfiles?.filter(profile => profile.marketing_emails === true) || [];
+      console.log('Opted-in users:', optedInUsers.length);
+      console.log('Opted-in users data:', optedInUsers);
+
+      // Set debug info
+      const debugText = `
+Total profiles: ${allProfiles?.length || 0}
+Opted-in users: ${optedInUsers.length}
+Null marketing_emails: ${allProfiles?.filter(p => p.marketing_emails === null).length || 0}
+False marketing_emails: ${allProfiles?.filter(p => p.marketing_emails === false).length || 0}
+True marketing_emails: ${allProfiles?.filter(p => p.marketing_emails === true).length || 0}
+      `.trim();
+      
+      setDebugInfo(debugText);
+      setRecipients(optedInUsers as MarketingRecipient[]);
+
+      toast({
+        title: "Recipients loaded",
+        description: `Found ${optedInUsers.length} users opted into marketing emails.`,
+      });
+
     } catch (error) {
       console.error('Error fetching marketing recipients:', error);
       toast({
@@ -85,14 +115,18 @@ const MarketingEmailsTab = () => {
       let successCount = 0;
       let failureCount = 0;
 
+      console.log(`Sending marketing emails to ${recipients.length} recipients...`);
+
       // Send emails to all opted-in recipients
       for (const recipient of recipients) {
         try {
-          const userEmail = getUserEmail(recipient);
-          if (userEmail) {
+          const userEmail = recipient.username; // username is the email
+          if (userEmail && userEmail.includes('@')) {
+            console.log(`Sending email to: ${userEmail}`);
+            
             const result = await sendMarketingEmail(
               userEmail,
-              recipient.full_name || recipient.username,
+              recipient.full_name || recipient.username.split('@')[0] || 'User',
               emailData.subject,
               emailData.content,
               emailData.actionLabel || undefined,
@@ -101,19 +135,22 @@ const MarketingEmailsTab = () => {
 
             if (result.success) {
               successCount++;
+              console.log(`✓ Email sent successfully to ${userEmail}`);
             } else {
               failureCount++;
-              console.error(`Failed to send email to ${userEmail}:`, result.error);
+              console.error(`✗ Failed to send email to ${userEmail}:`, result.error);
             }
           } else {
             failureCount++;
-            console.error(`No email found for user ${recipient.id}`);
+            console.error(`✗ Invalid email for user ${recipient.id}: ${userEmail}`);
           }
         } catch (error) {
           failureCount++;
-          console.error(`Error sending email to recipient ${recipient.id}:`, error);
+          console.error(`✗ Error sending email to recipient ${recipient.id}:`, error);
         }
       }
+
+      console.log(`Email campaign completed. Success: ${successCount}, Failed: ${failureCount}`);
 
       toast({
         title: "Marketing Campaign Sent",
@@ -141,11 +178,6 @@ const MarketingEmailsTab = () => {
     } finally {
       setSending(false);
     }
-  };
-
-  const getUserEmail = (recipient: MarketingRecipient) => {
-    // Assuming username is the email
-    return recipient.username;
   };
 
   const getPreviewContent = () => {
@@ -243,7 +275,7 @@ const MarketingEmailsTab = () => {
               <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Preview:</h4>
               <div className="bg-white dark:bg-slate-900 p-4 rounded border text-sm">
                 <div className="border-b pb-2 mb-3">
-                  <strong>From:</strong> MALPINOHdistro &lt;noreply@malpinohdistro.com.ng&gt;<br/>
+                  <strong>From:</strong> MALPINOHdistro &lt;marketing@malpinohdistro.com.ng&gt;<br/>
                   <strong>Subject:</strong> {emailData.subject || "Your subject line"}
                 </div>
                 <div dangerouslySetInnerHTML={{ __html: getPreviewContent() }} />
@@ -324,10 +356,21 @@ const MarketingEmailsTab = () => {
                   variant="outline" 
                   size="sm"
                   className="w-full border-blue-200 text-blue-600 hover:bg-blue-50"
+                  disabled={loadingRecipients}
                 >
-                  <Users className="w-4 h-4 mr-2" />
+                  <RefreshCw className={`w-4 h-4 mr-2 ${loadingRecipients ? 'animate-spin' : ''}`} />
                   Refresh Recipients
                 </Button>
+
+                {/* Debug Information */}
+                {debugInfo && (
+                  <div className="bg-slate-100 dark:bg-slate-800 p-3 rounded-lg">
+                    <h4 className="text-xs font-medium text-slate-700 dark:text-slate-300 mb-2">Debug Info:</h4>
+                    <pre className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line">
+                      {debugInfo}
+                    </pre>
+                  </div>
+                )}
 
                 {recipients.length > 0 ? (
                   <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -339,7 +382,7 @@ const MarketingEmailsTab = () => {
                         <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-                            {recipient.full_name || recipient.username}
+                            {recipient.full_name || recipient.username.split('@')[0] || 'User'}
                           </p>
                           <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                             {recipient.username}
