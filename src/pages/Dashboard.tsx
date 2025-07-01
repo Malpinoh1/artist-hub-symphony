@@ -15,19 +15,30 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MarketingOptInBanner from '../components/MarketingOptInBanner';
 import DashboardStats from '../components/DashboardStats';
-import ReleaseCard from '../components/ReleaseCard';
 import AnimatedCard from '../components/AnimatedCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 
+interface Release {
+  id: string;
+  title: string;
+  artist: string;
+  cover_art_url: string;
+  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
+  release_date?: string;
+  upc?: string;
+  isrc?: string;
+  audio_file_url?: string;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [releases, setReleases] = useState<any[]>([]);
+  const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -82,6 +93,46 @@ const Dashboard = () => {
     }
   };
 
+  const handleDownload = async (releaseId: string, title: string, artist: string) => {
+    try {
+      // Get audio file URL from the release
+      const { data, error } = await supabase
+        .from('releases')
+        .select('audio_file_url')
+        .eq('id', releaseId)
+        .single();
+        
+      if (error || !data.audio_file_url) {
+        toast({
+          title: "Error",
+          description: "No audio file available for download",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create a temporary anchor to download the file
+      const link = document.createElement('a');
+      link.href = data.audio_file_url;
+      link.download = `${title} - ${artist}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "Download started"
+      });
+    } catch (error) {
+      console.error('Error downloading assets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download assets",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
@@ -95,6 +146,10 @@ const Dashboard = () => {
       </div>
     );
   }
+
+  const approvedReleases = releases.filter(r => r.status === 'approved').length;
+  const totalPlays = 0; // This would come from analytics data
+  const totalEarnings = 0; // This would come from earnings data
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
@@ -112,7 +167,13 @@ const Dashboard = () => {
             </p>
           </div>
 
-          <DashboardStats />
+          <DashboardStats 
+            totalReleases={releases.length}
+            activeReleases={approvedReleases}
+            totalPlays={totalPlays}
+            totalEarnings={totalEarnings}
+            loading={loading}
+          />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
             <div className="lg:col-span-2">
@@ -151,7 +212,68 @@ const Dashboard = () => {
                     ) : (
                       <div className="space-y-4">
                         {releases.slice(0, 3).map((release) => (
-                          <ReleaseCard key={release.id} release={release} />
+                          <div key={release.id} className="glass-card overflow-hidden group">
+                            <div className="relative aspect-square">
+                              <img 
+                                src={release.cover_art_url || '/placeholder.svg'} 
+                                alt={release.title} 
+                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                loading="lazy"
+                              />
+                              <div className="absolute top-3 right-3">
+                                <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center ${
+                                  release.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                  release.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                  release.status === 'processing' ? 'bg-amber-100 text-amber-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {release.status.charAt(0).toUpperCase() + release.status.slice(1)}
+                                </span>
+                              </div>
+                            </div>
+                            
+                            <div className="p-4">
+                              <h3 className="font-medium text-slate-900 truncate" title={release.title}>{release.title}</h3>
+                              <p className="text-sm text-slate-600 mt-1">{release.artist}</p>
+                              
+                              {(release.upc || release.isrc) && release.status === 'approved' && (
+                                <div className="mt-3 grid grid-cols-2 gap-1 text-xs text-slate-500">
+                                  {release.upc && (
+                                    <div className="truncate" title={`UPC: ${release.upc}`}>
+                                      <span className="font-medium">UPC:</span> {release.upc}
+                                    </div>
+                                  )}
+                                  {release.isrc && (
+                                    <div className="truncate" title={`ISRC: ${release.isrc}`}>
+                                      <span className="font-medium">ISRC:</span> {release.isrc}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                              
+                              <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between">
+                                <button 
+                                  onClick={() => navigate(`/releases/${release.id}`)}
+                                  className="text-sm text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1"
+                                >
+                                  View Details
+                                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                                  </svg>
+                                </button>
+                                
+                                {release.status === 'approved' && (
+                                  <button 
+                                    onClick={() => handleDownload(release.id, release.title, release.artist)}
+                                    title="Download Assets"
+                                    className="text-sm text-slate-500 hover:text-slate-700"
+                                  >
+                                    <Download className="w-4 h-4" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         ))}
                         {releases.length > 3 && (
                           <div className="text-center pt-4">
