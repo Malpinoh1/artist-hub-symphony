@@ -115,6 +115,20 @@
   @apply bg-gray-400;
 }
 
+/* Button styles */
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center justify-center;
+}
+
+.btn-secondary {
+  @apply bg-white hover:bg-gray-50 text-blue-600 font-medium rounded-lg border border-blue-600 transition-colors duration-200 inline-flex items-center justify-center;
+}
+
+/* Text gradient */
+.text-gradient {
+  @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+}
+
 /* Table styles */
 .table th {
   @apply text-black border-gray-200;
