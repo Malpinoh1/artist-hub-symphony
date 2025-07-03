@@ -202,15 +202,15 @@
   }
 }
 
-/* Haptic feedback simulation */
+/* Haptic feedback simulation - Fixed with proper Tailwind classes */
 .haptic-light {
   @apply active:scale-95 transition-transform duration-100;
 }
 
 .haptic-medium {
-  @apply active:scale-90 transition-transform duration-150;
+  @apply active:scale-95 transition-transform duration-150;
 }
 
 .haptic-heavy {
-  @apply active:scale-85 transition-transform duration-200;
+  @apply active:scale-95 transition-transform duration-200;
 }
