@@ -71,7 +71,7 @@ const Team = () => {
         .from('account_access')
         .select(`
           *,
-          profiles!inner(
+          profiles!user_id(
             full_name,
             username
           )
