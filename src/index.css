@@ -46,37 +46,13 @@
   }
 }
 
-/* Mobile-optimized CSS classes */
+/* Updated CSS classes for blue, white, black theme */
 .glass-card {
   @apply bg-white border border-gray-200 shadow-lg rounded-xl overflow-hidden hover:shadow-xl transition-shadow duration-300;
 }
 
 .glass-panel {
   @apply bg-white border border-gray-200 shadow-md rounded-xl;
-}
-
-/* Mobile touch optimization */
-@layer utilities {
-  .touch-target {
-    min-height: 44px;
-    min-width: 44px;
-  }
-  
-  .mobile-container {
-    @apply px-4 py-2;
-  }
-  
-  .mobile-card {
-    @apply rounded-xl shadow-sm border-0 bg-white;
-  }
-  
-  .mobile-button {
-    @apply px-6 py-3 rounded-xl font-medium transition-all duration-200 active:scale-95;
-  }
-  
-  .mobile-input {
-    @apply px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent;
-  }
 }
 
 /* Animation classes */
@@ -122,9 +98,9 @@
   }
 }
 
-/* Custom scrollbar - Mobile optimized */
+/* Custom scrollbar */
 ::-webkit-scrollbar {
-  @apply w-1;
+  @apply w-2;
 }
 
 ::-webkit-scrollbar-track {
@@ -139,13 +115,13 @@
   @apply bg-gray-400;
 }
 
-/* Mobile-optimized button styles */
+/* Button styles */
 .btn-primary {
-  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-all duration-200 inline-flex items-center justify-center active:scale-95 touch-target;
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors duration-200 inline-flex items-center justify-center;
 }
 
 .btn-secondary {
-  @apply bg-white hover:bg-gray-50 text-blue-600 font-medium rounded-xl border border-blue-600 transition-all duration-200 inline-flex items-center justify-center active:scale-95 touch-target;
+  @apply bg-white hover:bg-gray-50 text-blue-600 font-medium rounded-lg border border-blue-600 transition-colors duration-200 inline-flex items-center justify-center;
 }
 
 /* Text gradient */
@@ -153,64 +129,15 @@
   @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
 }
 
-/* Mobile-optimized table styles */
+/* Table styles */
 .table th {
-  @apply text-black border-gray-200 text-sm;
+  @apply text-black border-gray-200;
 }
 
 .table td {
-  @apply border-gray-200 text-black text-sm;
+  @apply border-gray-200 text-black;
 }
 
 .table tr:hover {
   @apply bg-gray-50;
-}
-
-/* Mobile-specific responsive classes */
-@media (max-width: 768px) {
-  .container {
-    @apply px-4;
-  }
-  
-  .mobile-grid {
-    @apply grid-cols-1 gap-4;
-  }
-  
-  .mobile-text {
-    @apply text-sm;
-  }
-  
-  .mobile-heading {
-    @apply text-xl font-bold;
-  }
-}
-
-/* PWA and mobile app specific styles */
-@media (display-mode: standalone) {
-  body {
-    -webkit-user-select: none;
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-  }
-  
-  .app-header {
-    padding-top: env(safe-area-inset-top);
-  }
-  
-  .app-content {
-    padding-bottom: env(safe-area-inset-bottom);
-  }
-}
-
-/* Haptic feedback simulation - Fixed with proper Tailwind classes */
-.haptic-light {
-  @apply active:scale-95 transition-transform duration-100;
-}
-
-.haptic-medium {
-  @apply active:scale-95 transition-transform duration-150;
-}
-
-.haptic-heavy {
-  @apply active:scale-95 transition-transform duration-200;
 }

@@ -1,10 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import MobileNavbar from '../components/MobileNavbar';
+import { 
+  Music, 
+  TrendingUp, 
+  DollarSign, 
+  Users, 
+  Plus,
+  Activity,
+  Calendar,
+  Download
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import MarketingOptInBanner from '../components/MarketingOptInBanner';
-import MobileDashboard from '../components/MobileDashboard';
+import DashboardStats from '../components/DashboardStats';
+import AnimatedCard from '../components/AnimatedCard';
+import ReleaseCard from '../components/ReleaseCard';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { fetchUserReleases, fetchUserStats } from '../services/releaseService';
@@ -72,11 +86,51 @@ const Dashboard = () => {
     }
   };
 
+  const handleDownload = async (releaseId: string, title: string, artist: string) => {
+    try {
+      // Get audio file URL from the release
+      const { data, error } = await supabase
+        .from('releases')
+        .select('audio_file_url')
+        .eq('id', releaseId)
+        .single();
+        
+      if (error || !data.audio_file_url) {
+        toast({
+          title: "Error",
+          description: "No audio file available for download",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Create a temporary anchor to download the file
+      const link = document.createElement('a');
+      link.href = data.audio_file_url;
+      link.download = `${title} - ${artist}.mp3`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "Success",
+        description: "Download started"
+      });
+    } catch (error) {
+      console.error('Error downloading assets:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download assets",
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
-        <MobileNavbar />
-        <div className="flex-grow flex items-center justify-center pt-20">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
             <p className="text-gray-600">Loading your dashboard...</p>
@@ -89,27 +143,155 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 to-purple-50">
       <MarketingOptInBanner />
-      <MobileNavbar />
+      <Navbar />
       
-      <main className="flex-grow pt-20 pb-6">
-        <div className="container mx-auto px-4 py-6">
-          <div className="mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
-              Welcome back!
+      <main className="flex-grow pt-20">
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+              Welcome back, {profile?.full_name || user?.email}!
             </h1>
-            <p className="text-gray-600 text-sm">
-              {profile?.full_name || user?.email}
-            </p>
-            <p className="text-gray-500 text-xs mt-1">
-              Here's what's happening with your music
+            <p className="text-gray-600">
+              Here's what's happening with your music distribution
             </p>
           </div>
 
-          <MobileDashboard 
-            stats={stats}
-            releases={releases}
+          <DashboardStats 
+            totalReleases={stats.totalReleases}
+            activeReleases={stats.activeReleases}
+            totalPlays={stats.totalPlays}
+            totalEarnings={stats.totalEarnings}
             loading={loading}
           />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <div className="lg:col-span-2">
+              <AnimatedCard>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        <Music className="w-5 h-5" />
+                        Your Releases
+                      </CardTitle>
+                      <CardDescription>
+                        Manage and track your music releases
+                      </CardDescription>
+                    </div>
+                    <Button onClick={() => navigate('/release/new')}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      New Release
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
+                    {releases.length === 0 ? (
+                      <div className="text-center py-8">
+                        <Music className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">
+                          No releases yet
+                        </h3>
+                        <p className="text-gray-600 mb-4">
+                          Start your music distribution journey by uploading your first release
+                        </p>
+                        <Button onClick={() => navigate('/release/new')}>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Upload Your First Release
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {releases.slice(0, 3).map((release) => (
+                          <ReleaseCard
+                            key={release.id}
+                            id={release.id}
+                            title={release.title}
+                            artist={release.artist}
+                            coverArt={release.coverArt}
+                            status={release.status}
+                            releaseDate={release.releaseDate}
+                            streamingLinks={release.streamingLinks}
+                            upc={release.upc}
+                            isrc={release.isrc}
+                          />
+                        ))}
+                        {releases.length > 3 && (
+                          <div className="text-center pt-4">
+                            <Button variant="outline" onClick={() => navigate('/releases')}>
+                              View All Releases ({releases.length})
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
+
+            <div className="space-y-6">
+              <AnimatedCard>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="w-5 h-5" />
+                      Quick Actions
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/earnings')}
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      View Earnings
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/analytics')}
+                    >
+                      <Activity className="w-4 h-4 mr-2" />
+                      Analytics
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full justify-start"
+                      onClick={() => navigate('/settings')}
+                    >
+                      <Users className="w-4 h-4 mr-2" />
+                      Settings
+                    </Button>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+
+              <AnimatedCard>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Calendar className="w-5 h-5" />
+                      Recent Activity
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                        Account created
+                      </div>
+                      {releases.length > 0 && (
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                          Latest release uploaded
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
+          </div>
         </div>
       </main>
       
