@@ -21,7 +21,7 @@ interface TeamMember {
   user_id: string;
   role: 'account_admin' | 'manager' | 'viewer';
   created_at: string;
-  profiles?: {
+  user_profile?: {
     full_name: string;
     username: string;
   } | null;
@@ -67,19 +67,35 @@ const Team = () => {
 
   const fetchTeamMembers = async (accountOwnerId: string) => {
     try {
-      const { data, error } = await supabase
+      // First get the account access records
+      const { data: accessData, error: accessError } = await supabase
         .from('account_access')
-        .select(`
-          *,
-          profiles!user_id(
-            full_name,
-            username
-          )
-        `)
+        .select('*')
         .eq('account_owner_id', accountOwnerId);
 
-      if (error) throw error;
-      setTeamMembers(data || []);
+      if (accessError) throw accessError;
+
+      if (!accessData || accessData.length === 0) {
+        setTeamMembers([]);
+        return;
+      }
+
+      // Then get the profiles for those users
+      const userIds = accessData.map(access => access.user_id);
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('id, full_name, username')
+        .in('id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Combine the data
+      const membersWithProfiles = accessData.map(access => ({
+        ...access,
+        user_profile: profilesData?.find(profile => profile.id === access.user_id) || null
+      }));
+
+      setTeamMembers(membersWithProfiles);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast({
@@ -342,7 +358,7 @@ const Team = () => {
                                 <TableCell>
                                   <div>
                                     <div className="font-medium">
-                                      {member.profiles?.full_name || member.profiles?.username || 'Unknown User'}
+                                      {member.user_profile?.full_name || member.user_profile?.username || 'Unknown User'}
                                     </div>
                                   </div>
                                 </TableCell>
