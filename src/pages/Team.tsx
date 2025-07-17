@@ -21,10 +21,11 @@ interface TeamMember {
   user_id: string;
   role: 'account_admin' | 'manager' | 'viewer';
   created_at: string;
-  user_profile?: {
-    full_name: string;
-    username: string;
-  } | null;
+  account_owner_id: string;
+  granted_by: string;
+  updated_at: string;
+  user_email?: string;
+  user_name?: string;
 }
 
 interface Invitation {
@@ -52,80 +53,137 @@ const Team = () => {
   }, []);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      window.location.href = '/auth';
-      return;
+    try {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
+      
+      if (!session) {
+        window.location.href = '/auth';
+        return;
+      }
+      
+      setUser(session.user);
+      await Promise.all([
+        fetchTeamMembers(session.user.id),
+        fetchInvitations(session.user.id)
+      ]);
+    } catch (error) {
+      console.error('Error checking auth:', error);
+      toast({
+        title: "Authentication Error",
+        description: "Failed to verify authentication. Please try logging in again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
-    setUser(session.user);
-    await Promise.all([
-      fetchTeamMembers(session.user.id),
-      fetchInvitations(session.user.id)
-    ]);
-    setLoading(false);
   };
 
   const fetchTeamMembers = async (accountOwnerId: string) => {
     try {
-      // First get the account access records
+      console.log('Fetching team members for account owner:', accountOwnerId);
+      
+      // Get account access records
       const { data: accessData, error: accessError } = await supabase
         .from('account_access')
         .select('*')
         .eq('account_owner_id', accountOwnerId);
 
-      if (accessError) throw accessError;
+      if (accessError) {
+        console.error('Error fetching access data:', accessError);
+        throw accessError;
+      }
+
+      console.log('Access data:', accessData);
 
       if (!accessData || accessData.length === 0) {
+        console.log('No team members found');
         setTeamMembers([]);
         return;
       }
 
-      // Then get the profiles for those users
+      // Get user details from auth.users via a server query
+      // Since we can't directly query auth.users, we'll get emails from profiles or use user_id
       const userIds = accessData.map(access => access.user_id);
+      
+      // Try to get profiles first
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, username')
         .in('id', userIds);
 
-      if (profilesError) throw profilesError;
+      if (profilesError) {
+        console.warn('Error fetching profiles (this is expected if profiles table is not set up):', profilesError);
+      }
+
+      console.log('Profiles data:', profilesData);
 
       // Combine the data
-      const membersWithProfiles = accessData.map(access => ({
+      const membersWithProfiles: TeamMember[] = accessData.map(access => ({
         ...access,
-        user_profile: profilesData?.find(profile => profile.id === access.user_id) || null
+        user_email: profilesData?.find(profile => profile.id === access.user_id)?.username || access.user_id,
+        user_name: profilesData?.find(profile => profile.id === access.user_id)?.full_name || 'Unknown User'
       }));
 
+      console.log('Final team members:', membersWithProfiles);
       setTeamMembers(membersWithProfiles);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast({
         title: "Error",
-        description: "Failed to load team members",
+        description: "Failed to load team members. Please try again.",
         variant: "destructive"
       });
+      setTeamMembers([]);
     }
   };
 
   const fetchInvitations = async (accountOwnerId: string) => {
     try {
+      console.log('Fetching invitations for account owner:', accountOwnerId);
+      
       const { data, error } = await supabase
         .from('account_invitations')
         .select('*')
         .eq('account_owner_id', accountOwnerId)
         .eq('status', 'pending');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching invitations:', error);
+        throw error;
+      }
+      
+      console.log('Invitations data:', data);
       setInvitations(data || []);
     } catch (error) {
       console.error('Error fetching invitations:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load invitations. Please try again.",
+        variant: "destructive"
+      });
+      setInvitations([]);
     }
   };
 
   const handleInviteUser = async () => {
-    if (!user || !inviteEmail.trim()) return;
+    if (!user || !inviteEmail.trim()) {
+      toast({
+        title: "Invalid Input",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setSubmitting(true);
     try {
+      console.log('Sending invitation:', {
+        account_owner_id: user.id,
+        invited_email: inviteEmail.trim().toLowerCase(),
+        role: inviteRole
+      });
+
       const { data, error } = await supabase
         .from('account_invitations')
         .insert({
@@ -137,6 +195,7 @@ const Team = () => {
         .single();
 
       if (error) {
+        console.error('Error creating invitation:', error);
         if (error.code === '23505') {
           toast({
             title: "User already invited",
@@ -148,6 +207,8 @@ const Team = () => {
         }
         return;
       }
+
+      console.log('Invitation created:', data);
 
       toast({
         title: "Invitation sent",
@@ -171,13 +232,21 @@ const Team = () => {
   };
 
   const handleRemoveTeamMember = async (memberId: string) => {
+    if (!user) return;
+    
     try {
+      console.log('Removing team member:', memberId);
+      
       const { error } = await supabase
         .from('account_access')
         .delete()
-        .eq('id', memberId);
+        .eq('id', memberId)
+        .eq('account_owner_id', user.id); // Extra security check
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error removing team member:', error);
+        throw error;
+      }
 
       toast({
         title: "Team member removed",
@@ -189,20 +258,28 @@ const Team = () => {
       console.error('Error removing team member:', error);
       toast({
         title: "Failed to remove member",
-        description: "There was an error removing the team member.",
+        description: "There was an error removing the team member. Please try again.",
         variant: "destructive"
       });
     }
   };
 
   const handleCancelInvitation = async (invitationId: string) => {
+    if (!user) return;
+    
     try {
+      console.log('Cancelling invitation:', invitationId);
+      
       const { error } = await supabase
         .from('account_invitations')
         .delete()
-        .eq('id', invitationId);
+        .eq('id', invitationId)
+        .eq('account_owner_id', user.id); // Extra security check
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error cancelling invitation:', error);
+        throw error;
+      }
 
       toast({
         title: "Invitation cancelled",
@@ -214,7 +291,7 @@ const Team = () => {
       console.error('Error cancelling invitation:', error);
       toast({
         title: "Failed to cancel invitation",
-        description: "There was an error cancelling the invitation.",
+        description: "There was an error cancelling the invitation. Please try again.",
         variant: "destructive"
       });
     }
@@ -275,7 +352,7 @@ const Team = () => {
                         Team Members
                       </CardTitle>
                       <CardDescription>
-                        Users with access to your account
+                        Users with access to your account ({teamMembers.length} members)
                       </CardDescription>
                     </div>
                     <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
@@ -358,7 +435,10 @@ const Team = () => {
                                 <TableCell>
                                   <div>
                                     <div className="font-medium">
-                                      {member.user_profile?.full_name || member.user_profile?.username || 'Unknown User'}
+                                      {member.user_name || 'Unknown User'}
+                                    </div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {member.user_email || member.user_id}
                                     </div>
                                   </div>
                                 </TableCell>
@@ -406,7 +486,7 @@ const Team = () => {
                         Pending Invitations
                       </CardTitle>
                       <CardDescription>
-                        Invitations waiting for acceptance
+                        Invitations waiting for acceptance ({invitations.length} pending)
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
