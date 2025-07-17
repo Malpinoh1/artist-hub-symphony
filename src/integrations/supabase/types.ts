@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_access: {
+        Row: {
+          account_owner_id: string
+          created_at: string
+          granted_by: string
+          id: string
+          role: Database["public"]["Enums"]["account_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_owner_id: string
+          created_at?: string
+          granted_by: string
+          id?: string
+          role?: Database["public"]["Enums"]["account_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_owner_id?: string
+          created_at?: string
+          granted_by?: string
+          id?: string
+          role?: Database["public"]["Enums"]["account_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      account_invitations: {
+        Row: {
+          account_owner_id: string
+          created_at: string
+          expires_at: string
+          id: string
+          invited_email: string
+          role: Database["public"]["Enums"]["account_role"]
+          status: string
+          token: string
+        }
+        Insert: {
+          account_owner_id: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_email: string
+          role?: Database["public"]["Enums"]["account_role"]
+          status?: string
+          token?: string
+        }
+        Update: {
+          account_owner_id?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_email?: string
+          role?: Database["public"]["Enums"]["account_role"]
+          status?: string
+          token?: string
+        }
+        Relationships: []
+      }
       artists: {
         Row: {
           available_balance: number | null
@@ -494,6 +557,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_account_access: {
+        Args: {
+          target_account_id: string
+          required_role?: Database["public"]["Enums"]["account_role"]
+        }
+        Returns: boolean
+      }
       has_role: {
         Args:
           | { role_name: string }
@@ -502,6 +572,7 @@ export type Database = {
       }
     }
     Enums: {
+      account_role: "account_admin" | "manager" | "viewer"
       earnings_status: "Pending" | "Paid"
       release_status:
         | "Pending"
@@ -637,6 +708,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      account_role: ["account_admin", "manager", "viewer"],
       earnings_status: ["Pending", "Paid"],
       release_status: [
         "Pending",
