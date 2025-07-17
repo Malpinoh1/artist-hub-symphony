@@ -27,6 +27,11 @@ import TermsOfService from "./pages/TermsOfService";
 import PasswordReset from "./pages/PasswordReset";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
+import FAQ from "./pages/FAQ";
+import Blog from "./pages/Blog";
+import Partners from "./pages/Partners";
+import Copyright from "./pages/Copyright";
+import Cookies from "./pages/Cookies";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +60,11 @@ const App = () => (
               <Route path="/help" element={<HelpCenter />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/resources/marketing-guide" element={<MarketingGuide />} />
+              <Route path="/faq" element={<FAQ />} />
+              <Route path="/blog" element={<Blog />} />
+              <Route path="/partners" element={<Partners />} />
+              <Route path="/copyright" element={<Copyright />} />
+              <Route path="/cookies" element={<Cookies />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/terms" element={<TermsOfService />} />
               <Route path="/password-reset" element={<PasswordReset />} />
