@@ -23,8 +23,8 @@ interface TeamMember {
   created_at: string;
   profiles?: {
     full_name: string;
-    email: string;
-  };
+    username: string;
+  } | null;
 }
 
 interface Invitation {
@@ -71,7 +71,7 @@ const Team = () => {
         .from('account_access')
         .select(`
           *,
-          profiles:user_id (
+          profiles!inner(
             full_name,
             username
           )
