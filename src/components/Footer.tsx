@@ -12,7 +12,7 @@ const Footer = () => {
             <Link to="/" className="flex items-center gap-3 group">
               <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
                 <img 
-                  src="/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png" 
+                  src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" 
                   alt="MALPINOHdistro Logo" 
                   className="w-full h-full object-contain"
                 />
