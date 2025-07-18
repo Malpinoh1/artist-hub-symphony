@@ -102,28 +102,30 @@ const Team = () => {
         return;
       }
 
-      // Get user details from auth.users via a server query
-      // Since we can't directly query auth.users, we'll get emails from profiles or use user_id
+      // Get user details from profiles table
       const userIds = accessData.map(access => access.user_id);
       
-      // Try to get profiles first
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('id, full_name, username')
         .in('id', userIds);
 
       if (profilesError) {
-        console.warn('Error fetching profiles (this is expected if profiles table is not set up):', profilesError);
+        console.warn('Error fetching profiles:', profilesError);
+        // Continue without profile data if profiles table doesn't exist or has issues
       }
 
       console.log('Profiles data:', profilesData);
 
       // Combine the data
-      const membersWithProfiles: TeamMember[] = accessData.map(access => ({
-        ...access,
-        user_email: profilesData?.find(profile => profile.id === access.user_id)?.username || access.user_id,
-        user_name: profilesData?.find(profile => profile.id === access.user_id)?.full_name || 'Unknown User'
-      }));
+      const membersWithProfiles: TeamMember[] = accessData.map(access => {
+        const profile = profilesData?.find(profile => profile.id === access.user_id);
+        return {
+          ...access,
+          user_email: profile?.username || 'No email available',
+          user_name: profile?.full_name || 'Unknown User'
+        };
+      });
 
       console.log('Final team members:', membersWithProfiles);
       setTeamMembers(membersWithProfiles);
@@ -241,7 +243,7 @@ const Team = () => {
         .from('account_access')
         .delete()
         .eq('id', memberId)
-        .eq('account_owner_id', user.id); // Extra security check
+        .eq('account_owner_id', user.id);
 
       if (error) {
         console.error('Error removing team member:', error);
@@ -274,7 +276,7 @@ const Team = () => {
         .from('account_invitations')
         .delete()
         .eq('id', invitationId)
-        .eq('account_owner_id', user.id); // Extra security check
+        .eq('account_owner_id', user.id);
 
       if (error) {
         console.error('Error cancelling invitation:', error);
