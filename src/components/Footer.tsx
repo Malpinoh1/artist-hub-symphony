@@ -1,6 +1,6 @@
 
 import { Link } from 'react-router-dom';
-import { Music, Instagram, Twitter, Facebook, Mail } from 'lucide-react';
+import { Instagram, Twitter, Facebook, Mail } from 'lucide-react';
 
 const Footer = () => {
   return (
@@ -9,9 +9,13 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand */}
           <div className="md:col-span-1">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
-                <Music className="text-primary-foreground w-5 h-5" />
+            <Link to="/" className="flex items-center gap-3 group">
+              <div className="w-10 h-10 rounded-full overflow-hidden flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300">
+                <img 
+                  src="/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png" 
+                  alt="MALPINOHdistro Logo" 
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-display font-semibold text-foreground">MALPINOH</span>

@@ -104,8 +104,12 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-r from-primary to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
-              <span className="text-white font-bold text-lg">M</span>
+            <div className="flex items-center justify-center w-10 h-10 rounded-xl overflow-hidden group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+              <img 
+                src="/lovable-uploads/08874f5c-9cad-4d09-a9c1-fcbc1bb869f5.png" 
+                alt="MALPINOHdistro Logo" 
+                className="w-full h-full object-contain"
+              />
             </div>
             <div className="hidden sm:block">
               <span className="text-xl font-display font-bold text-gradient">
