@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -36,6 +37,7 @@ interface Invitation {
   status: string;
   created_at: string;
   expires_at: string;
+  token: string;
 }
 
 const Team = () => {
@@ -48,6 +50,7 @@ const Team = () => {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState<'account_admin' | 'manager' | 'viewer'>('viewer');
   const [submitting, setSubmitting] = useState(false);
+  const [manualInviteLink, setManualInviteLink] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -210,9 +213,11 @@ const Team = () => {
 
       console.log('Invitation created:', data);
 
+      // Create invitation URL
+      const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${data.token}`;
+
       // Send email invitation
       try {
-        const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${data.token}`;
         const emailResult = await sendTeamInvitationEmail(
           inviteEmail.trim().toLowerCase(),
           user.email || 'Account Owner',
@@ -225,7 +230,10 @@ const Team = () => {
             title: "Invitation sent successfully!",
             description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')} and will receive an email with further instructions.`
           });
+          setManualInviteLink(null);
         } else {
+          console.error('Email sending failed:', emailResult.error);
+          setManualInviteLink(inviteUrl);
           toast({
             title: "Invitation created but email failed",
             description: `The invitation was created but the email could not be sent. Please share the invitation link manually.`,
@@ -234,16 +242,16 @@ const Team = () => {
         }
       } catch (emailError) {
         console.error('Email sending failed:', emailError);
+        setManualInviteLink(inviteUrl);
         toast({
           title: "Invitation created but email failed",
-          description: `The invitation was created but the email could not be sent. The user can still be added manually.`,
+          description: `The invitation was created but the email could not be sent. Please share the invitation link manually.`,
           variant: "destructive"
         });
       }
 
       setInviteEmail('');
       setInviteRole('viewer');
-      setIsInviteDialogOpen(false);
       await fetchInvitations(user.id);
     } catch (error) {
       console.error('Error inviting user:', error);
@@ -254,6 +262,23 @@ const Team = () => {
       });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const copyInviteLink = async (link: string) => {
+    try {
+      await navigator.clipboard.writeText(link);
+      toast({
+        title: "Copied!",
+        description: "Invitation link copied to clipboard."
+      });
+    } catch (error) {
+      console.error('Failed to copy:', error);
+      toast({
+        title: "Copy failed",
+        description: "Could not copy to clipboard. Please copy manually.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -431,6 +456,35 @@ const Team = () => {
                               </SelectContent>
                             </Select>
                           </div>
+                          
+                          {manualInviteLink && (
+                            <Alert>
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription>
+                                <div className="space-y-2">
+                                  <p className="font-medium">Manual Invitation Link:</p>
+                                  <div className="flex items-center gap-2">
+                                    <Input 
+                                      value={manualInviteLink} 
+                                      readOnly 
+                                      className="text-xs"
+                                    />
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline"
+                                      onClick={() => copyInviteLink(manualInviteLink)}
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    Copy this link and send it manually to {inviteEmail}
+                                  </p>
+                                </div>
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
                           <div className="flex gap-3 pt-4">
                             <Button 
                               onClick={handleInviteUser} 
@@ -441,7 +495,10 @@ const Team = () => {
                             </Button>
                             <Button 
                               variant="outline" 
-                              onClick={() => setIsInviteDialogOpen(false)}
+                              onClick={() => {
+                                setIsInviteDialogOpen(false);
+                                setManualInviteLink(null);
+                              }}
                             >
                               Cancel
                             </Button>
@@ -530,28 +587,39 @@ const Team = () => {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3">
-                        {invitations.map((invitation) => (
-                          <div key={invitation.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
-                            <div className="flex-1">
-                              <div className="font-medium">{invitation.invited_email}</div>
-                              <div className="text-sm text-muted-foreground">
-                                Invited as {invitation.role.replace('_', ' ')} • 
-                                Expires {new Date(invitation.expires_at).toLocaleDateString()}
+                        {invitations.map((invitation) => {
+                          const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${invitation.token}`;
+                          return (
+                            <div key={invitation.id} className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+                              <div className="flex-1">
+                                <div className="font-medium">{invitation.invited_email}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  Invited as {invitation.role.replace('_', ' ')} • 
+                                  Expires {new Date(invitation.expires_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {getRoleBadge(invitation.role)}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyInviteLink(inviteUrl)}
+                                  title="Copy invitation link"
+                                >
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleCancelInvitation(invitation.id)}
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </div>
-                            <div className="flex items-center gap-2">
-                              {getRoleBadge(invitation.role)}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleCancelInvitation(invitation.id)}
-                                className="text-destructive hover:text-destructive"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </CardContent>
                   </Card>

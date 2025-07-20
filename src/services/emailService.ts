@@ -5,7 +5,7 @@ export interface EmailResult {
   error?: string;
 }
 
-const EDGE_FUNCTION_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
+const EDGE_FUNCTION_URL = `https://hewyffhdykietximpfbu.supabase.co/functions/v1/send-email`;
 
 const sendEmail = async (emailData: {
   to: string;
@@ -15,6 +15,7 @@ const sendEmail = async (emailData: {
 }): Promise<EmailResult> => {
   try {
     console.log('Sending email via edge function:', emailData.subject);
+    console.log('Edge function URL:', EDGE_FUNCTION_URL);
     
     const { data: { session } } = await supabase.auth.getSession();
     
@@ -22,12 +23,12 @@ const sendEmail = async (emailData: {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        'Authorization': `Bearer ${session?.access_token || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld3lmZmhkeWtpZXR4aW1wZmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzMjk1ODYsImV4cCI6MjA1ODkwNTU4Nn0.UqxDgfYqm3yhC8nDYdfcb8UDm9rz9qFKq-pIh6xEB-Y'}`,
       },
-      body: JSON.stringify(emailData),
     });
 
     const result = await response.json();
+    console.log('Email service response:', result);
     
     if (!response.ok) {
       console.error('Email sending failed:', result);
