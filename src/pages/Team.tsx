@@ -83,8 +83,6 @@ const Team = () => {
     try {
       console.log('Fetching team members for account owner:', accountOwnerId);
       
-      // First, try to fetch only records where the user is the account owner
-      // This avoids the RLS recursion issue
       const { data: accessData, error: accessError } = await supabase
         .from('account_access')
         .select('*')
@@ -92,12 +90,6 @@ const Team = () => {
 
       if (accessError) {
         console.error('Error fetching access data:', accessError);
-        // If there's an RLS error, try a different approach - just show the current user as owner
-        if (accessError.code === '42P17') {
-          console.log('RLS recursion detected, showing user as account owner only');
-          setTeamMembers([]);
-          return;
-        }
         throw accessError;
       }
 
@@ -109,44 +101,43 @@ const Team = () => {
         return;
       }
 
-      // Get user details from profiles table if available
-      const userIds = accessData.map(access => access.user_id);
-      
-      let profilesData = null;
-      try {
-        const { data, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, full_name, username')
-          .in('id', userIds);
+      // Get user details from auth.users metadata or use fallbacks
+      const membersWithDetails: TeamMember[] = await Promise.all(
+        accessData.map(async (access) => {
+          let userEmail = `user-${access.user_id.slice(0, 8)}`;
+          let userName = `User ${access.user_id.slice(0, 8)}`;
 
-        if (!profilesError) {
-          profilesData = data;
-        } else {
-          console.warn('Profiles table not available or error:', profilesError);
-        }
-      } catch (profileError) {
-        console.warn('Could not fetch profiles:', profileError);
-      }
+          // Try to get profile information
+          try {
+            const { data: profileData } = await supabase
+              .from('profiles')
+              .select('username, full_name')
+              .eq('id', access.user_id)
+              .single();
 
-      console.log('Profiles data:', profilesData);
+            if (profileData) {
+              userEmail = profileData.username || userEmail;
+              userName = profileData.full_name || userName;
+            }
+          } catch (profileError) {
+            console.warn('Could not fetch profile for user:', access.user_id);
+          }
 
-      // Combine the data with better fallbacks
-      const membersWithProfiles: TeamMember[] = accessData.map(access => {
-        const profile = profilesData?.find(profile => profile.id === access.user_id);
-        return {
-          ...access,
-          user_email: profile?.username || `user-${access.user_id.slice(0, 8)}`,
-          user_name: profile?.full_name || `User ${access.user_id.slice(0, 8)}`
-        };
-      });
+          return {
+            ...access,
+            user_email: userEmail,
+            user_name: userName
+          };
+        })
+      );
 
-      console.log('Final team members:', membersWithProfiles);
-      setTeamMembers(membersWithProfiles);
+      console.log('Final team members:', membersWithDetails);
+      setTeamMembers(membersWithDetails);
     } catch (error) {
       console.error('Error fetching team members:', error);
       toast({
         title: "Error",
-        description: "Failed to load team members. You may need to refresh the page.",
+        description: "Failed to load team members. Please refresh the page and try again.",
         variant: "destructive"
       });
       setTeamMembers([]);
@@ -157,7 +148,6 @@ const Team = () => {
     try {
       console.log('Fetching invitations for account owner:', accountOwnerId);
       
-      // Use a simpler query that only fetches invitations where user is owner
       const { data, error } = await supabase
         .from('account_invitations')
         .select('*')
@@ -166,12 +156,6 @@ const Team = () => {
 
       if (error) {
         console.error('Error fetching invitations:', error);
-        // If there's an RLS error, set empty array and show warning
-        if (error.code === '42P17') {
-          console.log('RLS recursion detected for invitations, showing empty list');
-          setInvitations([]);
-          return;
-        }
         throw error;
       }
       
@@ -180,8 +164,8 @@ const Team = () => {
     } catch (error) {
       console.error('Error fetching invitations:', error);
       toast({
-        title: "Warning",
-        description: "Could not load pending invitations. Core functionality still works.",
+        title: "Error",
+        description: "Failed to load pending invitations. Please refresh the page and try again.",
         variant: "destructive"
       });
       setInvitations([]);

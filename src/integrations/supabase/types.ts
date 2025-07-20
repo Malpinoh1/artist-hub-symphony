@@ -570,6 +570,10 @@ export type Database = {
           | { user_id: string; role: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
       }
+      is_account_admin: {
+        Args: { target_account_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       account_role: "account_admin" | "manager" | "viewer"
