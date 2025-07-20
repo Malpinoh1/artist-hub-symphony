@@ -57,27 +57,25 @@ const Resources = () => {
       title: "Release Checklist",
       description: "A comprehensive checklist to ensure your release is ready for submission.",
       icon: <Download className="h-6 w-6" />,
-      link: "https://drive.google.com/file/d/1example",
-      external: true,
+      link: "/help",
     },
     {
       title: "Cover Art Templates",
       description: "Download templates for creating professional cover art that meets platform requirements.",
       icon: <FileText className="h-6 w-6" />,
-      link: "https://drive.google.com/file/d/1example2",
-      external: true,
+      link: "/help",
     },
     {
       title: "Music Marketing Guide",
       description: "Strategies and tips to effectively market your music after release.",
       icon: <Book className="h-6 w-6" />,
-      link: "/resources/marketing",
+      link: "/resources/marketing-guide",
     },
     {
       title: "Audio Mastering Tips",
       description: "Best practices for preparing your audio files for distribution.",
       icon: <Music className="h-6 w-6" />,
-      link: "/resources/audio-tips",
+      link: "/help",
     },
     {
       title: "Artist FAQ",
@@ -86,16 +84,16 @@ const Resources = () => {
       link: "/help",
     },
     {
-      title: "Platform-Specific Requirements",
+      title: "Platform Requirements",
       description: "Detailed requirements for each streaming platform we distribute to.",
       icon: <FileText className="h-6 w-6" />,
-      link: "/resources/platform-requirements",
+      link: "/help",
     },
     {
       title: "Royalties Explained",
       description: "A comprehensive guide to understanding how music royalties work.",
       icon: <Book className="h-6 w-6" />,
-      link: "/resources/royalties",
+      link: "/help",
     },
   ];
 

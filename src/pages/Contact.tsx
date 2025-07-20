@@ -90,7 +90,7 @@ const Contact = () => {
                     <Phone className="w-5 h-5 text-blue-600" />
                   </div>
                   <h3 className="text-lg font-semibold mb-2">Call Us</h3>
-                  <p className="text-slate-600">+234 706 303 7969</p>
+                  <p className="text-slate-600">+234 707 221 8477</p>
                   <p className="text-slate-600">Mon-Fri, 9am-5pm WAT</p>
                 </div>
                 

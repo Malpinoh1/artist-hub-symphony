@@ -17,7 +17,7 @@ const PricingTier = ({ name, price, description, features, link = "/auth", highl
       <div className={`p-6 ${highlighted ? 'bg-blue-50' : 'bg-white'}`}>
         <h3 className="text-xl font-semibold">{name}</h3>
         <div className="mt-4 mb-6">
-          <span className="text-3xl font-bold">₦{price}</span>
+          <span className="text-3xl font-bold">${price}</span>
           <span className="text-slate-500 ml-1">{description}</span>
         </div>
         <ul className="space-y-3 mb-6">
@@ -47,20 +47,20 @@ const Pricing = () => {
   const pricingTiers = [
     {
       name: "Pay Per Release",
-      price: "20,000",
+      price: "14",
       description: "per release",
       features: [
         "Distribution to all major platforms",
         "Fan link page",
         "Keep 100% of rights",
         "Basic analytics",
-        "60 days processing time",
+        "45 days processing time",
         "Email support"
       ]
     },
     {
-      name: "Yearly Subscription",
-      price: "55,000",
+      name: "Annual Plan",
+      price: "36",
       description: "per year",
       highlighted: true,
       features: [
@@ -71,15 +71,15 @@ const Pricing = () => {
         "30 days processing time",
         "Priority support",
         "Content ID for YouTube",
-        "Up to 10 releases per year"
+        "Up to 15 releases per year"
       ]
     },
     {
       name: "Unlimited Artists",
-      price: "100 USD",
-      description: "equivalent in Naira",
+      price: "100",
+      description: "per year",
       features: [
-        "Everything in Yearly Subscription",
+        "Everything in Annual Plan",
         "Unlimited artists",
         "Unlimited releases",
         "15 days priority processing",
@@ -148,7 +148,7 @@ const Pricing = () => {
                   <h3 className="text-lg font-semibold mb-2">How do the pricing plans work?</h3>
                   <p className="text-slate-600">
                     Our pricing is designed to be flexible based on your needs. Pay per release for occasional distributions, 
-                    yearly subscription for regular releases, or unlimited for agencies and labels managing multiple artists.
+                    annual plan for regular releases, or unlimited for agencies and labels managing multiple artists.
                   </p>
                 </div>
                 
@@ -162,7 +162,7 @@ const Pricing = () => {
                 <div>
                   <h3 className="text-lg font-semibold mb-2">How long does it take for my music to appear on streaming platforms?</h3>
                   <p className="text-slate-600">
-                    Processing times vary by plan, generally ranging from 15-60 days depending on your selected service tier.
+                    Processing times vary by plan, generally ranging from 15-45 days depending on your selected service tier.
                   </p>
                 </div>
                 

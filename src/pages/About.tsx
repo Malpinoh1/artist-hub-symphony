@@ -30,7 +30,7 @@ const About = () => {
                 
                 <h2 className="text-2xl font-semibold mt-8 mb-4">Our Story</h2>
                 <p>
-                  Founded in 2023, MALPINOHDISTRO was created to address the challenges faced by Nigerian and African artists in distributing their music globally. Our founder, ABDULKADIR IBRAHIM OLUWASHINA, saw the gap in affordable distribution services for local artists and created a solution that caters to the unique needs of the African music market.
+                  Founded on June 7th, 2023, MALPINOHDISTRO was created to address the challenges faced by Nigerian and African artists in distributing their music globally. Our founder, ABDULKADIR IBRAHIM OLUWASHINA, saw the gap in affordable distribution services for local artists and created a solution that caters to the unique needs of the African music market.
                 </p>
                 
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-8">

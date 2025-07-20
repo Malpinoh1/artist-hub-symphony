@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
@@ -31,7 +32,7 @@ const PricingTier = ({ name, price, description, features, highlighted = false }
       <div className={`p-6 ${highlighted ? 'bg-blue-50' : 'bg-white'}`}>
         <h3 className="text-xl font-semibold">{name}</h3>
         <div className="mt-4 mb-6">
-          <span className="text-3xl font-bold">₦{price}</span>
+          <span className="text-3xl font-bold">${price}</span>
           <span className="text-slate-500 ml-1">{description}</span>
         </div>
         <ul className="space-y-3 mb-6">
@@ -97,22 +98,22 @@ const Services = () => {
   
   const pricingTiers = [
     {
-      name: "Single Release",
-      price: "5,000",
+      name: "Per Release",
+      price: "14",
       description: "per release",
       features: [
-        "Distribution to 10+ platforms",
+        "Distribution to 15+ platforms",
         "Fan link page",
         "Keep 100% of rights",
         "Basic analytics",
-        "60 days processing time",
+        "45 days processing time",
         "Email support"
       ]
     },
     {
-      name: "Pro Release",
-      price: "8,000",
-      description: "per release",
+      name: "Annual Plan",
+      price: "36",
+      description: "per year",
       highlighted: true,
       features: [
         "Distribution to 20+ platforms",
@@ -121,22 +122,23 @@ const Services = () => {
         "Advanced analytics",
         "30 days processing time",
         "Priority support",
-        "Content ID for YouTube"
+        "Content ID for YouTube",
+        "Up to 15 releases per year"
       ]
     },
     {
-      name: "Album Package",
-      price: "15,000",
-      description: "up to 12 tracks",
+      name: "Unlimited Artists",
+      price: "100",
+      description: "per year",
       features: [
-        "Distribution to all platforms",
-        "Premium fan link page",
-        "Keep 100% of rights",
-        "Full analytics dashboard",
-        "15 days processing time",
-        "Priority support",
+        "Everything in Annual Plan",
+        "Unlimited artists",
+        "Unlimited releases",
+        "15 days priority processing",
+        "Premium support",
         "Content ID for YouTube",
-        "Social media promotion"
+        "Social media promotion",
+        "Dedicated account manager"
       ]
     }
   ];
@@ -222,7 +224,7 @@ const Services = () => {
                 <div className="glass-panel p-6">
                   <h3 className="text-xl font-semibold mb-2">How long does it take for my music to appear on streaming platforms?</h3>
                   <p className="text-slate-600">
-                    Processing times vary by plan, but generally range from 15-60 days depending on the platforms and your selected service tier.
+                    Processing times vary by plan, but generally range from 15-45 days depending on the platforms and your selected service tier.
                   </p>
                 </div>
                 
