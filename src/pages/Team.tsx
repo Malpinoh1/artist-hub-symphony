@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3 } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -13,8 +12,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { sendTeamInvitationEmail } from '../services/emailService';
 
 interface TeamMember {
   id: string;
@@ -90,7 +91,9 @@ const Team = () => {
 
       if (accessError) {
         console.error('Error fetching access data:', accessError);
-        throw accessError;
+        // Don't throw here - just show empty state
+        setTeamMembers([]);
+        return;
       }
 
       console.log('Access data:', accessData);
@@ -135,11 +138,6 @@ const Team = () => {
       setTeamMembers(membersWithDetails);
     } catch (error) {
       console.error('Error fetching team members:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load team members. Please refresh the page and try again.",
-        variant: "destructive"
-      });
       setTeamMembers([]);
     }
   };
@@ -156,18 +154,14 @@ const Team = () => {
 
       if (error) {
         console.error('Error fetching invitations:', error);
-        throw error;
+        setInvitations([]);
+        return;
       }
       
       console.log('Invitations data:', data);
       setInvitations(data || []);
     } catch (error) {
       console.error('Error fetching invitations:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load pending invitations. Please refresh the page and try again.",
-        variant: "destructive"
-      });
       setInvitations([]);
     }
   };
@@ -216,10 +210,36 @@ const Team = () => {
 
       console.log('Invitation created:', data);
 
-      toast({
-        title: "Invitation sent",
-        description: `Invitation sent to ${inviteEmail} as ${inviteRole.replace('_', ' ')}`
-      });
+      // Send email invitation
+      try {
+        const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${data.token}`;
+        const emailResult = await sendTeamInvitationEmail(
+          inviteEmail.trim().toLowerCase(),
+          user.email || 'Account Owner',
+          inviteRole,
+          inviteUrl
+        );
+
+        if (emailResult.success) {
+          toast({
+            title: "Invitation sent successfully!",
+            description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')} and will receive an email with further instructions.`
+          });
+        } else {
+          toast({
+            title: "Invitation created but email failed",
+            description: `The invitation was created but the email could not be sent. Please share the invitation link manually.`,
+            variant: "destructive"
+          });
+        }
+      } catch (emailError) {
+        console.error('Email sending failed:', emailError);
+        toast({
+          title: "Invitation created but email failed",
+          description: `The invitation was created but the email could not be sent. The user can still be added manually.`,
+          variant: "destructive"
+        });
+      }
 
       setInviteEmail('');
       setInviteRole('viewer');
@@ -339,12 +359,24 @@ const Team = () => {
         <section className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="mb-8">
             <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
-              Team Access
+              Team Access Management
             </h1>
             <p className="text-muted-foreground text-lg">
-              Manage who has access to your music distribution account
+              Manage who has access to your music distribution account and control their permissions
             </p>
           </div>
+
+          {/* Info Alert */}
+          <Alert className="mb-6">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              When you invite someone, they'll receive an email with instructions to accept the invitation. 
+              They'll need to create an account or log in to access your dashboard with the specified permissions.
+              <Button variant="link" className="p-0 ml-2 h-auto" asChild>
+                <a href="/team/guide">Learn more about team management →</a>
+              </Button>
+            </AlertDescription>
+          </Alert>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Team Members */}
@@ -372,7 +404,7 @@ const Team = () => {
                         <DialogHeader>
                           <DialogTitle>Invite Team Member</DialogTitle>
                           <DialogDescription>
-                            Send an invitation to add a new member to your team.
+                            Send an invitation to add a new member to your team. They'll receive an email with instructions.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
@@ -405,7 +437,7 @@ const Team = () => {
                               disabled={submitting || !inviteEmail.trim()}
                               className="flex-1"
                             >
-                              {submitting ? 'Sending...' : 'Send Invitation'}
+                              {submitting ? 'Sending Invitation...' : 'Send Invitation'}
                             </Button>
                             <Button 
                               variant="outline" 

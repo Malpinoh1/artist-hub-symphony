@@ -1,5 +1,3 @@
-
-
 import { supabase } from '../integrations/supabase/client';
 
 export interface EmailResult {
@@ -291,3 +289,78 @@ export const sendReleaseApprovalEmail = async (email: string, artistName: string
   });
 };
 
+export const sendTeamInvitationEmail = async (email: string, inviterName: string, role: string, inviteUrl: string): Promise<EmailResult> => {
+  const roleNames = {
+    'account_admin': 'Account Administrator',
+    'manager': 'Manager',
+    'viewer': 'Viewer'
+  };
+  
+  const roleName = roleNames[role as keyof typeof roleNames] || 'Team Member';
+  
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f8fafc;">
+      <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #1e40af; font-size: 28px; margin: 0; font-weight: bold;">Team Invitation</h1>
+          <div style="width: 60px; height: 4px; background: linear-gradient(90deg, #3b82f6, #8b5cf6); margin: 16px auto; border-radius: 2px;"></div>
+        </div>
+        
+        <div style="margin-bottom: 24px;">
+          <h2 style="color: #1f2937; font-size: 20px; margin-bottom: 16px;">You've been invited to join a team!</h2>
+          <p style="color: #6b7280; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
+            <strong>${inviterName}</strong> has invited you to join their MALPINOHdistro account as a <strong>${roleName}</strong>.
+          </p>
+        </div>
+
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 24px; margin-bottom: 24px;">
+          <h3 style="color: #1f2937; font-size: 18px; margin-bottom: 16px;">🎵 Your Role: ${roleName}</h3>
+          <div style="color: #6b7280; font-size: 14px; line-height: 1.6;">
+            ${role === 'account_admin' ? `
+              <p style="margin: 8px 0;">✅ <strong>Full Account Access:</strong> Complete control over the account</p>
+              <p style="margin: 8px 0;">✅ <strong>Team Management:</strong> Invite and manage other team members</p>
+              <p style="margin: 8px 0;">✅ <strong>All Permissions:</strong> Everything a manager can do and more</p>
+            ` : role === 'manager' ? `
+              <p style="margin: 8px 0;">✅ <strong>Release Management:</strong> Create and manage music releases</p>
+              <p style="margin: 8px 0;">✅ <strong>Financial Access:</strong> Process withdrawals and view earnings</p>
+              <p style="margin: 8px 0;">✅ <strong>Account Settings:</strong> Update account information</p>
+              <p style="margin: 8px 0;">✅ <strong>Analytics:</strong> View performance data and statistics</p>
+            ` : `
+              <p style="margin: 8px 0;">✅ <strong>View Releases:</strong> See all music releases and their status</p>
+              <p style="margin: 8px 0;">✅ <strong>View Earnings:</strong> Check revenue and payment history</p>
+              <p style="margin: 8px 0;">✅ <strong>View Analytics:</strong> Access performance statistics</p>
+              <p style="margin: 8px 0;">📋 <strong>Read-Only:</strong> Cannot make changes to the account</p>
+            `}
+          </div>
+        </div>
+
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${inviteUrl}" 
+             style="background: linear-gradient(135deg, #3b82f6, #8b5cf6); color: white; padding: 16px 32px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; font-size: 16px;">
+            Accept Invitation
+          </a>
+        </div>
+
+        <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 24px;">
+          <p style="color: #1e40af; font-size: 14px; margin: 0; font-weight: 500;">
+            🔒 <strong>Secure Access:</strong> You'll need to create an account or log in to accept this invitation. Your access will be limited to the permissions granted by your role.
+          </p>
+        </div>
+
+        <div style="text-align: center; margin-top: 24px; padding-top: 24px; border-top: 1px solid #e5e7eb;">
+          <p style="color: #9ca3af; font-size: 12px; margin: 0;">
+            © 2024 MALPINOHdistro. All rights reserved.<br>
+            This invitation will expire in 7 days. If you didn't expect this invitation, you can safely ignore this email.
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: `🎵 You've been invited to join ${inviterName}'s MALPINOHdistro team as ${roleName}`,
+    html,
+    from: 'MALPINOHdistro Team <team@malpinohdistro.com.ng>'
+  });
+};
