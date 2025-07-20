@@ -101,7 +101,17 @@ const Releases = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {releases.map((release, index) => (
                 <AnimatedCard key={release.id} delay={index * 100}>
-                  <ReleaseCard release={release} />
+                  <ReleaseCard 
+                    id={release.id}
+                    title={release.title}
+                    artist={release.artist}
+                    coverArt={release.coverArt}
+                    status={release.status}
+                    releaseDate={release.releaseDate}
+                    streamingLinks={release.streamingLinks}
+                    upc={release.upc}
+                    isrc={release.isrc}
+                  />
                 </AnimatedCard>
               ))}
             </div>
