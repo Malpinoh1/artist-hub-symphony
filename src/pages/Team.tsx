@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -38,6 +37,7 @@ interface Invitation {
   created_at: string;
   expires_at: string;
   token: string;
+  account_owner_id: string;
 }
 
 const Team = () => {
@@ -45,6 +45,7 @@ const Team = () => {
   const [user, setUser] = useState<any>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
+  const [myInvitations, setMyInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -69,7 +70,8 @@ const Team = () => {
       setUser(session.user);
       await Promise.all([
         fetchTeamMembers(session.user.id),
-        fetchInvitations(session.user.id)
+        fetchInvitations(session.user.id),
+        fetchMyInvitations(session.user.email)
       ]);
     } catch (error) {
       console.error('Error checking auth:', error);
@@ -166,6 +168,97 @@ const Team = () => {
     } catch (error) {
       console.error('Error fetching invitations:', error);
       setInvitations([]);
+    }
+  };
+
+  const fetchMyInvitations = async (userEmail: string) => {
+    try {
+      console.log('Fetching invitations for user email:', userEmail);
+      
+      const { data, error } = await supabase
+        .from('account_invitations')
+        .select('*')
+        .eq('invited_email', userEmail)
+        .eq('status', 'pending');
+
+      if (error) {
+        console.error('Error fetching my invitations:', error);
+        setMyInvitations([]);
+        return;
+      }
+      
+      console.log('My invitations data:', data);
+      setMyInvitations(data || []);
+    } catch (error) {
+      console.error('Error fetching my invitations:', error);
+      setMyInvitations([]);
+    }
+  };
+
+  const handleAcceptInvitation = async (invitation: Invitation) => {
+    if (!user) return;
+
+    try {
+      console.log('Accepting invitation:', invitation.id);
+      
+      // Check if user is already a member
+      const { data: existingAccess } = await supabase
+        .from('account_access')
+        .select('*')
+        .eq('account_owner_id', invitation.account_owner_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingAccess) {
+        console.log('User already has access');
+        toast({
+          title: "Already a team member",
+          description: "You're already a member of this team.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Add user to account_access table
+      const { error: accessError } = await supabase
+        .from('account_access')
+        .insert({
+          account_owner_id: invitation.account_owner_id,
+          user_id: user.id,
+          role: invitation.role,
+          granted_by: invitation.account_owner_id
+        });
+
+      if (accessError) {
+        console.error('Error adding user to account_access:', accessError);
+        throw accessError;
+      }
+
+      // Update invitation status
+      const { error: updateError } = await supabase
+        .from('account_invitations')
+        .update({ status: 'accepted' })
+        .eq('id', invitation.id);
+
+      if (updateError) {
+        console.error('Error updating invitation status:', updateError);
+        // Don't fail the process if this fails
+      }
+
+      toast({
+        title: "Invitation accepted successfully!",
+        description: `You now have ${invitation.role.replace('_', ' ')} access to the team account.`
+      });
+
+      // Refresh the data
+      await fetchMyInvitations(user.email);
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      toast({
+        title: "Failed to accept invitation",
+        description: "There was an error accepting the invitation. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -390,6 +483,51 @@ const Team = () => {
               Manage who has access to your music distribution account and control their permissions
             </p>
           </div>
+
+          {/* My Invitations */}
+          {myInvitations.length > 0 && (
+            <div className="mb-8">
+              <AnimatedCard>
+                <Card className="border-primary/20 bg-primary/5">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Mail className="w-5 h-5 text-primary" />
+                      Invitations for You
+                    </CardTitle>
+                    <CardDescription>
+                      You have been invited to join these teams ({myInvitations.length} pending)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {myInvitations.map((invitation) => (
+                        <div key={invitation.id} className="flex items-center justify-between p-4 rounded-lg border bg-background">
+                          <div className="flex-1">
+                            <div className="font-medium">Team Invitation</div>
+                            <div className="text-sm text-muted-foreground">
+                              Invited as {invitation.role.replace('_', ' ')} • 
+                              Expires {new Date(invitation.expires_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            {getRoleBadge(invitation.role)}
+                            <Button
+                              onClick={() => handleAcceptInvitation(invitation)}
+                              size="sm"
+                              className="flex items-center gap-2"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                              Accept
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
+          )}
 
           {/* Info Alert */}
           <Alert className="mb-6">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader2, Mail, Shield } from 'lucide-react';
@@ -71,7 +72,7 @@ const AcceptInvitation = () => {
 
       if (!invitationData) {
         console.log('No invitation found for token:', token);
-        setError('Invalid or expired invitation. Please request a new invitation.');
+        setError('Invalid or expired invitation. Please request a new invitation or check if you already have access to the account.');
         setLoading(false);
         return;
       }
@@ -79,7 +80,11 @@ const AcceptInvitation = () => {
       // Check invitation status
       if (invitationData.status !== 'pending') {
         console.log('Invitation already processed:', invitationData.status);
-        setError(`This invitation has already been ${invitationData.status}. Please request a new invitation if needed.`);
+        if (invitationData.status === 'accepted') {
+          setError('This invitation has already been accepted. You should already have access to the account.');
+        } else {
+          setError(`This invitation has been ${invitationData.status}. Please request a new invitation if needed.`);
+        }
         setLoading(false);
         return;
       }
@@ -91,16 +96,44 @@ const AcceptInvitation = () => {
       
       if (expirationDate < now) {
         console.log('Invitation expired');
-        setError('This invitation has expired. Please request a new invitation.');
+        setError('This invitation has expired. Please request a new invitation from the team administrator.');
         setLoading(false);
         return;
+      }
+
+      // If user is logged in, check if they're already a member
+      if (session?.user) {
+        const { data: existingAccess } = await supabase
+          .from('account_access')
+          .select('*')
+          .eq('account_owner_id', invitationData.account_owner_id)
+          .eq('user_id', session.user.id)
+          .maybeSingle();
+
+        if (existingAccess) {
+          console.log('User already has access');
+          setError('You already have access to this account. Please check your dashboard.');
+          setLoading(false);
+          return;
+        }
+
+        // Check if the invitation email matches the logged-in user's email
+        if (invitationData.invited_email !== session.user.email) {
+          console.log('Email mismatch:', {
+            invitedEmail: invitationData.invited_email,
+            userEmail: session.user.email
+          });
+          setError(`This invitation was sent to ${invitationData.invited_email}, but you're logged in as ${session.user.email}. Please log in with the correct account or contact the team administrator.`);
+          setLoading(false);
+          return;
+        }
       }
 
       console.log('Invitation is valid:', invitationData);
       setInvitation(invitationData);
     } catch (error) {
       console.error('Error checking invitation:', error);
-      setError('Failed to verify invitation. Please try again.');
+      setError('Failed to verify invitation. Please try again or contact support.');
     } finally {
       setLoading(false);
     }
@@ -120,7 +153,7 @@ const AcceptInvitation = () => {
     try {
       console.log('Accepting invitation:', invitation.id);
       
-      // Check if user is already a member
+      // Double-check if user is already a member
       const { data: existingAccess } = await supabase
         .from('account_access')
         .select('*')
@@ -222,13 +255,21 @@ const AcceptInvitation = () => {
               <Card className="border-destructive/20 bg-destructive/5">
                 <CardHeader className="text-center">
                   <AlertCircle className="w-16 h-16 mx-auto mb-4 text-destructive" />
-                  <CardTitle className="text-destructive">Invalid Invitation</CardTitle>
+                  <CardTitle className="text-destructive">Invitation Issue</CardTitle>
                   <CardDescription>{error}</CardDescription>
                 </CardHeader>
-                <CardContent className="text-center">
-                  <Button onClick={() => navigate('/')} variant="outline">
-                    Go to Homepage
-                  </Button>
+                <CardContent className="text-center space-y-4">
+                  <div className="space-y-2">
+                    <Button onClick={() => navigate('/team')} variant="outline" className="w-full">
+                      Check Team Page
+                    </Button>
+                    <Button onClick={() => navigate('/dashboard')} variant="outline" className="w-full">
+                      Go to Dashboard
+                    </Button>
+                    <Button onClick={() => navigate('/')} variant="outline" className="w-full">
+                      Go to Homepage
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </AnimatedCard>
