@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ArrowLeft, Users, Shield, Mail, CheckCircle, AlertCircle, UserPlus, Settings, Eye } from 'lucide-react';
+import { ArrowLeft, Users, Shield, Mail, CheckCircle, AlertCircle, UserPlus, Settings, Eye, Database, BarChart3, DollarSign } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -27,40 +27,57 @@ const TeamGuide = () => {
               Complete Guide to Team Access Management
             </h1>
             <p className="text-muted-foreground text-lg">
-              Everything you need to know about managing team access, roles, and permissions
+              Everything you need to know about managing team access, roles, permissions, and administrative capabilities
             </p>
           </div>
 
-          {/* Overview */}
+          {/* Enhanced Overview */}
           <AnimatedCard>
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
-                  Overview: How Team Access Works
+                  Overview: Advanced Team Access System
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <p className="text-muted-foreground">
-                  MALPINOHdistro's team access system allows you to collaborate with others by giving them specific permissions to manage your music distribution account. You maintain full control as the account owner while delegating responsibilities to trusted team members.
+                  MALPINOHdistro's comprehensive team access system allows seamless collaboration while maintaining security. As the account owner, you have complete control over who can access your distribution account and what they can do.
                 </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <BarChart3 className="w-8 h-8 text-blue-600 mb-2" />
+                    <h3 className="font-semibold text-blue-900 dark:text-blue-300">Analytics Access</h3>
+                    <p className="text-sm text-blue-700 dark:text-blue-400">View and manage streaming data, performance metrics, and platform analytics</p>
+                  </div>
+                  <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                    <DollarSign className="w-8 h-8 text-green-600 mb-2" />
+                    <h3 className="font-semibold text-green-900 dark:text-green-300">Earnings Management</h3>
+                    <p className="text-sm text-green-700 dark:text-green-400">Access earnings data, process withdrawals, and manage financial information</p>
+                  </div>
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                    <Database className="w-8 h-8 text-purple-600 mb-2" />
+                    <h3 className="font-semibold text-purple-900 dark:text-purple-300">Data Control</h3>
+                    <p className="text-sm text-purple-700 dark:text-purple-400">Manage releases, update statistics, and control all account data</p>
+                  </div>
+                </div>
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Important:</strong> As the account owner, you always retain full control. You can add or remove team members and change their permissions at any time.
+                    <strong>Important:</strong> Account owners and admins have full control over all analytics and earnings data. Lower-level roles have restricted access based on their permissions.
                   </AlertDescription>
                 </Alert>
               </CardContent>
             </Card>
           </AnimatedCard>
 
-          {/* Step by Step Process */}
+          {/* Enhanced Step by Step Process */}
           <AnimatedCard delay={100}>
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <UserPlus className="w-5 h-5 text-primary" />
-                  Step-by-Step: Inviting Team Members
+                  Step-by-Step: Advanced Team Collaboration
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -70,11 +87,15 @@ const TeamGuide = () => {
                       <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">1</div>
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-2">Send Invitation</h3>
+                      <h3 className="font-semibold mb-2">Strategic Role Assignment</h3>
                       <p className="text-muted-foreground mb-2">
-                        Click "Invite User" on your team page, enter their email address, and select their role (Viewer, Manager, or Admin).
+                        Choose the appropriate role based on responsibilities: Viewer for monitoring, Manager for operations, or Admin for full control including analytics and earnings management.
                       </p>
-                      <Badge variant="outline">Email sent automatically</Badge>
+                      <div className="flex gap-2">
+                        <Badge variant="outline">Analytics Access</Badge>
+                        <Badge variant="outline">Earnings Control</Badge>
+                        <Badge variant="outline">Data Management</Badge>
+                      </div>
                     </div>
                   </div>
 
@@ -83,11 +104,11 @@ const TeamGuide = () => {
                       <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">2</div>
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-2">Invitation Email Sent</h3>
+                      <h3 className="font-semibold mb-2">Secure Invitation Process</h3>
                       <p className="text-muted-foreground mb-2">
-                        The invited person receives an email with a secure invitation link and details about their role and permissions. The invitation expires in 7 days.
+                        Invitations are sent with secure tokens and expire after 7 days. Invited users can accept via email or through their dashboard if they already have an account.
                       </p>
-                      <Badge variant="secondary">Pending status</Badge>
+                      <Badge variant="secondary">Multi-channel acceptance</Badge>
                     </div>
                   </div>
 
@@ -96,11 +117,11 @@ const TeamGuide = () => {
                       <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center font-bold text-sm">3</div>
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-2">User Accepts Invitation</h3>
+                      <h3 className="font-semibold mb-2">Account Integration</h3>
                       <p className="text-muted-foreground mb-2">
-                        They click the invitation link, create an account (if needed) or log in, and confirm their acceptance of the team invitation.
+                        Once accepted, team members gain immediate access to your dashboard with role-appropriate permissions. They can switch between personal and team accounts seamlessly.
                       </p>
-                      <Badge variant="outline">Account creation required</Badge>
+                      <Badge variant="outline">Seamless switching</Badge>
                     </div>
                   </div>
 
@@ -109,11 +130,11 @@ const TeamGuide = () => {
                       <div className="w-8 h-8 bg-green-600 text-white rounded-full flex items-center justify-center font-bold text-sm">4</div>
                     </div>
                     <div>
-                      <h3 className="font-semibold mb-2">Access Granted</h3>
+                      <h3 className="font-semibold mb-2">Full Operational Access</h3>
                       <p className="text-muted-foreground mb-2">
-                        The team member now appears in your team list and can access your dashboard with the permissions you assigned to their role.
+                        Team members can now perform their designated tasks including analytics monitoring, earnings management, and data updates based on their role permissions.
                       </p>
-                      <Badge className="bg-green-100 text-green-800">Active member</Badge>
+                      <Badge className="bg-green-100 text-green-800">Fully operational</Badge>
                     </div>
                   </div>
                 </div>
@@ -121,13 +142,13 @@ const TeamGuide = () => {
             </Card>
           </AnimatedCard>
 
-          {/* Roles and Permissions */}
+          {/* Enhanced Roles and Permissions */}
           <AnimatedCard delay={200}>
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5 text-primary" />
-                  Roles and Permissions Explained
+                  Comprehensive Roles and Permissions
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -137,13 +158,15 @@ const TeamGuide = () => {
                       <Eye className="w-4 h-4 text-gray-600" />
                       <Badge variant="outline">Viewer</Badge>
                     </div>
-                    <h3 className="font-semibold mb-2">Read-Only Access</h3>
+                    <h3 className="font-semibold mb-2">Analytics & Monitoring</h3>
                     <ul className="text-sm text-muted-foreground space-y-1">
-                      <li>• View all releases and their status</li>
-                      <li>• Check earnings and analytics</li>
-                      <li>• See withdrawal history</li>
-                      <li>• Access performance statistics</li>
-                      <li>• Cannot make any changes</li>
+                      <li>• View all releases and status</li>
+                      <li>• Access analytics dashboard</li>
+                      <li>• Monitor streaming performance</li>
+                      <li>• View earnings data</li>
+                      <li>• Check withdrawal history</li>
+                      <li>• Export reports (read-only)</li>
+                      <li>• <strong>Cannot modify any data</strong></li>
                     </ul>
                   </div>
 
@@ -152,14 +175,16 @@ const TeamGuide = () => {
                       <Settings className="w-4 h-4 text-blue-600" />
                       <Badge className="bg-blue-100 text-blue-800">Manager</Badge>
                     </div>
-                    <h3 className="font-semibold mb-2">Full Management</h3>
+                    <h3 className="font-semibold mb-2">Full Operations Management</h3>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• All viewer permissions</li>
                       <li>• Create and manage releases</li>
+                      <li>• Update streaming statistics</li>
                       <li>• Process withdrawal requests</li>
-                      <li>• Update account settings</li>
                       <li>• Manage streaming links</li>
-                      <li>• Cannot manage team members</li>
+                      <li>• Update earnings data</li>
+                      <li>• Configure account settings</li>
+                      <li>• <strong>Cannot manage team members</strong></li>
                     </ul>
                   </div>
 
@@ -168,14 +193,16 @@ const TeamGuide = () => {
                       <Shield className="w-4 h-4 text-red-600" />
                       <Badge className="bg-red-100 text-red-800">Admin</Badge>
                     </div>
-                    <h3 className="font-semibold mb-2">Complete Control</h3>
+                    <h3 className="font-semibold mb-2">Complete System Control</h3>
                     <ul className="text-sm text-muted-foreground space-y-1">
                       <li>• All manager permissions</li>
-                      <li>• Invite and remove team members</li>
-                      <li>• Change member roles</li>
-                      <li>• Full account access</li>
-                      <li>• Nearly same as account owner</li>
-                      <li>• Cannot delete the account</li>
+                      <li>• Full analytics management</li>
+                      <li>• Complete earnings control</li>
+                      <li>• Team member management</li>
+                      <li>• Role modifications</li>
+                      <li>• System configuration</li>
+                      <li>• Data export/import</li>
+                      <li>• <strong>Nearly identical to owner</strong></li>
                     </ul>
                   </div>
                 </div>
@@ -183,138 +210,129 @@ const TeamGuide = () => {
             </Card>
           </AnimatedCard>
 
-          {/* How Team Members Use the System */}
+          {/* Analytics & Earnings Management */}
           <AnimatedCard delay={300}>
             <Card className="mb-8">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5 text-primary" />
-                  How Team Members Access Your Account
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  Analytics & Earnings Management
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
-                    <h3 className="font-semibold mb-3">For New Users</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                      <li>Receive invitation email</li>
-                      <li>Click "Accept Invitation" button</li>
-                      <li>Create new MALPINOHdistro account</li>
-                      <li>Verify email address</li>
-                      <li>Access your dashboard with assigned permissions</li>
-                    </ol>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-blue-600" />
+                      Analytics Control
+                    </h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Update platform streaming data</li>
+                      <li>• Modify growth percentages</li>
+                      <li>• Manage performance statistics</li>
+                      <li>• Control geographic analytics</li>
+                      <li>• Export comprehensive reports</li>
+                      <li>• Historical data management</li>
+                    </ul>
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-3">For Existing Users</h3>
-                    <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
-                      <li>Receive invitation email</li>
-                      <li>Click "Accept Invitation" button</li>
-                      <li>Log in to existing account</li>
-                      <li>Confirm invitation acceptance</li>
-                      <li>Switch between personal and team accounts</li>
-                    </ol>
+                    <h3 className="font-semibold mb-3 flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-green-600" />
+                      Earnings Management
+                    </h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Process withdrawal requests</li>
+                      <li>• Update earnings records</li>
+                      <li>• Manage payment methods</li>
+                      <li>• Control available balances</li>
+                      <li>• Generate financial reports</li>
+                      <li>• Handle payment disputes</li>
+                    </ul>
                   </div>
                 </div>
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Admin Access Required:</strong> Only users with Admin role or account owners can modify analytics and earnings data. This ensures data integrity and prevents unauthorized changes.
+                  </AlertDescription>
+                </Alert>
               </CardContent>
             </Card>
           </AnimatedCard>
 
-          {/* Managing Team Members */}
+          {/* Enhanced Security Guidelines */}
           <AnimatedCard delay={400}>
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="w-5 h-5 text-primary" />
-                  Managing Your Team
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold mb-3">What You Can Do</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Add new team members anytime</li>
-                      <li>• Remove team members instantly</li>
-                      <li>• Change member roles and permissions</li>
-                      <li>• Cancel pending invitations</li>
-                      <li>• Monitor team member activity</li>
-                      <li>• View invitation history</li>
-                    </ul>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold mb-3">Best Practices</h3>
-                    <ul className="space-y-2 text-sm text-muted-foreground">
-                      <li>• Start with Viewer role for new members</li>
-                      <li>• Only give Admin access to highly trusted individuals</li>
-                      <li>• Regularly review team member permissions</li>
-                      <li>• Remove access when team members leave</li>
-                      <li>• Use clear communication about roles</li>
-                      <li>• Document team responsibilities</li>
-                    </ul>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </AnimatedCard>
-
-          {/* Security and Safety */}
-          <AnimatedCard delay={500}>
             <Card className="mb-8 border-orange-200 bg-orange-50/50">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-orange-800">
                   <AlertCircle className="w-5 h-5" />
-                  Security and Safety Guidelines
+                  Enhanced Security and Best Practices
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    <strong>Important Security Notes:</strong>
-                  </AlertDescription>
-                </Alert>
-                <ul className="space-y-2 text-sm text-muted-foreground">
-                  <li>• Only invite people you trust completely</li>
-                  <li>• Managers and Admins can make significant changes to your account</li>
-                  <li>• Team members can see sensitive financial information</li>
-                  <li>• Always verify the email address before sending invitations</li>
-                  <li>• Remove team members immediately when they leave your organization</li>
-                  <li>• Regularly audit team member permissions</li>
-                  <li>• Use two-factor authentication for enhanced security</li>
-                </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="font-semibold mb-3 text-orange-900">Critical Security Measures</h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Only invite absolutely trusted individuals</li>
+                      <li>• Regular security audits of team access</li>
+                      <li>• Enable two-factor authentication</li>
+                      <li>• Monitor unusual access patterns</li>
+                      <li>• Immediate revocation when needed</li>
+                      <li>• Secure handling of financial data</li>
+                    </ul>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold mb-3 text-orange-900">Data Protection</h3>
+                    <ul className="space-y-2 text-sm text-muted-foreground">
+                      <li>• Analytics data is business-critical</li>
+                      <li>• Earnings information is highly sensitive</li>
+                      <li>• Team members see complete financial picture</li>
+                      <li>• Regular permission reviews required</li>
+                      <li>• Audit trail for all modifications</li>
+                      <li>• Compliance with data protection laws</li>
+                    </ul>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </AnimatedCard>
 
-          {/* FAQ */}
-          <AnimatedCard delay={600}>
+          {/* Enhanced FAQ */}
+          <AnimatedCard delay={500}>
             <Card>
               <CardHeader>
                 <CardTitle>Frequently Asked Questions</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <h3 className="font-semibold mb-2">What happens when I remove a team member?</h3>
+                  <h3 className="font-semibold mb-2">Can team members modify analytics and earnings data?</h3>
                   <p className="text-sm text-muted-foreground">
-                    They immediately lose access to your account and dashboard. They'll no longer be able to view your data or make changes. Their personal account remains unaffected.
+                    Only users with Admin role or account owners can modify analytics and earnings data. Managers can view and work with this data but cannot make changes. Viewers have read-only access.
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Can team members see my personal information?</h3>
+                  <h3 className="font-semibold mb-2">What happens to team access when someone leaves?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Team members can only see information related to your music distribution business (releases, earnings, etc.). They cannot access your personal account settings, password, or payment methods.
+                    Immediately remove their access to prevent unauthorized use. They lose all dashboard access instantly, but their personal account remains unaffected. All their previous activities are logged for audit purposes.
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">What if someone doesn't accept the invitation?</h3>
+                  <h3 className="font-semibold mb-2">How secure is the financial data access?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Invitations expire after 7 days. You can cancel pending invitations and send new ones if needed. There's no limit to how many invitations you can send.
+                    All financial data is encrypted and access is logged. Team members can only see earnings and withdrawal information relevant to the accounts they manage. Personal banking details are never shared.
                   </p>
                 </div>
                 <div>
-                  <h3 className="font-semibold mb-2">Can I have multiple people with the same role?</h3>
+                  <h3 className="font-semibold mb-2">Can I limit what analytics data team members see?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Yes, you can invite as many team members as you need with any role. For example, you could have multiple Managers or multiple Viewers.
+                    Currently, team members with access can see all analytics data for the accounts they manage. You can control this by assigning appropriate roles - Viewers for monitoring only, Managers for operational access, and Admins for full control.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-2">How do I track team member activities?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    The system maintains audit logs of all activities. You can monitor who accessed what data, when changes were made, and what actions were performed. This helps ensure accountability and security.
                   </p>
                 </div>
               </CardContent>

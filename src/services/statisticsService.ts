@@ -1,3 +1,4 @@
+
 import { supabase } from "../integrations/supabase/client";
 
 // Type for performance statistics
@@ -115,23 +116,52 @@ export async function fetchReleaseStatistics(releaseId: string): Promise<Perform
   }
 }
 
-// Function to fetch all platform analytics
+// Function to fetch all platform analytics with better error handling
 export async function fetchPlatformAnalytics() {
   try {
+    console.log("Fetching platform analytics...");
+    
     const { data, error } = await supabase
       .from('platform_analytics')
       .select('*')
-      .single();
+      .maybeSingle();
       
     if (error) {
       console.error("Error fetching platform analytics:", error);
+      // If no data exists, return default structure instead of throwing
+      if (error.code === 'PGRST116') {
+        console.log("No platform analytics data found, returning default values");
+        return {
+          spotify_plays: 0,
+          spotify_growth: 0,
+          apple_music_plays: 0,
+          apple_music_growth: 0,
+          youtube_music_plays: 0,
+          youtube_music_growth: 0,
+          deezer_plays: 0,
+          deezer_growth: 0,
+          last_updated: new Date().toISOString()
+        };
+      }
       throw error;
     }
     
+    console.log("Platform analytics fetched successfully:", data);
     return data;
   } catch (error) {
     console.error('Error fetching platform analytics:', error);
-    return null;
+    // Return default structure for any error
+    return {
+      spotify_plays: 0,
+      spotify_growth: 0,
+      apple_music_plays: 0,
+      apple_music_growth: 0,
+      youtube_music_plays: 0,
+      youtube_music_growth: 0,
+      deezer_plays: 0,
+      deezer_growth: 0,
+      last_updated: new Date().toISOString()
+    };
   }
 }
 
@@ -167,6 +197,40 @@ export async function updatePlatformAnalytics(analyticsData: {
     return { success: true, data };
   } catch (error) {
     console.error('Error updating platform analytics:', error);
+    return { success: false, error };
+  }
+}
+
+// Function to initialize platform analytics if it doesn't exist
+export async function initializePlatformAnalytics() {
+  try {
+    console.log("Initializing platform analytics...");
+    
+    const { data, error } = await supabase
+      .from('platform_analytics')
+      .insert({
+        spotify_plays: 0,
+        spotify_growth: 0,
+        apple_music_plays: 0,
+        apple_music_growth: 0,
+        youtube_music_plays: 0,
+        youtube_music_growth: 0,
+        deezer_plays: 0,
+        deezer_growth: 0,
+        last_updated: new Date().toISOString()
+      })
+      .select('*')
+      .single();
+      
+    if (error) {
+      console.error("Error initializing platform analytics:", error);
+      throw error;
+    }
+    
+    console.log("Platform analytics initialized successfully:", data);
+    return { success: true, data };
+  } catch (error) {
+    console.error('Error initializing platform analytics:', error);
     return { success: false, error };
   }
 }
