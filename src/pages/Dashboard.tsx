@@ -13,6 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { fetchUserStats } from '../services/releaseService';
 
 const Dashboard = () => {
   const { toast } = useToast();
@@ -20,6 +21,12 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalReleases: 0,
+    activeReleases: 0,
+    totalPlays: 0,
+    totalEarnings: 0
+  });
 
   useEffect(() => {
     checkAuthAndLoadData();
@@ -38,7 +45,8 @@ const Dashboard = () => {
       setUser(session.user);
       await Promise.all([
         loadReleases(session.user.id),
-        loadUserRole(session.user.id)
+        loadUserRole(session.user.id),
+        loadStats(session.user.id)
       ]);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -88,6 +96,15 @@ const Dashboard = () => {
       setUserRole(data?.role || 'user');
     } catch (error) {
       console.error('Error loading user role:', error);
+    }
+  };
+
+  const loadStats = async (userId: string) => {
+    try {
+      const userStats = await fetchUserStats(userId);
+      setStats(userStats);
+    } catch (error) {
+      console.error('Error loading user stats:', error);
     }
   };
 
@@ -163,7 +180,13 @@ const Dashboard = () => {
           </div>
 
           {/* Stats */}
-          <DashboardStats />
+          <DashboardStats
+            totalReleases={stats.totalReleases}
+            activeReleases={stats.activeReleases}
+            totalPlays={stats.totalPlays}
+            totalEarnings={stats.totalEarnings}
+            loading={loading}
+          />
 
           {/* Recent Releases */}
           <div className="mb-8">
@@ -206,10 +229,12 @@ const Dashboard = () => {
                       id={release.id}
                       title={release.title}
                       artist={release.artist_name || 'Unknown Artist'}
-                      coverUrl={release.cover_art_url}
+                      coverArt={release.cover_art_url}
                       status={release.status}
                       releaseDate={release.release_date}
-                      platforms={release.platforms || []}
+                      streamingLinks={release.platforms || []}
+                      upc={release.upc}
+                      isrc={release.isrc}
                     />
                   </AnimatedCard>
                 ))}
