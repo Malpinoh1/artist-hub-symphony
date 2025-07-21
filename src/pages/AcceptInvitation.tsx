@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { CheckCircle, AlertCircle, Loader2, Mail, Shield } from 'lucide-react';
@@ -30,37 +29,74 @@ const AcceptInvitation = () => {
 
   const checkAuthAndInvitation = async () => {
     try {
+      console.log('Checking invitation with token:', token);
+      
       // Check authentication status
       const { data: { session } } = await supabase.auth.getSession();
       setUser(session?.user || null);
+      console.log('User session:', session?.user ? 'authenticated' : 'not authenticated');
 
       if (!token) {
+        console.log('No token provided');
         setError('Invalid invitation link. No token provided.');
         setLoading(false);
         return;
       }
 
-      // Fetch invitation details
+      // Validate token format (should be UUID)
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(token)) {
+        console.log('Invalid token format:', token);
+        setError('Invalid invitation link format. Please check your link and try again.');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch invitation details with better error handling
+      console.log('Fetching invitation details...');
       const { data: invitationData, error: invitationError } = await supabase
         .from('account_invitations')
         .select('*')
         .eq('token', token)
-        .eq('status', 'pending')
-        .single();
+        .maybeSingle();
 
-      if (invitationError || !invitationData) {
+      console.log('Invitation query result:', { invitationData, invitationError });
+
+      if (invitationError) {
+        console.error('Database error fetching invitation:', invitationError);
+        setError('Failed to verify invitation. Please try again or contact support.');
+        setLoading(false);
+        return;
+      }
+
+      if (!invitationData) {
+        console.log('No invitation found for token:', token);
         setError('Invalid or expired invitation. Please request a new invitation.');
         setLoading(false);
         return;
       }
 
+      // Check invitation status
+      if (invitationData.status !== 'pending') {
+        console.log('Invitation already processed:', invitationData.status);
+        setError(`This invitation has already been ${invitationData.status}. Please request a new invitation if needed.`);
+        setLoading(false);
+        return;
+      }
+
       // Check if invitation has expired
-      if (new Date(invitationData.expires_at) < new Date()) {
+      const expirationDate = new Date(invitationData.expires_at);
+      const now = new Date();
+      console.log('Checking expiration:', { expirationDate, now, expired: expirationDate < now });
+      
+      if (expirationDate < now) {
+        console.log('Invitation expired');
         setError('This invitation has expired. Please request a new invitation.');
         setLoading(false);
         return;
       }
 
+      console.log('Invitation is valid:', invitationData);
       setInvitation(invitationData);
     } catch (error) {
       console.error('Error checking invitation:', error);
@@ -82,6 +118,27 @@ const AcceptInvitation = () => {
 
     setAccepting(true);
     try {
+      console.log('Accepting invitation:', invitation.id);
+      
+      // Check if user is already a member
+      const { data: existingAccess } = await supabase
+        .from('account_access')
+        .select('*')
+        .eq('account_owner_id', invitation.account_owner_id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingAccess) {
+        console.log('User already has access');
+        toast({
+          title: "Already a team member",
+          description: "You're already a member of this team.",
+          variant: "destructive"
+        });
+        navigate('/dashboard');
+        return;
+      }
+
       // Add user to account_access table
       const { error: accessError } = await supabase
         .from('account_access')
@@ -93,15 +150,7 @@ const AcceptInvitation = () => {
         });
 
       if (accessError) {
-        if (accessError.code === '23505') {
-          toast({
-            title: "Already a team member",
-            description: "You're already a member of this team.",
-            variant: "destructive"
-          });
-          navigate('/dashboard');
-          return;
-        }
+        console.error('Error adding user to account_access:', accessError);
         throw accessError;
       }
 

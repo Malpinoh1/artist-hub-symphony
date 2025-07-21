@@ -1,87 +1,50 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { 
-  Music, 
-  TrendingUp, 
-  DollarSign, 
-  Users, 
-  Plus,
-  Activity,
-  Calendar,
-  Eye,
-  BarChart3,
-  Upload,
-  Headphones
-} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
-import MarketingOptInBanner from '../components/MarketingOptInBanner';
-import DashboardStats from '../components/DashboardStats';
 import AnimatedCard from '../components/AnimatedCard';
+import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
-import { fetchUserReleases, fetchUserStats } from '../services/releaseService';
-import type { Release } from '../services/releaseService';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [stats, setStats] = useState({
-    totalReleases: 0,
-    activeReleases: 0,
-    totalPlays: 0,
-    totalEarnings: 0
-  });
   const [loading, setLoading] = useState(true);
+  const [releases, setReleases] = useState<any[]>([]);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
-    checkAuth();
-    fetchDashboardData();
+    checkAuthAndLoadData();
   }, []);
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      navigate('/auth');
-      return;
-    }
-    setUser(session.user);
-  };
-
-  const fetchDashboardData = async () => {
+  const checkAuthAndLoadData = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      // Fetch user profile
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single();
-
-      if (profileData) {
-        setProfile(profileData);
-      }
-
-      // Use the proper service functions
-      const userReleases = await fetchUserReleases(session.user.id);
-      const userStats = await fetchUserStats(session.user.id);
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) throw error;
       
-      setReleases(userReleases);
-      setStats(userStats);
+      if (!session) {
+        window.location.href = '/auth';
+        return;
+      }
+      
+      setUser(session.user);
+      await Promise.all([
+        loadReleases(session.user.id),
+        loadUserRole(session.user.id)
+      ]);
     } catch (error) {
-      console.error('Error fetching dashboard data:', error);
+      console.error('Error loading dashboard data:', error);
       toast({
-        title: "Error",
-        description: "Failed to load dashboard data",
+        title: "Error loading dashboard",
+        description: "Failed to load your dashboard data. Please try refreshing the page.",
         variant: "destructive"
       });
     } finally {
@@ -89,286 +52,238 @@ const Dashboard = () => {
     }
   };
 
-  const quickActions = [
-    {
-      icon: <Upload className="w-5 h-5" />,
-      title: "Upload Release",
-      description: "Distribute your music globally",
-      action: () => navigate('/release/new'),
-      gradient: "from-blue-500 to-purple-600"
-    },
-    {
-      icon: <BarChart3 className="w-5 h-5" />,
-      title: "Analytics",
-      description: "View performance insights",
-      action: () => navigate('/analytics'),
-      gradient: "from-green-500 to-emerald-600"
-    },
-    {
-      icon: <DollarSign className="w-5 h-5" />,
-      title: "Earnings",
-      description: "Check your revenue",
-      action: () => navigate('/earnings'),
-      gradient: "from-yellow-500 to-orange-600"
-    },
-    {
-      icon: <Users className="w-5 h-5" />,
-      title: "Team Access",
-      description: "Manage collaborators",
-      action: () => navigate('/team'),
-      gradient: "from-purple-500 to-pink-600"
+  const loadReleases = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('releases')
+        .select('*')
+        .eq('artist_id', userId)
+        .order('release_date', { ascending: false })
+        .limit(6);
+
+      if (error) {
+        console.error('Error loading releases:', error);
+        return;
+      }
+
+      setReleases(data || []);
+    } catch (error) {
+      console.error('Error loading releases:', error);
     }
-  ];
+  };
+
+  const loadUserRole = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error loading user role:', error);
+        return;
+      }
+
+      setUserRole(data?.role || 'user');
+    } catch (error) {
+      console.error('Error loading user role:', error);
+    }
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
         <Navbar />
-        <div className="flex-grow flex items-center justify-center">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-muted-foreground">Loading your dashboard...</p>
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4 py-8">
+            <div className="text-center py-20">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Loading your dashboard...</p>
+            </div>
           </div>
-        </div>
+        </main>
+        <Footer />
       </div>
     );
   }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-      <MarketingOptInBanner />
       <Navbar />
       
-      <main className="flex-grow pt-20">
-        <div className="container mx-auto px-4 py-8 max-w-7xl">
-          {/* Welcome Header */}
+      <main className="flex-grow pt-24 pb-16">
+        <section className="container mx-auto px-4 py-8">
           <div className="mb-8">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
-                  Welcome back, {profile?.full_name || user?.email?.split('@')[0]}! 👋
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  Here's what's happening with your music distribution
-                </p>
-              </div>
-              <Button 
-                onClick={() => navigate('/release/new')}
-                className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90 shadow-lg"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                New Release
-              </Button>
-            </div>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+              Welcome back, {user?.email?.split('@')[0] || 'Artist'}!
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage your music distribution and track your performance
+            </p>
           </div>
-
-          {/* Stats Overview */}
-          <DashboardStats 
-            totalReleases={stats.totalReleases}
-            activeReleases={stats.activeReleases}
-            totalPlays={stats.totalPlays}
-            totalEarnings={stats.totalEarnings}
-            loading={loading}
-          />
 
           {/* Quick Actions */}
           <div className="mb-8">
-            <h2 className="text-2xl font-display font-semibold mb-6">Quick Actions</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {quickActions.map((action, index) => (
-                <AnimatedCard key={action.title} delay={index * 100}>
-                  <Card 
-                    className="glass-card cursor-pointer group hover:scale-105 transition-all duration-300 border-0 shadow-lg"
-                    onClick={action.action}
-                  >
-                    <CardContent className="p-6">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${action.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                        {React.cloneElement(action.icon, { className: "w-5 h-5 text-white" })}
-                      </div>
-                      <h3 className="font-semibold mb-2">{action.title}</h3>
-                      <p className="text-sm text-muted-foreground">{action.description}</p>
-                    </CardContent>
-                  </Card>
-                </AnimatedCard>
-              ))}
-            </div>
+            <AnimatedCard>
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Upload className="w-5 h-5 text-primary" />
+                    Quick Actions
+                  </CardTitle>
+                  <CardDescription>
+                    Get started with your music distribution
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <Button asChild className="flex-1" size="lg">
+                      <Link to="/release-form" className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Submit New Release
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="flex-1" size="lg">
+                      <Link to="/releases" className="flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        View All Releases
+                      </Link>
+                    </Button>
+                    <Button asChild variant="outline" className="flex-1" size="lg">
+                      <Link to="/analytics" className="flex items-center gap-2">
+                        <BarChart3 className="w-4 h-4" />
+                        View Analytics
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </AnimatedCard>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-            {/* Releases Section */}
-            <div className="lg:col-span-2">
+          {/* Stats */}
+          <DashboardStats />
+
+          {/* Recent Releases */}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-display font-semibold text-foreground">
+                Recent Releases
+              </h2>
+              <Button asChild variant="outline">
+                <Link to="/releases">View All</Link>
+              </Button>
+            </div>
+            
+            {releases.length === 0 ? (
               <AnimatedCard>
-                <Card className="glass-card border-0 shadow-lg">
-                  <CardHeader className="flex flex-row items-center justify-between pb-6">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Music className="w-5 h-5 text-primary" />
-                        Your Releases
-                      </CardTitle>
-                      <CardDescription className="text-base">
-                        Manage and track your music releases
-                      </CardDescription>
+                <Card>
+                  <CardContent className="text-center py-12">
+                    <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Music className="w-8 h-8 text-muted-foreground" />
                     </div>
-                    {releases.length > 0 && (
-                      <Button 
-                        variant="outline" 
-                        onClick={() => navigate('/releases')}
-                        className="hidden sm:flex"
-                      >
-                        <Eye className="w-4 h-4 mr-2" />
-                        View All
-                      </Button>
-                    )}
-                  </CardHeader>
-                  <CardContent>
-                    {releases.length === 0 ? (
-                      <div className="text-center py-12">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary/20 to-purple-600/20 flex items-center justify-center mx-auto mb-4">
-                          <Music className="w-8 h-8 text-primary" />
-                        </div>
-                        <h3 className="text-lg font-semibold text-foreground mb-2">
-                          No releases yet
-                        </h3>
-                        <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
-                          Start your music distribution journey by uploading your first release
-                        </p>
-                        <Button 
-                          onClick={() => navigate('/release/new')}
-                          className="bg-gradient-to-r from-primary to-purple-600 hover:from-primary/90 hover:to-purple-600/90"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Upload Your First Release
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {releases.slice(0, 3).map((release, index) => (
-                          <div key={release.id} className="animate-slideIn" style={{ animationDelay: `${index * 100}ms` }}>
-                            <ReleaseCard
-                              id={release.id}
-                              title={release.title}
-                              artist={release.artist}
-                              coverArt={release.coverArt}
-                              status={release.status}
-                              releaseDate={release.releaseDate}
-                              streamingLinks={release.streamingLinks}
-                              upc={release.upc}
-                              isrc={release.isrc}
-                            />
-                          </div>
-                        ))}
-                        {releases.length > 3 && (
-                          <div className="text-center pt-4">
-                            <Button 
-                              variant="outline" 
-                              onClick={() => navigate('/releases')}
-                              className="w-full sm:w-auto"
-                            >
-                              View All Releases ({releases.length})
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-            </div>
-
-            {/* Sidebar */}
-            <div className="space-y-6">
-              {/* Recent Activity */}
-              <AnimatedCard delay={100}>
-                <Card className="glass-card border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Activity className="w-5 h-5 text-primary" />
-                      Recent Activity
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4 text-sm">
-                      <div className="flex items-start gap-3">
-                        <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
-                        <div>
-                          <p className="text-foreground">Account created</p>
-                          <p className="text-muted-foreground text-xs">Welcome to MALPINOHdistro!</p>
-                        </div>
-                      </div>
-                      {releases.length > 0 && (
-                        <div className="flex items-start gap-3">
-                          <div className="w-2 h-2 bg-green-500 rounded-full mt-2 flex-shrink-0"></div>
-                          <div>
-                            <p className="text-foreground">Latest release uploaded</p>
-                            <p className="text-muted-foreground text-xs">{releases[0]?.title}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
-              {/* Platform Status */}
-              <AnimatedCard delay={200}>
-                <Card className="glass-card border-0 shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Headphones className="w-5 h-5 text-primary" />
-                      Platform Status
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      {[
-                        { name: "Spotify", status: "operational" },
-                        { name: "Apple Music", status: "operational" },
-                        { name: "YouTube Music", status: "operational" },
-                        { name: "Amazon Music", status: "operational" }
-                      ].map((platform) => (
-                        <div key={platform.name} className="flex items-center justify-between">
-                          <span className="text-sm font-medium">{platform.name}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="text-xs text-muted-foreground capitalize">{platform.status}</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              </AnimatedCard>
-
-              {/* Help & Support */}
-              <AnimatedCard delay={300}>
-                <Card className="glass-card border-0 shadow-lg border-primary/20 bg-primary/5">
-                  <CardHeader>
-                    <CardTitle className="text-primary">Need Help?</CardTitle>
-                    <CardDescription>
-                      Get support from our team
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start border-primary/20 hover:bg-primary/10"
-                      onClick={() => navigate('/help')}
-                    >
-                      Help Center
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full justify-start border-primary/20 hover:bg-primary/10"
-                      onClick={() => navigate('/contact')}
-                    >
-                      Contact Support
+                    <h3 className="text-lg font-semibold text-foreground mb-2">
+                      No releases yet
+                    </h3>
+                    <p className="text-muted-foreground mb-6">
+                      Start your music distribution journey by submitting your first release.
+                    </p>
+                    <Button asChild size="lg">
+                      <Link to="/release-form" className="flex items-center gap-2">
+                        <Plus className="w-4 h-4" />
+                        Submit Your First Release
+                      </Link>
                     </Button>
                   </CardContent>
                 </Card>
               </AnimatedCard>
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {releases.map((release, index) => (
+                  <AnimatedCard key={release.id} delay={index * 100}>
+                    <ReleaseCard
+                      id={release.id}
+                      title={release.title}
+                      artist={release.artist_name || 'Unknown Artist'}
+                      coverUrl={release.cover_art_url}
+                      status={release.status}
+                      releaseDate={release.release_date}
+                      platforms={release.platforms || []}
+                    />
+                  </AnimatedCard>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
+
+          {/* Navigation Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <AnimatedCard delay={100}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Link to="/analytics">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <TrendingUp className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">Analytics</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Track your performance across all platforms
+                    </p>
+                  </CardContent>
+                </Link>
+              </Card>
+            </AnimatedCard>
+
+            <AnimatedCard delay={200}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Link to="/earnings">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Wallet className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">Earnings</h3>
+                    <p className="text-sm text-muted-foreground">
+                      View your earnings and request withdrawals
+                    </p>
+                  </CardContent>
+                </Link>
+              </Card>
+            </AnimatedCard>
+
+            <AnimatedCard delay={300}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Link to="/team">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Users className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">Team</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Manage team access and permissions
+                    </p>
+                  </CardContent>
+                </Link>
+              </Card>
+            </AnimatedCard>
+
+            <AnimatedCard delay={400}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+                <Link to="/help">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Music className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <h3 className="font-semibold text-foreground mb-2">Help Center</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get support and learn how to use the platform
+                    </p>
+                  </CardContent>
+                </Link>
+              </Card>
+            </AnimatedCard>
+          </div>
+        </section>
       </main>
       
       <Footer />
