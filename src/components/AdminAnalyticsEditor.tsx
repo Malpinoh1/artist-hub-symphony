@@ -44,7 +44,7 @@ const AdminAnalyticsEditor = () => {
       
       if (data) {
         setAnalyticsData({
-          id: 'id' in data ? data.id : undefined,
+          id: data.id,
           spotify_plays: data.spotify_plays || 0, 
           spotify_growth: data.spotify_growth || 0,
           apple_music_plays: data.apple_music_plays || 0, 
@@ -53,7 +53,7 @@ const AdminAnalyticsEditor = () => {
           youtube_music_growth: data.youtube_music_growth || 0,
           deezer_plays: data.deezer_plays || 0, 
           deezer_growth: data.deezer_growth || 0,
-          last_updated: 'last_updated' in data ? data.last_updated : undefined
+          last_updated: data.last_updated
         });
         console.log("Analytics data loaded successfully:", data);
       } else {
