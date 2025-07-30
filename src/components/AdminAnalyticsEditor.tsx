@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, Plus, AlertCircle } from 'lucide-react';
+import { Save, RefreshCw, Plus, AlertCircle, Lock } from 'lucide-react';
 import { useToast } from '../hooks/use-toast';
 import { fetchPlatformAnalytics, updatePlatformAnalytics, initializePlatformAnalytics } from '../services/statisticsService';
+import { supabase } from '../integrations/supabase/client';
 
 // Define the interface for platform analytics data
 interface PlatformAnalyticsData {
@@ -23,6 +24,8 @@ const AdminAnalyticsEditor = () => {
   const [loading, setLoading] = useState(false);
   const [isFetching, setIsFetching] = useState(true);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isWebsiteAdmin, setIsWebsiteAdmin] = useState(false);
+  const [checkingPermissions, setCheckingPermissions] = useState(true);
   const [analyticsData, setAnalyticsData] = useState<PlatformAnalyticsData>({
     spotify_plays: 0,
     spotify_growth: 0,
@@ -44,8 +47,8 @@ const AdminAnalyticsEditor = () => {
       
       if (data) {
         setAnalyticsData({
-          id: data.id,
-          spotify_plays: data.spotify_plays || 0, 
+          id: 'id' in data ? data.id : undefined,
+          spotify_plays: data.spotify_plays || 0,
           spotify_growth: data.spotify_growth || 0,
           apple_music_plays: data.apple_music_plays || 0, 
           apple_music_growth: data.apple_music_growth || 0,
@@ -53,7 +56,7 @@ const AdminAnalyticsEditor = () => {
           youtube_music_growth: data.youtube_music_growth || 0,
           deezer_plays: data.deezer_plays || 0, 
           deezer_growth: data.deezer_growth || 0,
-          last_updated: data.last_updated
+          last_updated: 'last_updated' in data ? data.last_updated : undefined
         });
         console.log("Analytics data loaded successfully:", data);
       } else {
@@ -100,10 +103,38 @@ const AdminAnalyticsEditor = () => {
     }
   };
   
-  // Load data on component mount
+  // Check user permissions and load data on component mount
   useEffect(() => {
-    loadAnalyticsData();
+    checkUserPermissions();
   }, []);
+
+  const checkUserPermissions = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setCheckingPermissions(false);
+        return;
+      }
+
+      // Check if user has admin role
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .single();
+
+      const isAdmin = userRole?.role === 'admin';
+      setIsWebsiteAdmin(isAdmin);
+      
+      if (isAdmin) {
+        await loadAnalyticsData();
+      }
+    } catch (error) {
+      console.error('Error checking user permissions:', error);
+    } finally {
+      setCheckingPermissions(false);
+    }
+  };
   
   const handleInputChange = (field: string, value: string) => {
     setAnalyticsData(prev => ({
@@ -165,13 +196,42 @@ const AdminAnalyticsEditor = () => {
     { id: 'deezer', name: 'Deezer', color: 'text-blue-600', bgColor: 'bg-white dark:bg-slate-800', playsField: 'deezer_plays', growthField: 'deezer_growth' }
   ];
   
+  // Show loading while checking permissions
+  if (checkingPermissions) {
+    return (
+      <div className="glass-panel p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+        <div className="py-20 text-center">
+          <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-500" />
+          <p className="text-slate-600 dark:text-slate-400">Checking permissions...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show access denied if not website admin
+  if (!isWebsiteAdmin) {
+    return (
+      <div className="glass-panel p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
+        <div className="py-20 text-center">
+          <Lock className="w-16 h-16 mx-auto mb-4 text-red-500" />
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white mb-2">Access Restricted</h3>
+          <p className="text-slate-600 dark:text-slate-400">
+            Only website administrators can edit platform analytics.
+            <br />
+            Contact your system administrator for access.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h3 className="text-xl font-semibold dark:text-white">Platform Analytics Management</h3>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Admin control panel for managing streaming analytics data
+            Website admin control panel for managing streaming analytics data
           </p>
         </div>
         <div className="flex gap-2">

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '../integrations/supabase/client';
 import { signOut } from '../services/authService';
 import { useToast } from '../hooks/use-toast';
+import TeamSwitcher from './TeamSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -142,6 +143,9 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
+                {/* Team Switcher */}
+                <TeamSwitcher currentUserId={user.id} />
+
                 {/* User Navigation Dropdown */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

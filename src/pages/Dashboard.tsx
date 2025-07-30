@@ -64,7 +64,10 @@ const Dashboard = () => {
     try {
       const { data, error } = await supabase
         .from('releases')
-        .select('*')
+        .select(`
+          *,
+          artists(name, email)
+        `)
         .eq('artist_id', userId)
         .order('release_date', { ascending: false })
         .limit(6);
@@ -74,7 +77,14 @@ const Dashboard = () => {
         return;
       }
 
-      setReleases(data || []);
+      // Map releases with proper artist name and status
+      const mappedReleases = data?.map(release => ({
+        ...release,
+        artist_name: release.artists?.name || 'Unknown Artist',
+        status: release.status?.toLowerCase() || 'pending'
+      })) || [];
+
+      setReleases(mappedReleases);
     } catch (error) {
       console.error('Error loading releases:', error);
     }
