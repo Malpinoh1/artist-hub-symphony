@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Music, DollarSign, Users, BarChart3, AlertTriangle } from 'lucide-react';
+import { Music, DollarSign, Users, BarChart3, AlertTriangle, CreditCard } from 'lucide-react';
 
 interface AdminNavProps {
   activeTab: string;
@@ -70,6 +70,21 @@ const AdminNav: React.FC<AdminNavProps> = ({ activeTab, takeDownRequestsCount, o
               <div className="flex items-center whitespace-nowrap">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Analytics
+              </div>
+            </button>
+          </li>
+          <li className="mr-2">
+            <button
+              className={`inline-block p-4 border-b-2 rounded-t-lg ${
+                activeTab === 'subscriptions' 
+                  ? 'text-violet-600 dark:text-violet-400 border-violet-600 dark:border-violet-400' 
+                  : 'border-transparent text-gray-600 dark:text-gray-400 hover:text-gray-800 hover:border-gray-300 dark:hover:text-gray-300 dark:hover:border-gray-700'
+              }`}
+              onClick={() => onTabChange('subscriptions')}
+            >
+              <div className="flex items-center whitespace-nowrap">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Subscriptions
               </div>
             </button>
           </li>

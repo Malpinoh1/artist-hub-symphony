@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key } from 'lucide-react';
+import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key, CreditCard, Calendar, CheckCircle, XCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 
@@ -21,12 +23,20 @@ interface UserProfile {
   marketing_emails?: boolean;
 }
 
+interface SubscriptionData {
+  subscribed: boolean;
+  subscription_tier: string | null;
+  subscription_end: string | null;
+}
+
 const Settings = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     username: '',
@@ -39,6 +49,7 @@ const Settings = () => {
 
   useEffect(() => {
     fetchUserProfile();
+    fetchSubscriptionData();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -149,6 +160,46 @@ const Settings = () => {
           dark_mode: false
         });
       }
+    }
+  };
+
+  const fetchSubscriptionData = async () => {
+    try {
+      setLoadingSubscription(true);
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        console.log("No user logged in for subscription check");
+        setLoadingSubscription(false);
+        return;
+      }
+
+      // First try to get from local database
+      const { data: localSub } = await supabase
+        .from('subscribers')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .maybeSingle();
+
+      if (localSub) {
+        setSubscriptionData({
+          subscribed: localSub.subscribed,
+          subscription_tier: localSub.subscription_tier,
+          subscription_end: localSub.subscription_end
+        });
+      } else {
+        // No local data, set default
+        setSubscriptionData({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null
+        });
+      }
+
+      setLoadingSubscription(false);
+    } catch (error) {
+      console.error("Error fetching subscription data:", error);
+      setLoadingSubscription(false);
     }
   };
 
@@ -334,6 +385,73 @@ const Settings = () => {
                     {saving ? 'Saving...' : 'Save Profile'}
                   </Button>
                 </div>
+              </div>
+            </AnimatedCard>
+
+            {/* Subscription Status */}
+            <AnimatedCard>
+              <div className="glass-panel p-6 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
+                    <CreditCard className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Subscription</h2>
+                </div>
+
+                {loadingSubscription ? (
+                  <div className="text-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-purple-500 mx-auto mb-2"></div>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm">Loading subscription...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      {subscriptionData?.subscribed ? (
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600" />
+                      )}
+                      <div>
+                        <p className="font-medium text-slate-900 dark:text-white">
+                          {subscriptionData?.subscribed ? 'Active' : 'Inactive'}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">
+                          Subscription Status
+                        </p>
+                      </div>
+                    </div>
+
+                    {subscriptionData?.subscription_tier && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-slate-700 dark:text-slate-300">Plan:</span>
+                        <Badge variant="secondary">
+                          {subscriptionData.subscription_tier}
+                        </Badge>
+                      </div>
+                    )}
+
+                    {subscriptionData?.subscription_end && (
+                      <div className="flex items-center gap-3">
+                        <Calendar className="w-4 h-4 text-slate-500" />
+                        <div>
+                          <p className="text-sm font-medium text-slate-900 dark:text-white">
+                            Next Billing
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            {new Date(subscriptionData.subscription_end).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        Subscription details are managed by administrators. 
+                        Contact support if you have questions about your subscription.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             </AnimatedCard>
 

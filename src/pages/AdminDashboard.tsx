@@ -6,6 +6,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import { toast } from 'sonner';
 import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
 import TakeDownRequestsTab from '../components/TakeDownRequestsTab';
+import SubscriptionManagement from '../components/admin/SubscriptionManagement';
 import {
   fetchAdminReleases,
   fetchAdminWithdrawals,
@@ -169,6 +170,8 @@ const AdminDashboard = () => {
         );
       case 'analytics':
         return <AdminAnalyticsEditor />;
+      case 'subscriptions':
+        return <SubscriptionManagement />;
       case 'takedown':
         return <TakeDownRequestsTab />;
       case 'marketing':
@@ -184,6 +187,7 @@ const AdminDashboard = () => {
     { id: 'artists', label: 'Artists' },
     { id: 'earnings', label: 'Earnings Summary' },
     { id: 'analytics', label: 'Analytics' },
+    { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'marketing', label: 'Marketing Emails' },
     { 
       id: 'takedown', 
