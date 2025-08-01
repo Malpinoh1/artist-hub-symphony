@@ -26,6 +26,12 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ currentUserId, onAccountSwi
 
   useEffect(() => {
     fetchTeamAccounts();
+    
+    // Check for stored account preference
+    const storedAccountId = localStorage.getItem('currentAccountId');
+    if (storedAccountId && storedAccountId !== currentUserId) {
+      setCurrentAccount(storedAccountId);
+    }
   }, [currentUserId]);
 
   const fetchTeamAccounts = async () => {
@@ -117,8 +123,10 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ currentUserId, onAccountSwi
     );
   }
 
-  // Don't show switcher if user only has access to their own account
-  if (teamAccounts.length === 0) {
+  // Always show switcher if user has team accounts or if they're viewing a different account
+  const shouldShowSwitcher = teamAccounts.length > 0 || currentAccount !== currentUserId;
+  
+  if (!shouldShowSwitcher) {
     return null;
   }
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -52,6 +52,8 @@ const Team = () => {
   const [inviteRole, setInviteRole] = useState<'account_admin' | 'manager' | 'viewer'>('viewer');
   const [submitting, setSubmitting] = useState(false);
   const [manualInviteLink, setManualInviteLink] = useState<string | null>(null);
+  const [directInviteToken, setDirectInviteToken] = useState('');
+  const [processingDirectInvite, setProcessingDirectInvite] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -441,6 +443,64 @@ const Team = () => {
     }
   };
 
+  const handleDirectInviteAcceptance = async () => {
+    if (!directInviteToken.trim()) {
+      toast({
+        title: "Invalid token",
+        description: "Please enter a valid invitation token.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setProcessingDirectInvite(true);
+    try {
+      // Find the invitation by token
+      const { data: invitation, error: fetchError } = await supabase
+        .from('account_invitations')
+        .select('*')
+        .eq('token', directInviteToken.trim())
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (fetchError) {
+        console.error('Error fetching invitation:', fetchError);
+        throw fetchError;
+      }
+
+      if (!invitation) {
+        toast({
+          title: "Invalid invitation",
+          description: "This invitation token is invalid, expired, or has already been used.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Check if invitation is expired
+      if (new Date(invitation.expires_at) < new Date()) {
+        toast({
+          title: "Invitation expired",
+          description: "This invitation has expired. Please ask for a new one.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      await handleAcceptInvitation(invitation);
+      setDirectInviteToken('');
+    } catch (error) {
+      console.error('Error processing direct invitation:', error);
+      toast({
+        title: "Error processing invitation",
+        description: "There was an error processing the invitation. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setProcessingDirectInvite(false);
+    }
+  };
+
   const getRoleBadge = (role: string) => {
     const roleConfig = {
       account_admin: { label: 'Admin', className: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300' },
@@ -482,6 +542,42 @@ const Team = () => {
             <p className="text-muted-foreground text-lg">
               Manage who has access to your music distribution account and control their permissions
             </p>
+          </div>
+
+          {/* Direct Invitation Acceptance */}
+          <div className="mb-8">
+            <AnimatedCard>
+              <Card className="border-blue-200/50 bg-blue-50/30 dark:border-blue-800/30 dark:bg-blue-950/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Link2 className="w-5 h-5 text-blue-600" />
+                    Accept Team Invitation
+                  </CardTitle>
+                  <CardDescription>
+                    Have an invitation token? Enter it here to quickly join a team
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-3">
+                    <Input
+                      placeholder="Paste invitation token here..."
+                      value={directInviteToken}
+                      onChange={(e) => setDirectInviteToken(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button 
+                      onClick={handleDirectInviteAcceptance}
+                      disabled={!directInviteToken.trim() || processingDirectInvite}
+                    >
+                      {processingDirectInvite ? 'Processing...' : 'Accept Invitation'}
+                    </Button>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Or check your email for invitation links sent to you
+                  </p>
+                </CardContent>
+              </Card>
+            </AnimatedCard>
           </div>
 
           {/* My Invitations */}
