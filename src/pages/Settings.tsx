@@ -275,16 +275,35 @@ const Settings = () => {
     }
   };
 
-  const handleChangePassword = () => {
-    toast({
-      title: "Password Reset",
-      description: "A password reset link will be sent to your email.",
-    });
-    
-    // Send password reset email
-    supabase.auth.resetPasswordForEmail(currentUser?.email || '', {
-      redirectTo: `${window.location.origin}/reset-password`
-    });
+  const handleChangePassword = async () => {
+    if (!currentUser?.email) {
+      toast({
+        title: "Error",
+        description: "No email address found for your account.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
+        redirectTo: `${window.location.origin}/reset-password`
+      });
+
+      if (error) throw error;
+
+      toast({
+        title: "Password Reset Email Sent",
+        description: "Check your email for instructions to reset your password.",
+      });
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send password reset email. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEnable2FA = () => {

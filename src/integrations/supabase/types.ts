@@ -321,36 +321,45 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          backup_codes: string[] | null
           bio: string | null
           created_at: string
           email_notifications: boolean | null
           full_name: string
           id: string
           marketing_emails: boolean | null
+          two_factor_enabled: boolean | null
+          two_factor_secret: string | null
           updated_at: string
           username: string
           website: string | null
         }
         Insert: {
           avatar_url?: string | null
+          backup_codes?: string[] | null
           bio?: string | null
           created_at?: string
           email_notifications?: boolean | null
           full_name: string
           id: string
           marketing_emails?: boolean | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string
           username: string
           website?: string | null
         }
         Update: {
           avatar_url?: string | null
+          backup_codes?: string[] | null
           bio?: string | null
           created_at?: string
           email_notifications?: boolean | null
           full_name?: string
           id?: string
           marketing_emails?: boolean | null
+          two_factor_enabled?: boolean | null
+          two_factor_secret?: string | null
           updated_at?: string
           username?: string
           website?: string | null
@@ -541,6 +550,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_sessions: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          ip_address: unknown | null
+          session_token: string
+          two_factor_verified: boolean | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          ip_address?: unknown | null
+          session_token: string
+          two_factor_verified?: boolean | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          ip_address?: unknown | null
+          session_token?: string
+          two_factor_verified?: boolean | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       withdrawals: {
         Row: {
           account_name: string
@@ -608,6 +650,14 @@ export type Database = {
       }
       is_account_admin: {
         Args: { target_account_id: string }
+        Returns: boolean
+      }
+      user_has_active_subscription: {
+        Args: { user_id?: string }
+        Returns: boolean
+      }
+      user_is_admin: {
+        Args: { user_id?: string }
         Returns: boolean
       }
     }
