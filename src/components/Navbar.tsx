@@ -143,8 +143,6 @@ const Navbar = () => {
           <div className="hidden md:flex items-center space-x-4">
             {user ? (
               <>
-                {/* Team Switcher */}
-                <TeamSwitcher currentUserId={user.id} />
 
                 {/* User Navigation Dropdown */}
                 <DropdownMenu>

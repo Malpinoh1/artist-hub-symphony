@@ -3,6 +3,7 @@ import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key, CreditCard,
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
+import InviteNotifications from '../components/InviteNotifications';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -521,6 +522,16 @@ const Settings = () => {
                 </div>
               </div>
             </AnimatedCard>
+
+            {/* Team Invitations */}
+            {currentUser && (
+              <AnimatedCard className="lg:col-span-3">
+                <InviteNotifications 
+                  userEmail={currentUser.email}
+                  onInvitationUpdate={fetchUserProfile}
+                />
+              </AnimatedCard>
+            )}
 
             {/* Security Settings */}
             <AnimatedCard className="lg:col-span-3">
