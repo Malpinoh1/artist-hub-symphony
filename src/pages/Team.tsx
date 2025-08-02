@@ -15,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
-import { sendTeamInvitationEmail } from '../services/emailService';
+
 
 interface TeamMember {
   id: string;
@@ -308,42 +308,14 @@ const Team = () => {
 
       console.log('Invitation created:', data);
 
-      // Create invitation URL
+      // Create invitation URL for manual sharing
       const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${data.token}`;
+      setManualInviteLink(inviteUrl);
 
-      // Send email invitation
-      try {
-        const emailResult = await sendTeamInvitationEmail(
-          inviteEmail.trim().toLowerCase(),
-          user.email || 'Account Owner',
-          inviteRole,
-          inviteUrl
-        );
-
-        if (emailResult.success) {
-          toast({
-            title: "Invitation sent successfully!",
-            description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')} and will receive an email with further instructions.`
-          });
-          setManualInviteLink(null);
-        } else {
-          console.error('Email sending failed:', emailResult.error);
-          setManualInviteLink(inviteUrl);
-          toast({
-            title: "Invitation created but email failed",
-            description: `The invitation was created but the email could not be sent. Please share the invitation link manually.`,
-            variant: "destructive"
-          });
-        }
-      } catch (emailError) {
-        console.error('Email sending failed:', emailError);
-        setManualInviteLink(inviteUrl);
-        toast({
-          title: "Invitation created but email failed",
-          description: `The invitation was created but the email could not be sent. Please share the invitation link manually.`,
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: "Invitation created successfully!",
+        description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')}. Share the invitation link with them to join your team.`
+      });
 
       setInviteEmail('');
       setInviteRole('viewer');
@@ -629,9 +601,16 @@ const Team = () => {
           <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              When you invite someone, they'll receive an email with instructions to accept the invitation. 
-              They'll need to create an account or log in to access your dashboard with the specified permissions.
-              <Button variant="link" className="p-0 ml-2 h-auto" asChild>
+              <div className="space-y-2">
+                <p>
+                  <strong>Team Invitations:</strong> When you invite someone, you'll get a shareable link to send them manually. 
+                  Invited users will also see notifications in their <strong>Settings page</strong> where they can accept or reject invitations.
+                </p>
+                <p className="text-sm">
+                  💡 <strong>Tip:</strong> Invited users should check their Settings page → Team Invitations section to accept invitations.
+                </p>
+              </div>
+              <Button variant="link" className="p-0 mt-2 h-auto" asChild>
                 <a href="/team/guide">Learn more about team management →</a>
               </Button>
             </AlertDescription>
@@ -663,7 +642,7 @@ const Team = () => {
                         <DialogHeader>
                           <DialogTitle>Invite Team Member</DialogTitle>
                           <DialogDescription>
-                            Send an invitation to add a new member to your team. They'll receive an email with instructions.
+                            Create an invitation for a new team member. You'll get a shareable link to send them manually. They can also accept invitations from their Settings page.
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
@@ -692,28 +671,31 @@ const Team = () => {
                           </div>
                           
                           {manualInviteLink && (
-                            <Alert>
-                              <AlertCircle className="h-4 w-4" />
+                            <Alert className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
                               <AlertDescription>
-                                <div className="space-y-2">
-                                  <p className="font-medium">Manual Invitation Link:</p>
-                                  <div className="flex items-center gap-2">
-                                    <Input 
-                                      value={manualInviteLink} 
-                                      readOnly 
-                                      className="text-xs"
-                                    />
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline"
-                                      onClick={() => copyInviteLink(manualInviteLink)}
-                                    >
-                                      <Copy className="w-4 h-4" />
-                                    </Button>
+                                <div className="space-y-3">
+                                  <p className="font-medium text-green-800 dark:text-green-200">Invitation created successfully!</p>
+                                  <div>
+                                    <p className="text-sm text-green-700 dark:text-green-300 mb-2">Share this link with {inviteEmail}:</p>
+                                    <div className="flex items-center gap-2">
+                                      <Input 
+                                        value={manualInviteLink} 
+                                        readOnly 
+                                        className="text-xs bg-white"
+                                      />
+                                      <Button 
+                                        size="sm" 
+                                        variant="outline"
+                                        onClick={() => copyInviteLink(manualInviteLink)}
+                                      >
+                                        <Copy className="w-4 h-4" />
+                                      </Button>
+                                    </div>
                                   </div>
-                                  <p className="text-sm text-muted-foreground">
-                                    Copy this link and send it manually to {inviteEmail}
-                                  </p>
+                                  <div className="text-sm text-green-700 dark:text-green-300">
+                                    <p><strong>Alternative:</strong> {inviteEmail} can also check their <strong>Settings page → Team Invitations</strong> section to accept this invitation.</p>
+                                  </div>
                                 </div>
                               </AlertDescription>
                             </Alert>
@@ -725,7 +707,7 @@ const Team = () => {
                               disabled={submitting || !inviteEmail.trim()}
                               className="flex-1"
                             >
-                              {submitting ? 'Sending Invitation...' : 'Send Invitation'}
+                              {submitting ? 'Creating Invitation...' : 'Create Invitation'}
                             </Button>
                             <Button 
                               variant="outline" 
