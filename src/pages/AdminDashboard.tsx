@@ -20,6 +20,8 @@ import ArtistsTab from '@/components/admin/ArtistsTab';
 import DashboardStats from '@/components/admin/DashboardStats';
 import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
 import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
+import PlatformEarningsTab from '@/components/admin/PlatformEarningsTab';
+import RoyaltyStatementsTab from '@/components/admin/RoyaltyStatementsTab';
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
@@ -176,6 +178,10 @@ const AdminDashboard = () => {
         return <TakeDownRequestsTab />;
       case 'marketing':
         return <MarketingEmailsTab />;
+      case 'platform-earnings':
+        return <PlatformEarningsTab onGenerateStatement={handleRefreshData} />;
+      case 'royalty-statements':
+        return <RoyaltyStatementsTab onStatementUpdate={handleRefreshData} />;
       default:
         return null;
     }
@@ -186,6 +192,8 @@ const AdminDashboard = () => {
     { id: 'withdrawals', label: 'Withdrawals' },
     { id: 'artists', label: 'Artists' },
     { id: 'earnings', label: 'Earnings Summary' },
+    { id: 'platform-earnings', label: 'Platform Earnings' },
+    { id: 'royalty-statements', label: 'Royalty Statements' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'marketing', label: 'Marketing Emails' },

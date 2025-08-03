@@ -318,6 +318,69 @@ export type Database = {
         }
         Relationships: []
       }
+      platform_earnings: {
+        Row: {
+          admin_notes: string | null
+          artist_id: string
+          created_at: string
+          currency: string
+          earnings_amount: number
+          id: string
+          period_end: string
+          period_start: string
+          platform: string
+          release_id: string | null
+          status: string
+          streams: number
+          updated_at: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          artist_id: string
+          created_at?: string
+          currency?: string
+          earnings_amount?: number
+          id?: string
+          period_end: string
+          period_start: string
+          platform: string
+          release_id?: string | null
+          status?: string
+          streams?: number
+          updated_at?: string
+        }
+        Update: {
+          admin_notes?: string | null
+          artist_id?: string
+          created_at?: string
+          currency?: string
+          earnings_amount?: number
+          id?: string
+          period_end?: string
+          period_start?: string
+          platform?: string
+          release_id?: string | null
+          status?: string
+          streams?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "platform_earnings_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "platform_earnings_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -406,6 +469,65 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "releases_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      royalty_statements: {
+        Row: {
+          artist_id: string
+          created_at: string
+          created_by: string | null
+          currency: string
+          generated_at: string
+          id: string
+          pdf_url: string | null
+          period_end: string
+          period_start: string
+          statement_number: string
+          status: string
+          total_earnings: number
+          total_streams: number
+          updated_at: string
+        }
+        Insert: {
+          artist_id: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          generated_at?: string
+          id?: string
+          pdf_url?: string | null
+          period_end: string
+          period_start: string
+          statement_number: string
+          status?: string
+          total_earnings?: number
+          total_streams?: number
+          updated_at?: string
+        }
+        Update: {
+          artist_id?: string
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          generated_at?: string
+          id?: string
+          pdf_url?: string | null
+          period_end?: string
+          period_start?: string
+          statement_number?: string
+          status?: string
+          total_earnings?: number
+          total_streams?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalty_statements_artist_id_fkey"
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"

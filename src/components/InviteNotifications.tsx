@@ -40,7 +40,7 @@ const InviteNotifications: React.FC<InviteNotificationsProps> = ({ userEmail, on
       const { data: inviteData, error } = await supabase
         .from('account_invitations')
         .select('*')
-        .eq('invited_email', userEmail)
+        .eq('invited_email', userEmail.toLowerCase())
         .eq('status', 'pending')
         .gt('expires_at', new Date().toISOString());
 

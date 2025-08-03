@@ -1,12 +1,13 @@
 
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Bookmark, Calendar, FileText, RefreshCw } from 'lucide-react';
 import StatsCards from '../components/earnings/StatsCards';
 import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
+import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { supabase } from '../integrations/supabase/client';
@@ -179,6 +180,10 @@ const Earnings = () => {
                   <Calendar className="w-4 h-4" />
                   Activity
                 </TabsTrigger>
+                <TabsTrigger value="statements" className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Statements
+                </TabsTrigger>
                 <TabsTrigger value="withdraw" className="flex items-center gap-2">
                   <Bookmark className="w-4 h-4" />
                   Withdraw
@@ -211,6 +216,20 @@ const Earnings = () => {
                     withdrawals={earningsSummary.withdrawals}
                   />
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="statements">
+                {artistData?.id ? (
+                  <RoyaltyStatementsSection artistId={artistData.id} />
+                ) : (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <p className="text-muted-foreground">
+                        You need to have an artist profile to view royalty statements.
+                      </p>
+                    </CardContent>
+                  </Card>
+                )}
               </TabsContent>
 
               <TabsContent value="withdraw">
