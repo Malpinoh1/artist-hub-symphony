@@ -112,7 +112,7 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${totalEarnings.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">All time earnings</p>
           </CardContent>
         </Card>
@@ -132,7 +132,7 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{currentMonthEarnings.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${currentMonthEarnings.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Current month earnings</p>
           </CardContent>
         </Card>
@@ -163,7 +163,7 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
                     <div className="text-sm text-muted-foreground">{data.streams.toLocaleString()} streams</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold">₦{data.earnings.toLocaleString()}</div>
+                    <div className="font-bold">${data.earnings.toLocaleString()}</div>
                   </div>
                 </div>
               ))}
@@ -213,7 +213,7 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
                         {statement.total_streams.toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium">
-                        ₦{statement.total_earnings.toLocaleString()}
+                        ${statement.total_earnings.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(statement.status)}

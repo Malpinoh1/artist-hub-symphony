@@ -223,9 +223,9 @@ export async function generateRoyaltyStatement(
         statement_number: statementNumber,
         period_start: periodStart,
         period_end: periodEnd,
-        total_streams: totalStreams,
-        total_earnings: totalEarnings,
-        currency: 'NGN',
+      total_streams: totalStreams,
+      total_earnings: totalEarnings,
+      currency: 'USD',
         status: 'draft'
       })
       .select()

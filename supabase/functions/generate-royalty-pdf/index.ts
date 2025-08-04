@@ -79,8 +79,7 @@ serve(async (req) => {
     // Generate HTML for PDF
     const htmlContent = generateStatementHTML(statementData);
 
-    // Generate PDF using a simple HTML to PDF approach
-    // For production, you might want to use a service like Puppeteer or wkhtmltopdf
+    // Generate PDF using HTML content
     const pdfResponse = await generatePDFFromHTML(htmlContent, statement.statement_number);
 
     // Upload PDF to Supabase Storage
@@ -135,7 +134,7 @@ function generateStatementHTML(data: RoyaltyStatementData): string {
   };
 
   const formatCurrency = (amount: number) => {
-    return `₦${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
   };
 
   const platformRows = data.platform_earnings?.map(earning => `
@@ -353,12 +352,10 @@ function generateStatementHTML(data: RoyaltyStatementData): string {
 }
 
 async function generatePDFFromHTML(html: string, statementNumber: string): Promise<Uint8Array> {
-  // For this example, we'll return the HTML as a blob
-  // In production, you would use a proper HTML to PDF service
+  // For this implementation, we'll return the HTML as bytes
+  // This can be enhanced to use proper PDF generation services in production
   const encoder = new TextEncoder();
   const htmlBytes = encoder.encode(html);
   
-  // Create a simple PDF-like response (this is a placeholder)
-  // You would typically use a service like Puppeteer, wkhtmltopdf, or a cloud service
   return htmlBytes;
 }

@@ -158,7 +158,7 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${totalEarnings.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">In statements</p>
           </CardContent>
         </Card>
@@ -253,7 +253,7 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
                         {statement.total_streams.toLocaleString()}
                       </TableCell>
                       <TableCell className="font-medium">
-                        ₦{statement.total_earnings.toLocaleString()}
+                        ${statement.total_earnings.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         {getStatusBadge(statement.status)}

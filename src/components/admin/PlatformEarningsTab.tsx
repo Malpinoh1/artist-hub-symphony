@@ -45,7 +45,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
     platform: '',
     streams: 0,
     earnings_amount: 0,
-    currency: 'NGN',
+    currency: 'USD',
     period_start: '',
     period_end: '',
     status: 'pending' as 'pending' | 'processed' | 'paid',
@@ -87,7 +87,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
       platform: '',
       streams: 0,
       earnings_amount: 0,
-      currency: 'NGN',
+      currency: 'USD',
       period_start: '',
       period_end: '',
       status: 'pending',
@@ -331,7 +331,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
                   />
                 </div>
                 <div>
-                  <Label htmlFor="earnings">Earnings Amount (₦) *</Label>
+                  <Label htmlFor="earnings">Earnings Amount ($) *</Label>
                   <Input
                     id="earnings"
                     type="number"
@@ -398,7 +398,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₦{totalEarnings.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${totalEarnings.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               From {filteredEarnings.length} records
             </p>
@@ -541,9 +541,9 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
                       <TableCell>
                         {earning.streams.toLocaleString()}
                       </TableCell>
-                      <TableCell className="font-medium">
-                        ₦{earning.earnings_amount.toLocaleString()}
-                      </TableCell>
+                        <TableCell className="font-medium">
+                          ${earning.earnings_amount.toLocaleString()}
+                        </TableCell>
                       <TableCell>
                         {getStatusBadge(earning.status)}
                       </TableCell>
