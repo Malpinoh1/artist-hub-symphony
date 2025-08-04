@@ -12,6 +12,7 @@ import {
   RoyaltyStatement,
   PlatformEarning
 } from '../../services/platformEarningsService';
+import { supabase } from '../../integrations/supabase/client';
 
 interface RoyaltyStatementsSectionProps {
   artistId: string;
@@ -63,6 +64,58 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
       title: "Download Started",
       description: "Your royalty statement is being downloaded."
     });
+  };
+
+  const generateAndDownloadPDF = async (statement: RoyaltyStatement) => {
+    try {
+      toast({
+        title: "Generating PDF",
+        description: "Creating your royalty statement PDF..."
+      });
+
+      // Call the edge function to generate PDF
+      const { data, error } = await supabase.functions.invoke('generate-royalty-pdf', {
+        body: {
+          statementId: statement.id,
+          artistId: statement.artist_id,
+          statementNumber: statement.statement_number,
+          periodStart: statement.period_start,
+          periodEnd: statement.period_end,
+          totalStreams: statement.total_streams,
+          totalEarnings: statement.total_earnings
+        }
+      });
+
+      if (error) {
+        console.error('Error generating PDF:', error);
+        toast({
+          title: "Error",
+          description: "Failed to generate PDF. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (data?.pdfUrl) {
+        // Update the statement with the new PDF URL
+        await loadData(); // Refresh the data
+        
+        // Download the PDF
+        downloadStatement(data.pdfUrl, statement.statement_number);
+        
+        toast({
+          title: "PDF Generated",
+          description: "Your royalty statement PDF has been generated and downloaded."
+        });
+      }
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -229,6 +282,15 @@ const RoyaltyStatementsSection: React.FC<RoyaltyStatementsSectionProps> = ({ art
                           >
                             <Download className="w-4 h-4 mr-2" />
                             Download
+                          </Button>
+                        ) : statement.status === 'finalized' || statement.status === 'sent' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => generateAndDownloadPDF(statement)}
+                          >
+                            <Download className="w-4 h-4 mr-2" />
+                            Generate PDF
                           </Button>
                         ) : (
                           <Badge variant="outline">Processing</Badge>

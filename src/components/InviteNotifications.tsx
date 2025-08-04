@@ -37,6 +37,8 @@ const InviteNotifications: React.FC<InviteNotificationsProps> = ({ userEmail, on
 
   const fetchInvitations = async () => {
     try {
+      console.log('Fetching invitations for email:', userEmail);
+      
       const { data: inviteData, error } = await supabase
         .from('account_invitations')
         .select('*')
@@ -49,23 +51,50 @@ const InviteNotifications: React.FC<InviteNotificationsProps> = ({ userEmail, on
         return;
       }
 
+      console.log('Found invitations:', inviteData);
+
       // Get owner details for each invitation
       const invitationsWithOwnerDetails: Invitation[] = [];
       
       for (const invite of inviteData || []) {
+        // Try to get artist data first
+        let ownerData = null;
+        
         const { data: artistData } = await supabase
           .from('artists')
           .select('name, email')
           .eq('id', invite.account_owner_id)
-          .single();
+          .maybeSingle();
+
+        if (artistData) {
+          ownerData = {
+            name: artistData.name,
+            email: artistData.email
+          };
+        } else {
+          // If no artist found, try to get profile data
+          const { data: profileData } = await supabase
+            .from('profiles')
+            .select('full_name, username')
+            .eq('id', invite.account_owner_id)
+            .maybeSingle();
+
+          if (profileData) {
+            ownerData = {
+              name: profileData.full_name || profileData.username,
+              email: 'profile@example.com' // Placeholder as we don't have email in profiles
+            };
+          }
+        }
 
         invitationsWithOwnerDetails.push({
           ...invite,
-          owner_name: artistData?.name || 'Unknown',
-          owner_email: artistData?.email || 'unknown@example.com'
+          owner_name: ownerData?.name || 'Unknown User',
+          owner_email: ownerData?.email || 'unknown@example.com'
         });
       }
 
+      console.log('Invitations with owner details:', invitationsWithOwnerDetails);
       setInvitations(invitationsWithOwnerDetails);
     } catch (error) {
       console.error('Error fetching invitations:', error);
