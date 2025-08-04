@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import {
   fetchAllRoyaltyStatements,
   updateRoyaltyStatement,
+  markRoyaltyStatementAsPaid,
   RoyaltyStatement
 } from '../../services/platformEarningsService';
 
@@ -60,6 +61,25 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
       toast({
         title: "Error",
         description: "Failed to update statement status.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleMarkAsPaid = async (id: string) => {
+    try {
+      await markRoyaltyStatementAsPaid(id);
+      toast({
+        title: "Success",
+        description: "Statement marked as paid and status updated to sent."
+      });
+      await loadStatements();
+      onStatementUpdate?.();
+    } catch (error) {
+      console.error('Error marking statement as paid:', error);
+      toast({
+        title: "Error",
+        description: "Failed to mark statement as paid.",
         variant: "destructive"
       });
     }
@@ -291,11 +311,31 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
                           )}
                           
                           {statement.status === 'finalized' && (
+                            <>
+                              <Button
+                                size="sm"
+                                onClick={() => handleStatusUpdate(statement.id, 'sent')}
+                              >
+                                <Send className="w-4 h-4" />
+                                Mark Sent
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleMarkAsPaid(statement.id)}
+                              >
+                                Mark Paid
+                              </Button>
+                            </>
+                          )}
+                          
+                          {statement.status === 'draft' && (
                             <Button
                               size="sm"
-                              onClick={() => handleStatusUpdate(statement.id, 'sent')}
+                              variant="outline"
+                              onClick={() => handleMarkAsPaid(statement.id)}
                             >
-                              <Send className="w-4 h-4" />
+                              Mark Paid
                             </Button>
                           )}
                         </div>

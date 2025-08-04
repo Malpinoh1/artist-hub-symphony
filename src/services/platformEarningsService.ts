@@ -255,3 +255,46 @@ export async function updateRoyaltyStatement(id: string, updates: Partial<Royalt
     throw error;
   }
 }
+
+export async function markRoyaltyStatementAsPaid(id: string): Promise<RoyaltyStatement> {
+  try {
+    // First get the current statement to preserve existing data
+    const { data: currentStatement, error: fetchError } = await supabase
+      .from('royalty_statements')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const { data, error } = await supabase
+      .from('royalty_statements')
+      .update({ 
+        status: 'sent',
+        pdf_url: currentStatement.pdf_url // Keep existing PDF URL if any
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) throw error;
+    return { ...data, status: data.status as 'draft' | 'finalized' | 'sent' };
+  } catch (error) {
+    console.error('Error marking royalty statement as paid:', error);
+    throw error;
+  }
+}
+
+export async function markMultipleRoyaltyStatementsAsPaid(ids: string[]): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('royalty_statements')
+      .update({ status: 'sent' })
+      .in('id', ids);
+
+    if (error) throw error;
+  } catch (error) {
+    console.error('Error marking multiple royalty statements as paid:', error);
+    throw error;
+  }
+}
