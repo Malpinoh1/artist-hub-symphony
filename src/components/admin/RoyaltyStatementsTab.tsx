@@ -113,7 +113,7 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
   };
 
   const filteredStatements = statements.filter(statement => {
-    const matchesStatus = !selectedStatus || statement.status === selectedStatus;
+    const matchesStatus = !selectedStatus || selectedStatus === 'all' || statement.status === selectedStatus;
     const matchesArtist = !selectedArtist || statement.artist_name?.includes(selectedArtist);
     return matchesStatus && matchesArtist;
   });
@@ -188,7 +188,7 @@ const RoyaltyStatementsTab: React.FC<RoyaltyStatementsTabProps> = ({ onStatement
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="draft">Draft</SelectItem>
                   <SelectItem value="finalized">Finalized</SelectItem>
                   <SelectItem value="sent">Sent</SelectItem>

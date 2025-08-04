@@ -310,7 +310,7 @@ const SubscriptionManagement = () => {
                                     <SelectValue placeholder="Select tier" />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="">None</SelectItem>
+                                    <SelectItem value="none">None</SelectItem>
                                     <SelectItem value="Basic">Basic</SelectItem>
                                     <SelectItem value="Premium">Premium</SelectItem>
                                     <SelectItem value="Enterprise">Enterprise</SelectItem>

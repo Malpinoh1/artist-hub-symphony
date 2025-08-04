@@ -101,13 +101,19 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
     
     try {
       if (editingEarning) {
-        await updatePlatformEarning(editingEarning.id, formData);
+        await updatePlatformEarning(editingEarning.id, {
+          ...formData,
+          release_id: formData.release_id === 'none' ? null : formData.release_id
+        });
         toast({
           title: "Success",
           description: "Platform earning updated successfully."
         });
       } else {
-        await createPlatformEarning(formData);
+        await createPlatformEarning({
+          ...formData,
+          release_id: formData.release_id === 'none' ? null : formData.release_id
+        });
         toast({
           title: "Success",
           description: "Platform earning created successfully."
@@ -131,7 +137,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
     setEditingEarning(earning);
     setFormData({
       artist_id: earning.artist_id,
-      release_id: earning.release_id || '',
+      release_id: earning.release_id || 'none',
       platform: earning.platform,
       streams: earning.streams,
       earnings_amount: earning.earnings_amount,
@@ -207,8 +213,8 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
     const matchesSearch = !searchTerm || 
       earning.artist_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       earning.release_title?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesPlatform = !selectedPlatform || earning.platform === selectedPlatform;
-    const matchesStatus = !selectedStatus || earning.status === selectedStatus;
+    const matchesPlatform = !selectedPlatform || selectedPlatform === 'all' || earning.platform === selectedPlatform;
+    const matchesStatus = !selectedStatus || selectedStatus === 'all' || earning.status === selectedStatus;
     
     return matchesSearch && matchesPlatform && matchesStatus;
   });
@@ -270,7 +276,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
                       <SelectValue placeholder="Select release" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No specific release</SelectItem>
+                      <SelectItem value="none">No specific release</SelectItem>
                       {releases.filter(r => r.artist_id === formData.artist_id).map(release => (
                         <SelectItem key={release.id} value={release.id}>
                           {release.title}
@@ -451,7 +457,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
                   <SelectValue placeholder="All platforms" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All platforms</SelectItem>
+                  <SelectItem value="all">All platforms</SelectItem>
                   {PLATFORMS.map(platform => (
                     <SelectItem key={platform} value={platform}>
                       {platform}
@@ -467,7 +473,7 @@ const PlatformEarningsTab: React.FC<PlatformEarningsTabProps> = ({ onGenerateSta
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All statuses</SelectItem>
+                  <SelectItem value="all">All statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
                   <SelectItem value="processed">Processed</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
