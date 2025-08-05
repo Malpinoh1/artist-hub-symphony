@@ -352,40 +352,23 @@ function generateStatementHTML(data: RoyaltyStatementData): string {
 }
 
 async function generatePDFFromHTML(html: string, statementNumber: string): Promise<Uint8Array> {
-  try {
-    // Use an HTML-to-PDF service API (htmlcsstoimage.com, puppeteer-as-a-service, etc.)
-    // For now, we'll use a simple fetch to a PDF generation service
-    const response = await fetch('https://api.htmlcsstoimage.com/v1/image', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Note: In production, you'd want to use proper authentication
-      },
-      body: JSON.stringify({
-        html: html,
-        css: '',
-        width: 800,
-        height: 1200,
-        format: 'pdf',
-        quality: 100
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`PDF generation failed: ${response.statusText}`);
-    }
-
-    const pdfBuffer = await response.arrayBuffer();
-    return new Uint8Array(pdfBuffer);
-  } catch (error) {
-    console.error('Error generating PDF from HTML:', error);
-    // Fallback: generate a simple PDF-like structure
-    return generateFallbackPDF(html);
-  }
+  // Generate a proper PDF with the royalty statement content
+  return generateProperPDF(html, statementNumber);
 }
 
-function generateFallbackPDF(html: string): Uint8Array {
-  // Simple PDF header and content structure
+function generateProperPDF(html: string, statementNumber: string): Uint8Array {
+  // Extract data from HTML (simplified approach)
+  const extractText = (pattern: RegExp) => {
+    const match = html.match(pattern);
+    return match ? match[1].replace(/<[^>]*>/g, '').trim() : '';
+  };
+
+  const artistName = extractText(/<div style="font-size: 18px; font-weight: 600; margin-bottom: 5px;">(.*?)<\/div>/);
+  const period = extractText(/<div style="font-size: 16px; font-weight: 600;">\s*(.*?)\s*<\/div>/);
+  const totalStreams = extractText(/Total Streams<\/h3>\s*<div class="value">(.*?)<\/div>/);
+  const totalEarnings = extractText(/Total Earnings<\/h3>\s*<div class="value">(.*?)<\/div>/);
+
+  // Create a proper PDF structure with the actual data
   const pdfContent = `%PDF-1.4
 1 0 obj
 <<
@@ -408,36 +391,87 @@ endobj
 /Parent 2 0 R
 /MediaBox [0 0 612 792]
 /Contents 4 0 R
+/Resources <<
+  /Font <<
+    /F1 5 0 R
+    /F2 6 0 R
+  >>
+>>
 >>
 endobj
 
 4 0 obj
 <<
-/Length ${html.length}
+/Length 1200
 >>
 stream
 BT
-/F1 12 Tf
+/F2 24 Tf
 50 750 Td
-(Royalty Statement - Please contact support for proper PDF generation) Tj
+(MALPINOHdistro) Tj
+0 -40 Td
+/F1 18 Tf
+(Royalty Statement #${statementNumber}) Tj
+0 -60 Td
+/F2 16 Tf
+(Artist: ${artistName}) Tj
+0 -30 Td
+/F1 14 Tf
+(Period: ${period}) Tj
+0 -50 Td
+/F2 14 Tf
+(SUMMARY) Tj
+0 -25 Td
+/F1 12 Tf
+(Total Streams: ${totalStreams}) Tj
+0 -20 Td
+(Total Earnings: ${totalEarnings}) Tj
+0 -40 Td
+/F2 14 Tf
+(Platform Breakdown) Tj
+0 -25 Td
+/F1 12 Tf
+(See detailed breakdown in your dashboard) Tj
+0 -40 Td
+(This statement was generated automatically) Tj
+0 -20 Td
+(For questions, please contact support) Tj
 ET
 endstream
 endobj
 
+5 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica
+>>
+endobj
+
+6 0 obj
+<<
+/Type /Font
+/Subtype /Type1
+/BaseFont /Helvetica-Bold
+>>
+endobj
+
 xref
-0 5
+0 7
 0000000000 65535 f 
 0000000009 00000 n 
-0000000074 00000 n 
-0000000120 00000 n 
-0000000179 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000251 00000 n 
+0000001502 00000 n 
+0000001567 00000 n 
 trailer
 <<
-/Size 5
+/Size 7
 /Root 1 0 R
 >>
 startxref
-${300 + html.length}
+1637
 %%EOF`;
 
   const encoder = new TextEncoder();
