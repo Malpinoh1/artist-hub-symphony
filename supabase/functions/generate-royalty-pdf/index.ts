@@ -445,133 +445,109 @@ endobj
 
 4 0 obj
 <<
-/Length 1200
+/Length ${2000 + platformBreakdown.length}
 >>
 stream
 BT
-% Header Section with Logo placeholder and company info
-/F2 28 Tf
+% Header with MALPINOHdistro branding
+/F2 24 Tf
 0.2 0.4 0.9 rg
 50 750 Td
-(MALPINOH) Tj
-/F1 28 Tf
-(distro) Tj
+(MALPINOHdistro) Tj
 
-% Reset color to black
+% Reset to black
 0 0 0 rg
-
-% Statement title and number
-/F2 20 Tf
-50 700 Td
+/F2 18 Tf
+0 -30 Td
 (ROYALTY STATEMENT) Tj
 
-/F1 16 Tf
-400 700 Td
+/F1 14 Tf
+350 750 Td
 (Statement #${statementNumber}) Tj
-
-% Date
-/F1 12 Tf
-400 680 Td
+0 -20 Td
 (Generated: ${currentDate}) Tj
 
-% Artist Information Section
+% Artist Information
 /F2 16 Tf
-50 640 Td
+50 680 Td
 (ARTIST INFORMATION) Tj
-
-/F1 14 Tf
-50 615 Td
+/F1 12 Tf
+0 -25 Td
 (Artist: ${artistName || 'N/A'}) Tj
 
 % Period Information
 /F2 16 Tf
-50 580 Td
+50 630 Td
 (REPORTING PERIOD) Tj
-
-/F1 14 Tf
-50 555 Td
+/F1 12 Tf
+0 -25 Td
 (Period: ${period || 'N/A'}) Tj
 
-% Summary Section with better formatting
+% Summary Section
 /F2 16 Tf
-50 510 Td
+50 570 Td
 (EARNINGS SUMMARY) Tj
 
-% Draw a line under summary
-0.8 0.8 0.8 RG
-1 w
-50 500 500 0 re
-S
-
-% Reset color
-0 0 0 rg
-
+% Summary boxes
 /F1 12 Tf
-50 475 Td
+50 540 Td
 (Total Streams: ${totalStreams || '0'}) Tj
-
-200 475 Td
+200 540 Td
 (Total Earnings: ${totalEarnings || '$0.00'}) Tj
-
-350 475 Td
+350 540 Td
 (Currency: ${currency || 'USD'}) Tj
-
-450 475 Td
+450 540 Td
 (Platforms: ${platformCount || '0'}) Tj
 
-% Platform Breakdown Section
+% Platform Breakdown
 /F2 16 Tf
-50 440 Td
-(DETAILED PLATFORM BREAKDOWN) Tj
+50 480 Td
+(PLATFORM BREAKDOWN) Tj
 
-% Platform table headers
-0.2 0.4 0.9 rg
-50 415 150 20 re
-f
-210 415 100 20 re
-f
-320 415 100 20 re
+% Table headers
+0.9 0.9 0.9 rg
+50 450 500 20 re
 f
 
-% Header text
-1 1 1 rg
-/F2 10 Tf
-55 420 Td
+% Header text in black
+0 0 0 rg
+/F2 11 Tf
+55 455 Td
 (PLATFORM) Tj
-215 420 Td
+200 455 Td
 (STREAMS) Tj
-325 420 Td
+350 455 Td
 (EARNINGS) Tj
 
-% Reset color for platform data
-0 0 0 rg
+% Platform data
+/F1 10 Tf
 ${platformBreakdown}
 
-% Important Notes Section
+% Footer section
 /F2 14 Tf
 50 150 Td
 (IMPORTANT INFORMATION) Tj
 
 /F1 10 Tf
-50 130 Td
+50 125 Td
 (• This statement covers the reporting period specified above) Tj
-0 -15 Td
+50 110 Td
 (• Earnings are calculated based on streaming platform reports) Tj
-0 -15 Td
+50 95 Td
 (• Payment processing may take 3-5 business days) Tj
-0 -15 Td
+50 80 Td
 (• For questions about this statement, contact our support team) Tj
 
-% Footer with website
-/F1 8 Tf
+% Website footer
+/F1 9 Tf
 0.5 0.5 0.5 rg
-250 40 Td
+220 40 Td
 (www.malpinohdistro.com.ng) Tj
 
-% Company footer
+% Company name
 0 0 0 rg
-/F2 10 Tf
-200 20 Td
+/F2 11 Tf
+180 20 Td
 (MALPINOHdistro - Digital Music Distribution) Tj
 ET
 endstream
@@ -600,15 +576,15 @@ xref
 0000000058 00000 n 
 0000000115 00000 n 
 0000000251 00000 n 
-0000001502 00000 n 
-0000001567 00000 n 
+0000002400 00000 n 
+0000002465 00000 n 
 trailer
 <<
 /Size 7
 /Root 1 0 R
 >>
 startxref
-1637
+2535
 %%EOF`;
 
   const encoder = new TextEncoder();
