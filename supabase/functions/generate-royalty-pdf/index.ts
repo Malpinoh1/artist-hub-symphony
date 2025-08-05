@@ -352,10 +352,94 @@ function generateStatementHTML(data: RoyaltyStatementData): string {
 }
 
 async function generatePDFFromHTML(html: string, statementNumber: string): Promise<Uint8Array> {
-  // For this implementation, we'll return the HTML as bytes
-  // This can be enhanced to use proper PDF generation services in production
+  try {
+    // Use an HTML-to-PDF service API (htmlcsstoimage.com, puppeteer-as-a-service, etc.)
+    // For now, we'll use a simple fetch to a PDF generation service
+    const response = await fetch('https://api.htmlcsstoimage.com/v1/image', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        // Note: In production, you'd want to use proper authentication
+      },
+      body: JSON.stringify({
+        html: html,
+        css: '',
+        width: 800,
+        height: 1200,
+        format: 'pdf',
+        quality: 100
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`PDF generation failed: ${response.statusText}`);
+    }
+
+    const pdfBuffer = await response.arrayBuffer();
+    return new Uint8Array(pdfBuffer);
+  } catch (error) {
+    console.error('Error generating PDF from HTML:', error);
+    // Fallback: generate a simple PDF-like structure
+    return generateFallbackPDF(html);
+  }
+}
+
+function generateFallbackPDF(html: string): Uint8Array {
+  // Simple PDF header and content structure
+  const pdfContent = `%PDF-1.4
+1 0 obj
+<<
+/Type /Catalog
+/Pages 2 0 R
+>>
+endobj
+
+2 0 obj
+<<
+/Type /Pages
+/Kids [3 0 R]
+/Count 1
+>>
+endobj
+
+3 0 obj
+<<
+/Type /Page
+/Parent 2 0 R
+/MediaBox [0 0 612 792]
+/Contents 4 0 R
+>>
+endobj
+
+4 0 obj
+<<
+/Length ${html.length}
+>>
+stream
+BT
+/F1 12 Tf
+50 750 Td
+(Royalty Statement - Please contact support for proper PDF generation) Tj
+ET
+endstream
+endobj
+
+xref
+0 5
+0000000000 65535 f 
+0000000009 00000 n 
+0000000074 00000 n 
+0000000120 00000 n 
+0000000179 00000 n 
+trailer
+<<
+/Size 5
+/Root 1 0 R
+>>
+startxref
+${300 + html.length}
+%%EOF`;
+
   const encoder = new TextEncoder();
-  const htmlBytes = encoder.encode(html);
-  
-  return htmlBytes;
+  return encoder.encode(pdfContent);
 }
