@@ -368,6 +368,27 @@ function generateProperPDF(html: string, statementNumber: string): Uint8Array {
   const totalStreams = extractText(/Total Streams<\/h3>\s*<div class="value">(.*?)<\/div>/);
   const totalEarnings = extractText(/Total Earnings<\/h3>\s*<div class="value">(.*?)<\/div>/);
 
+  // Extract platform breakdown data from HTML
+  const platformData: Array<{platform: string, streams: string, earnings: string}> = [];
+  const platformRowsRegex = /<tr>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<td[^>]*>([^<]+)<\/td>\s*<\/tr>/g;
+  let match;
+  while ((match = platformRowsRegex.exec(html)) !== null) {
+    if (!match[1].includes('TOTAL')) {
+      platformData.push({
+        platform: match[1].trim(),
+        streams: match[2].trim(),
+        earnings: match[3].trim()
+      });
+    }
+  }
+
+  // Create platform breakdown text for PDF
+  let platformBreakdown = '';
+  let yPosition = 280;
+  platformData.forEach((platform, index) => {
+    platformBreakdown += `/F1 10 Tf\n${50 + (index % 3) * 180} ${yPosition - Math.floor(index / 3) * 60} Td\n(${platform.platform}: ${platform.streams} streams) Tj\n0 -15 Td\n(Earnings: ${platform.earnings}) Tj\n`;
+  });
+
   // Create a proper PDF structure with the actual data
   const pdfContent = `%PDF-1.4
 1 0 obj
@@ -430,12 +451,16 @@ BT
 /F2 14 Tf
 (Platform Breakdown) Tj
 0 -25 Td
-/F1 12 Tf
-(See detailed breakdown in your dashboard) Tj
+${platformBreakdown}
 0 -40 Td
+/F1 10 Tf
 (This statement was generated automatically) Tj
 0 -20 Td
 (For questions, please contact support) Tj
+0 -40 Td
+/F1 8 Tf
+306 50 Td
+(www.malpinohdistro.com.ng) Tj
 ET
 endstream
 endobj
