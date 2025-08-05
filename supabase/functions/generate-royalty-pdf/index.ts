@@ -367,6 +367,8 @@ function generateProperPDF(html: string, statementNumber: string): Uint8Array {
   const period = extractText(/<div style="font-size: 16px; font-weight: 600;">\s*(.*?)\s*<\/div>/);
   const totalStreams = extractText(/Total Streams<\/h3>\s*<div class="value">(.*?)<\/div>/);
   const totalEarnings = extractText(/Total Earnings<\/h3>\s*<div class="value">(.*?)<\/div>/);
+  const currency = extractText(/Currency<\/h3>\s*<div class="value">(.*?)<\/div>/);
+  const platformCount = extractText(/Platforms<\/h3>\s*<div class="value">(.*?)<\/div>/);
 
   // Extract platform breakdown data from HTML
   const platformData: Array<{platform: string, streams: string, earnings: string}> = [];
@@ -382,14 +384,34 @@ function generateProperPDF(html: string, statementNumber: string): Uint8Array {
     }
   }
 
-  // Create platform breakdown text for PDF
+  // Create detailed platform breakdown for PDF
   let platformBreakdown = '';
-  let yPosition = 280;
-  platformData.forEach((platform, index) => {
-    platformBreakdown += `/F1 10 Tf\n${50 + (index % 3) * 180} ${yPosition - Math.floor(index / 3) * 60} Td\n(${platform.platform}: ${platform.streams} streams) Tj\n0 -15 Td\n(Earnings: ${platform.earnings}) Tj\n`;
+  let yPos = 320;
+  
+  if (platformData.length > 0) {
+    platformData.forEach((platform, index) => {
+      const yOffset = yPos - (index * 25);
+      platformBreakdown += `/F1 11 Tf\n50 ${yOffset} Td\n(${platform.platform}) Tj\n`;
+      platformBreakdown += `250 ${yOffset} Td\n(${platform.streams}) Tj\n`;
+      platformBreakdown += `400 ${yOffset} Td\n(${platform.earnings}) Tj\n`;
+    });
+    
+    // Add total line
+    const totalYPos = yPos - (platformData.length * 25) - 20;
+    platformBreakdown += `/F2 12 Tf\n50 ${totalYPos} Td\n(TOTAL) Tj\n`;
+    platformBreakdown += `250 ${totalYPos} Td\n(${totalStreams}) Tj\n`;
+    platformBreakdown += `400 ${totalYPos} Td\n(${totalEarnings}) Tj\n`;
+  } else {
+    platformBreakdown += `/F1 11 Tf\n50 ${yPos} Td\n(No platform data available for this period) Tj\n`;
+  }
+
+  // Create a comprehensive PDF structure
+  const currentDate = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
   });
 
-  // Create a proper PDF structure with the actual data
   const pdfContent = `%PDF-1.4
 1 0 obj
 <<
@@ -427,40 +449,130 @@ endobj
 >>
 stream
 BT
-/F2 24 Tf
+% Header Section with Logo placeholder and company info
+/F2 28 Tf
+0.2 0.4 0.9 rg
 50 750 Td
-(MALPINOHdistro) Tj
-0 -40 Td
-/F1 18 Tf
-(Royalty Statement #${statementNumber}) Tj
-0 -60 Td
-/F2 16 Tf
-(Artist: ${artistName}) Tj
-0 -30 Td
-/F1 14 Tf
-(Period: ${period}) Tj
-0 -50 Td
-/F2 14 Tf
-(SUMMARY) Tj
-0 -25 Td
+(MALPINOH) Tj
+/F1 28 Tf
+(distro) Tj
+
+% Reset color to black
+0 0 0 rg
+
+% Statement title and number
+/F2 20 Tf
+50 700 Td
+(ROYALTY STATEMENT) Tj
+
+/F1 16 Tf
+400 700 Td
+(Statement #${statementNumber}) Tj
+
+% Date
 /F1 12 Tf
-(Total Streams: ${totalStreams}) Tj
-0 -20 Td
-(Total Earnings: ${totalEarnings}) Tj
-0 -40 Td
-/F2 14 Tf
-(Platform Breakdown) Tj
-0 -25 Td
+400 680 Td
+(Generated: ${currentDate}) Tj
+
+% Artist Information Section
+/F2 16 Tf
+50 640 Td
+(ARTIST INFORMATION) Tj
+
+/F1 14 Tf
+50 615 Td
+(Artist: ${artistName || 'N/A'}) Tj
+
+% Period Information
+/F2 16 Tf
+50 580 Td
+(REPORTING PERIOD) Tj
+
+/F1 14 Tf
+50 555 Td
+(Period: ${period || 'N/A'}) Tj
+
+% Summary Section with better formatting
+/F2 16 Tf
+50 510 Td
+(EARNINGS SUMMARY) Tj
+
+% Draw a line under summary
+0.8 0.8 0.8 RG
+1 w
+50 500 500 0 re
+S
+
+% Reset color
+0 0 0 rg
+
+/F1 12 Tf
+50 475 Td
+(Total Streams: ${totalStreams || '0'}) Tj
+
+200 475 Td
+(Total Earnings: ${totalEarnings || '$0.00'}) Tj
+
+350 475 Td
+(Currency: ${currency || 'USD'}) Tj
+
+450 475 Td
+(Platforms: ${platformCount || '0'}) Tj
+
+% Platform Breakdown Section
+/F2 16 Tf
+50 440 Td
+(DETAILED PLATFORM BREAKDOWN) Tj
+
+% Platform table headers
+0.2 0.4 0.9 rg
+50 415 150 20 re
+f
+210 415 100 20 re
+f
+320 415 100 20 re
+f
+
+% Header text
+1 1 1 rg
+/F2 10 Tf
+55 420 Td
+(PLATFORM) Tj
+215 420 Td
+(STREAMS) Tj
+325 420 Td
+(EARNINGS) Tj
+
+% Reset color for platform data
+0 0 0 rg
 ${platformBreakdown}
-0 -40 Td
+
+% Important Notes Section
+/F2 14 Tf
+50 150 Td
+(IMPORTANT INFORMATION) Tj
+
 /F1 10 Tf
-(This statement was generated automatically) Tj
-0 -20 Td
-(For questions, please contact support) Tj
-0 -40 Td
+50 130 Td
+(• This statement covers the reporting period specified above) Tj
+0 -15 Td
+(• Earnings are calculated based on streaming platform reports) Tj
+0 -15 Td
+(• Payment processing may take 3-5 business days) Tj
+0 -15 Td
+(• For questions about this statement, contact our support team) Tj
+
+% Footer with website
 /F1 8 Tf
-306 50 Td
+0.5 0.5 0.5 rg
+250 40 Td
 (www.malpinohdistro.com.ng) Tj
+
+% Company footer
+0 0 0 rg
+/F2 10 Tf
+200 20 Td
+(MALPINOHdistro - Digital Music Distribution) Tj
 ET
 endstream
 endobj
