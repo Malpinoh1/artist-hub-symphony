@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronDown, Users, Building } from 'lucide-react';
+import { ChevronDown, Users, Building, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
@@ -55,18 +55,26 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ currentUserId, onAccountSwi
       
       if (data) {
         for (const access of data) {
-          const { data: artistData } = await supabase
-            .from('artists')
-            .select('name, email')
-            .eq('id', access.account_owner_id)
-            .single();
+          try {
+            const { data: artistData, error: artistError } = await supabase
+              .from('artists')
+              .select('name, email')
+              .eq('id', access.account_owner_id)
+              .single();
 
-          accounts.push({
-            account_owner_id: access.account_owner_id,
-            role: access.role,
-            owner_name: artistData?.name || 'Unknown',
-            owner_email: artistData?.email || 'unknown@example.com'
-          });
+            if (artistError) {
+              console.warn('Could not fetch artist data for:', access.account_owner_id);
+            }
+
+            accounts.push({
+              account_owner_id: access.account_owner_id,
+              role: access.role,
+              owner_name: artistData?.name || `User ${access.account_owner_id.slice(0, 8)}`,
+              owner_email: artistData?.email || 'unknown@example.com'
+            });
+          } catch (error) {
+            console.error('Error processing team account:', error);
+          }
         }
       }
 
@@ -85,9 +93,14 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ currentUserId, onAccountSwi
     // Store current account in localStorage for persistence
     localStorage.setItem('currentAccountId', accountId);
     
+    const isPersonalAccount = accountId === currentUserId;
+    const accountName = isPersonalAccount 
+      ? 'your personal account' 
+      : teamAccounts.find(acc => acc.account_owner_id === accountId)?.owner_name || 'team account';
+    
     toast({
       title: "Account switched",
-      description: `Now viewing ${accountId === currentUserId ? 'your account' : 'team account'}`
+      description: `Now viewing ${accountName}`
     });
 
     // Reload the page to refresh all data with new account context
@@ -133,45 +146,71 @@ const TeamSwitcher: React.FC<TeamSwitcherProps> = ({ currentUserId, onAccountSwi
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="flex items-center gap-2">
-          <Building className="w-4 h-4" />
-          <span className="hidden sm:inline">{getCurrentAccountName()}</span>
-          <ChevronDown className="w-4 h-4" />
+        <Button variant="ghost" size="sm" className="flex items-center gap-2 max-w-[200px]">
+          <Building className="w-4 h-4 flex-shrink-0" />
+          <span className="hidden sm:inline truncate">{getCurrentAccountName()}</span>
+          <ChevronDown className="w-4 h-4 flex-shrink-0" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-64">
+      <DropdownMenuContent align="end" className="w-72">
+        <div className="flex items-center justify-between p-2 border-b">
+          <span className="text-sm font-medium text-muted-foreground">Switch Account</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={fetchTeamAccounts}
+            disabled={loading}
+            className="h-6 w-6 p-0"
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+        </div>
+        
         {/* Current user's own account */}
         <DropdownMenuItem 
           onClick={() => handleAccountSwitch(currentUserId)}
           className={currentAccount === currentUserId ? 'bg-muted' : ''}
         >
           <div className="flex items-center justify-between w-full">
-            <div className="flex flex-col">
-              <span className="font-medium">My Account</span>
+            <div className="flex flex-col min-w-0 flex-1">
+              <span className="font-medium truncate">My Account</span>
               <span className="text-xs text-muted-foreground">Account Owner</span>
             </div>
-            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs">
+            <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-xs ml-2 flex-shrink-0">
               Owner
             </Badge>
           </div>
         </DropdownMenuItem>
         
         {/* Team accounts */}
-        {teamAccounts.map((account) => (
-          <DropdownMenuItem 
-            key={account.account_owner_id}
-            onClick={() => handleAccountSwitch(account.account_owner_id)}
-            className={currentAccount === account.account_owner_id ? 'bg-muted' : ''}
-          >
-            <div className="flex items-center justify-between w-full">
-              <div className="flex flex-col">
-                <span className="font-medium">{account.owner_name}</span>
-                <span className="text-xs text-muted-foreground">{account.owner_email}</span>
-              </div>
-              {getRoleBadge(account.role)}
-            </div>
-          </DropdownMenuItem>
-        ))}
+        {teamAccounts.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            {teamAccounts.map((account) => (
+              <DropdownMenuItem 
+                key={account.account_owner_id}
+                onClick={() => handleAccountSwitch(account.account_owner_id)}
+                className={currentAccount === account.account_owner_id ? 'bg-muted' : ''}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="font-medium truncate">{account.owner_name}</span>
+                    <span className="text-xs text-muted-foreground truncate">{account.owner_email}</span>
+                  </div>
+                  <div className="ml-2 flex-shrink-0">
+                    {getRoleBadge(account.role)}
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        
+        {teamAccounts.length === 0 && (
+          <div className="p-2">
+            <span className="text-xs text-muted-foreground">No team accounts found. Accept team invitations in Settings to see them here.</span>
+          </div>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

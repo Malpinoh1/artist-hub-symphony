@@ -141,8 +141,10 @@ const Navbar = () => {
 
           {/* User Navigation & Auth */}
           <div className="hidden md:flex items-center space-x-4">
-            {user ? (
+          {user ? (
               <>
+                {/* Team Switcher */}
+                <TeamSwitcher currentUserId={user.id} />
 
                 {/* User Navigation Dropdown */}
                 <DropdownMenu>
@@ -185,13 +187,13 @@ const Navbar = () => {
                     <DropdownMenuItem asChild>
                       <Link to="/settings" className="flex items-center">
                         <Settings className="mr-2 h-4 w-4" />
-                        Settings
+                        Settings & Invitations
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
                       <Link to="/team" className="flex items-center">
                         <Users className="mr-2 h-4 w-4" />
-                        Team Access
+                        Team Management
                       </Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />

@@ -177,11 +177,15 @@ const Team = () => {
     try {
       console.log('Fetching invitations for user email:', userEmail);
       
+      // Normalize email for consistent matching
+      const normalizedEmail = userEmail.toLowerCase().trim();
+      
       const { data, error } = await supabase
         .from('account_invitations')
         .select('*')
-        .eq('invited_email', userEmail)
-        .eq('status', 'pending');
+        .eq('invited_email', normalizedEmail)
+        .eq('status', 'pending')
+        .gt('expires_at', new Date().toISOString());
 
       if (error) {
         console.error('Error fetching my invitations:', error);
@@ -273,20 +277,51 @@ const Team = () => {
       });
       return;
     }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(inviteEmail.trim())) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
     
     setSubmitting(true);
     try {
+      const normalizedEmail = inviteEmail.trim().toLowerCase();
+      
       console.log('Sending invitation:', {
         account_owner_id: user.id,
-        invited_email: inviteEmail.trim().toLowerCase(),
+        invited_email: normalizedEmail,
         role: inviteRole
       });
+
+      // Check for existing invitation first
+      const { data: existingInvite } = await supabase
+        .from('account_invitations')
+        .select('*')
+        .eq('account_owner_id', user.id)
+        .eq('invited_email', normalizedEmail)
+        .eq('status', 'pending')
+        .maybeSingle();
+
+      if (existingInvite) {
+        toast({
+          title: "Invitation already sent",
+          description: "This email has already been invited to your account.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       const { data, error } = await supabase
         .from('account_invitations')
         .insert({
           account_owner_id: user.id,
-          invited_email: inviteEmail.trim().toLowerCase(),
+          invited_email: normalizedEmail,
           role: inviteRole
         })
         .select()
@@ -313,8 +348,8 @@ const Team = () => {
       setManualInviteLink(inviteUrl);
 
       toast({
-        title: "Invitation created successfully!",
-        description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')}. Share the invitation link with them to join your team.`
+        title: "Invitation sent successfully!",
+        description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')}. They will see this invitation in their Settings page when they log in.`
       });
 
       setInviteEmail('');
