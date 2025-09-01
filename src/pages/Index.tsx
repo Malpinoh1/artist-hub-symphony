@@ -17,6 +17,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
+import { SiteNoticePopup } from '@/components/SiteNoticePopup';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -83,6 +84,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <Navbar />
+      <SiteNoticePopup />
       
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 overflow-hidden">

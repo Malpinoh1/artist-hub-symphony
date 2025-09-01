@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -535,6 +535,48 @@ export type Database = {
           },
         ]
       }
+      site_notices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          dismissible: boolean
+          end_at: string | null
+          id: string
+          is_active: boolean
+          level: string
+          message: string
+          start_at: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          dismissible?: boolean
+          end_at?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string
+          message: string
+          start_at?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          dismissible?: boolean
+          end_at?: string | null
+          id?: string
+          is_active?: boolean
+          level?: string
+          message?: string
+          start_at?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       streaming_links: {
         Row: {
           created_at: string
@@ -759,15 +801,15 @@ export type Database = {
     Functions: {
       has_account_access: {
         Args: {
-          target_account_id: string
           required_role?: Database["public"]["Enums"]["account_role"]
+          target_account_id: string
         }
         Returns: boolean
       }
       has_role: {
         Args:
+          | { role: Database["public"]["Enums"]["user_role"]; user_id: string }
           | { role_name: string }
-          | { user_id: string; role: Database["public"]["Enums"]["user_role"] }
         Returns: boolean
       }
       is_account_admin: {
