@@ -21,6 +21,7 @@ import TeamGuide from "./pages/TeamGuide";
 import AcceptInvitation from "./pages/AcceptInvitation";
 import ReleaseDetails from "./pages/ReleaseDetails";
 import ReleaseForm from "./pages/ReleaseForm";
+import NewReleaseForm from "./pages/NewReleaseForm";
 import Earnings from "./pages/Earnings";
 import Settings from "./pages/Settings";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/releases" element={<Releases />} />
                 <Route path="/releases/:id" element={<ReleaseDetails />} />
                 <Route path="/release-form" element={<ReleaseForm />} />
+                <Route path="/new-release" element={<NewReleaseForm />} />
                 <Route path="/release/new" element={<ReleaseForm />} />
                 <Route path="/analytics" element={<Analytics />} />
                 <Route path="/earnings" element={<Earnings />} />

@@ -15,6 +15,7 @@ import {
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
+import { TracklistManager } from '../components/TracklistManager';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { submitRelease } from '../services/releaseService';

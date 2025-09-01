@@ -1,199 +1,272 @@
-import React from 'react';
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Calendar, Music, Users, ExternalLink, MoreVertical, Eye } from 'lucide-react';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
+import { ReleaseEditRequest } from './ReleaseEditRequest';
 import { Link } from 'react-router-dom';
-import { Play, ExternalLink, Clock, AlertTriangle, Download } from 'lucide-react';
-import { supabase } from '../integrations/supabase/client';
-import { toast } from 'sonner';
 
-interface ReleaseCardProps {
+interface Release {
   id: string;
   title: string;
-  artist: string;
-  coverArt: string;
-  status: 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested';
+  release_type?: string;
+  genre?: string;
+  status: string;
+  release_date?: string;
+  cover_art_url?: string;
+  description?: string;
+  total_tracks?: number;
+  created_at?: string;
+  platforms?: string[];
+  artist_id?: string;
+  // Legacy support
+  artist?: string;
+  coverArt?: string;
   releaseDate?: string;
   streamingLinks?: { platform: string; url: string }[];
   upc?: string;
   isrc?: string;
 }
 
-const ReleaseCard: React.FC<ReleaseCardProps> = ({
+interface ReleaseCardProps {
+  release?: Release;
+  // Legacy props support
+  id?: string;
+  title?: string;
+  artist?: string;
+  coverArt?: string;
+  status?: string;
+  releaseDate?: string;
+  streamingLinks?: { platform: string; url: string }[];
+  upc?: string;
+  isrc?: string;
+  onUpdate?: () => void;
+}
+
+export default function ReleaseCard({ 
+  release, 
+  onUpdate,
+  // Legacy props
   id,
   title,
   artist,
   coverArt,
   status,
   releaseDate,
-  streamingLinks = [],
+  streamingLinks,
   upc,
   isrc
-}) => {
-  const getStatusColor = () => {
-    switch (status) {
-      case 'approved':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
-      case 'rejected':
-      case 'takedown':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-      case 'processing':
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-      case 'takedownrequested':
-        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
-      default:
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+}: ReleaseCardProps) {
+  const [showEditRequest, setShowEditRequest] = useState(false);
+
+  // Support both new and legacy formats
+  const releaseData = release || {
+    id: id!,
+    title: title!,
+    artist_id: '',
+    status: status!,
+    release_date: releaseDate!,
+    cover_art_url: coverArt,
+    platforms: streamingLinks?.map(link => link.platform) || [],
+    upc,
+    isrc,
+    release_type: 'single',
+    total_tracks: 1,
+    created_at: new Date().toISOString()
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'takedown': return 'bg-red-100 text-red-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
-  
-  const getStatusLabel = () => {
-    switch (status) {
-      case 'approved':
-        return 'Approved';
-      case 'rejected':
-        return 'Rejected';
-      case 'processing':
-        return 'Processing';
-      case 'takedown':
-        return 'Removed';
-      case 'takedownrequested':
-        return 'Removal Requested';
-      default:
-        return 'Pending';
+
+  const getReleaseTypeIcon = (type?: string) => {
+    switch (type) {
+      case 'album': return '💿';
+      case 'ep': return '💽';
+      case 'single': return '🎵';
+      default: return '🎵';
     }
   };
-  
-  const getStatusIcon = () => {
-    if (status === 'takedownrequested' || status === 'takedown') {
-      return <AlertTriangle className="w-3.5 h-3.5 mr-1" />;
-    }
-    return null;
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
-  
-  const handleDownload = async (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    try {
-      // Get audio file URL from the release
-      const { data, error } = await supabase
-        .from('releases')
-        .select('audio_file_url')
-        .eq('id', id)
-        .single();
-        
-      if (error || !data.audio_file_url) {
-        toast.error('No audio file available for download');
-        return;
-      }
-      
-      // Create a temporary anchor to download the file
-      const link = document.createElement('a');
-      link.href = data.audio_file_url;
-      link.download = `${title} - ${artist}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      toast.success('Download started');
-    } catch (error) {
-      console.error('Error downloading assets:', error);
-      toast.error('Failed to download assets');
-    }
-  };
-  
+
+  const canEdit = releaseData.status === 'Pending' || releaseData.status === 'pending';
+  const canRequestEdit = releaseData.status === 'Approved' || releaseData.status === 'approved';
+
   return (
-    <div className="glass-card overflow-hidden group">
-      <div className="relative aspect-square">
-        <img 
-          src={coverArt} 
-          alt={title} 
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-          <button className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center transform scale-75 opacity-0 group-hover:opacity-100 group-hover:scale-100 transition-all duration-300">
-            <Play className="w-5 h-5 text-slate-900 ml-0.5" />
-          </button>
-        </div>
-        <div className="absolute top-3 right-3">
-          <span className={`text-xs font-medium px-2.5 py-1 rounded-full flex items-center ${getStatusColor()}`}>
-            {getStatusIcon()}
-            {getStatusLabel()}
-          </span>
-        </div>
-      </div>
-      
-      <div className="p-4">
-        <h3 className="font-medium text-slate-900 dark:text-white truncate" title={title}>{title}</h3>
-        <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">{artist}</p>
-        
-        {/* Display UPC/ISRC if available */}
-        {(upc || isrc) && status === 'approved' && (
-          <div className="mt-3 grid grid-cols-2 gap-1 text-xs text-slate-500 dark:text-slate-400">
-            {upc && (
-              <div className="truncate" title={`UPC: ${upc}`}>
-                <span className="font-medium">UPC:</span> {upc}
+    <Card className="group hover:shadow-lg transition-all duration-200">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start space-x-3">
+            {releaseData.cover_art_url ? (
+              <img 
+                src={releaseData.cover_art_url}
+                alt={releaseData.title}
+                className="w-16 h-16 rounded-lg object-cover bg-muted"
+              />
+            ) : (
+              <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center text-2xl">
+                {getReleaseTypeIcon(releaseData.release_type)}
               </div>
             )}
-            {isrc && (
-              <div className="truncate" title={`ISRC: ${isrc}`}>
-                <span className="font-medium">ISRC:</span> {isrc}
+            
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg leading-tight">
+                {releaseData.title}
+              </CardTitle>
+              <div className="flex items-center gap-2 mt-1">
+                {releaseData.release_type && (
+                  <Badge variant="outline" className="text-xs">
+                    {releaseData.release_type.toUpperCase()}
+                  </Badge>
+                )}
+                <Badge className={`text-xs ${getStatusColor(releaseData.status)}`}>
+                  {releaseData.status}
+                </Badge>
               </div>
-            )}
+            </div>
           </div>
-        )}
-        
-        {status === 'approved' && releaseDate && (
-          <div className="flex items-center gap-1.5 mt-3 text-xs text-slate-500 dark:text-slate-400">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Released: {new Date(releaseDate).toLocaleDateString()}</span>
-          </div>
-        )}
-        
-        {status === 'approved' && streamingLinks.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {streamingLinks.slice(0, 3).map((link, index) => (
-              <a 
-                key={index}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 transition-colors"
-              >
-                <span>{link.platform}</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-            ))}
-            {streamingLinks.length > 3 && (
-              <span className="text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2.5 py-1.5 rounded-full">
-                +{streamingLinks.length - 3} more
-              </span>
-            )}
-          </div>
-        )}
-        
-        <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700 flex justify-between">
-          <Link 
-            to={`/releases/${id}`}
-            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium inline-flex items-center gap-1"
-          >
-            View Details
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-            </svg>
-          </Link>
           
-          {status === 'approved' && (
-            <button 
-              onClick={handleDownload}
-              title="Download Assets"
-              className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300"
-            >
-              <Download className="w-4 h-4" />
-            </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link to={`/releases/${releaseData.id}`}>
+                  <Eye className="h-4 w-4 mr-2" />
+                  View Details
+                </Link>
+              </DropdownMenuItem>
+              {(canEdit || canRequestEdit) && (
+                <DropdownMenuItem onClick={() => setShowEditRequest(true)}>
+                  <Music className="h-4 w-4 mr-2" />
+                  {canEdit ? 'Edit Release' : 'Request Edit'}
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </CardHeader>
+
+      <CardContent className="pt-0">
+        <div className="space-y-3">
+          {releaseData.description && (
+            <p className="text-sm text-muted-foreground line-clamp-2">
+              {releaseData.description}
+            </p>
+          )}
+          
+          <div className="grid grid-cols-2 gap-4 text-sm">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {releaseData.release_date && formatDate(releaseData.release_date)}
+              </span>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Music className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">
+                {releaseData.total_tracks || 1} track{(releaseData.total_tracks || 1) !== 1 ? 's' : ''}
+              </span>
+            </div>
+            
+            {releaseData.genre && (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {releaseData.genre}
+                </span>
+              </div>
+            )}
+            
+            {releaseData.platforms && releaseData.platforms.length > 0 && (
+              <div className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {releaseData.platforms.length} platform{releaseData.platforms.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {releaseData.platforms && releaseData.platforms.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {releaseData.platforms.slice(0, 3).map((platform) => (
+                <Badge key={platform} variant="secondary" className="text-xs">
+                  {platform}
+                </Badge>
+              ))}
+              {releaseData.platforms.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{releaseData.platforms.length - 3} more
+                </Badge>
+              )}
+            </div>
+          )}
+
+          {/* Legacy streaming links support */}
+          {streamingLinks && streamingLinks.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-3">
+              {streamingLinks.slice(0, 3).map((link) => (
+                <Badge key={link.platform} variant="secondary" className="text-xs">
+                  {link.platform}
+                </Badge>
+              ))}
+              {streamingLinks.length > 3 && (
+                <Badge variant="secondary" className="text-xs">
+                  +{streamingLinks.length - 3} more
+                </Badge>
+              )}
+            </div>
           )}
         </div>
-      </div>
-    </div>
-  );
-};
 
-export default ReleaseCard;
+        <div className="flex gap-2 mt-4">
+          <Button variant="outline" size="sm" asChild className="flex-1">
+            <Link to={`/releases/${releaseData.id}`}>
+              View Details
+            </Link>
+          </Button>
+          
+          {(canEdit || canRequestEdit) && (
+            <Button variant="outline" size="sm" onClick={() => setShowEditRequest(true)}>
+              {canEdit ? 'Edit' : 'Request Edit'}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+
+      {showEditRequest && (
+        <ReleaseEditRequest
+          release={releaseData}
+          onRequestSubmitted={() => {
+            setShowEditRequest(false);
+            onUpdate?.();
+          }}
+        />
+      )}
+    </Card>
+  );
+}

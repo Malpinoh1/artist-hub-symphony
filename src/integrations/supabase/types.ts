@@ -429,42 +429,178 @@ export type Database = {
         }
         Relationships: []
       }
+      release_edit_requests: {
+        Row: {
+          admin_response: string | null
+          artist_id: string
+          created_at: string
+          id: string
+          processed_at: string | null
+          processed_by: string | null
+          reason: string
+          release_id: string
+          request_type: string
+          requested_changes: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          admin_response?: string | null
+          artist_id: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason: string
+          release_id: string
+          request_type?: string
+          requested_changes: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_response?: string | null
+          artist_id?: string
+          created_at?: string
+          id?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string
+          release_id?: string
+          request_type?: string
+          requested_changes?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_edit_requests_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      release_tracks: {
+        Row: {
+          created_at: string
+          duration: number | null
+          explicit_content: boolean | null
+          featured_artists: string[] | null
+          id: string
+          isrc: string | null
+          release_id: string
+          title: string
+          track_number: number
+        }
+        Insert: {
+          created_at?: string
+          duration?: number | null
+          explicit_content?: boolean | null
+          featured_artists?: string[] | null
+          id?: string
+          isrc?: string | null
+          release_id: string
+          title: string
+          track_number: number
+        }
+        Update: {
+          created_at?: string
+          duration?: number | null
+          explicit_content?: boolean | null
+          featured_artists?: string[] | null
+          id?: string
+          isrc?: string | null
+          release_id?: string
+          title?: string
+          track_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_tracks_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       releases: {
         Row: {
+          admin_notes: string | null
           artist_id: string
+          artwork_credits: string | null
           audio_file_url: string | null
+          copyright_info: string | null
           cover_art_url: string | null
+          description: string | null
+          explicit_content: boolean | null
+          genre: string | null
           id: string
           isrc: string | null
           platforms: string[]
+          primary_language: string | null
+          producer_credits: string | null
           release_date: string
+          release_type: string | null
+          songwriter_credits: string | null
           status: Database["public"]["Enums"]["release_status"]
+          submission_notes: string | null
           title: string
+          total_tracks: number | null
           upc: string | null
+          updated_at: string | null
         }
         Insert: {
+          admin_notes?: string | null
           artist_id: string
+          artwork_credits?: string | null
           audio_file_url?: string | null
+          copyright_info?: string | null
           cover_art_url?: string | null
+          description?: string | null
+          explicit_content?: boolean | null
+          genre?: string | null
           id?: string
           isrc?: string | null
           platforms: string[]
+          primary_language?: string | null
+          producer_credits?: string | null
           release_date: string
+          release_type?: string | null
+          songwriter_credits?: string | null
           status?: Database["public"]["Enums"]["release_status"]
+          submission_notes?: string | null
           title: string
+          total_tracks?: number | null
           upc?: string | null
+          updated_at?: string | null
         }
         Update: {
+          admin_notes?: string | null
           artist_id?: string
+          artwork_credits?: string | null
           audio_file_url?: string | null
+          copyright_info?: string | null
           cover_art_url?: string | null
+          description?: string | null
+          explicit_content?: boolean | null
+          genre?: string | null
           id?: string
           isrc?: string | null
           platforms?: string[]
+          primary_language?: string | null
+          producer_credits?: string | null
           release_date?: string
+          release_type?: string | null
+          songwriter_credits?: string | null
           status?: Database["public"]["Enums"]["release_status"]
+          submission_notes?: string | null
           title?: string
+          total_tracks?: number | null
           upc?: string | null
+          updated_at?: string | null
         }
         Relationships: [
           {

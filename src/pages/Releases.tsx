@@ -9,7 +9,7 @@ import ReleaseCard from '../components/ReleaseCard';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../integrations/supabase/client';
 import { fetchUserReleases, Release } from '../services/releaseService';
-import { toast } from 'sonner';
+import { toast } from '@/hooks/use-toast';
 
 const Releases = () => {
   const [releases, setReleases] = useState<Release[]>([]);
@@ -35,7 +35,11 @@ const Releases = () => {
       setReleases(userReleases);
     } catch (error) {
       console.error('Error fetching releases:', error);
-      toast.error('Failed to load releases');
+      toast({
+        title: "Error",
+        description: "Failed to load releases",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -74,7 +78,7 @@ const Releases = () => {
               </p>
             </div>
             <Button asChild className="gap-2">
-              <Link to="/release-form">
+              <Link to="/new-release">  
                 <Plus className="w-4 h-4" />
                 New Release
               </Link>
@@ -90,7 +94,7 @@ const Releases = () => {
                   Get started by uploading your first release and share your music with the world.
                 </p>
                 <Button asChild size="lg" className="gap-2">
-                  <Link to="/release-form">
+                  <Link to="/new-release">
                     <Plus className="w-5 h-5" />
                     Upload Your First Release
                   </Link>
@@ -102,15 +106,8 @@ const Releases = () => {
               {releases.map((release, index) => (
                 <AnimatedCard key={release.id} delay={index * 100}>
                   <ReleaseCard 
-                    id={release.id}
-                    title={release.title}
-                    artist={release.artist}
-                    coverArt={release.coverArt}
-                    status={release.status}
-                    releaseDate={release.releaseDate}
-                    streamingLinks={release.streamingLinks}
-                    upc={release.upc}
-                    isrc={release.isrc}
+                    release={release}
+                    onUpdate={checkAuthAndFetchReleases}
                   />
                 </AnimatedCard>
               ))}
