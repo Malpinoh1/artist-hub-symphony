@@ -16,6 +16,16 @@ export type Release = {
   upc?: string;
   isrc?: string;
   statistics?: PerformanceStatistics | null;
+  release_type?: string;
+  genre?: string;
+  description?: string;
+  producer_credits?: string;
+  songwriter_credits?: string;
+  artwork_credits?: string;
+  copyright_info?: string;
+  primary_language?: string;
+  total_tracks?: number;
+  explicit_content?: boolean;
 };
 
 export async function fetchUserReleases(userId: string): Promise<Release[]> {

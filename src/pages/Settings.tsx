@@ -4,6 +4,7 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import InviteNotifications from '../components/InviteNotifications';
+import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,6 +23,7 @@ interface UserProfile {
   website?: string;
   email_notifications?: boolean;
   marketing_emails?: boolean;
+  two_factor_enabled?: boolean;
 }
 
 interface SubscriptionData {
@@ -38,6 +40,7 @@ const Settings = () => {
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
+  const [show2FASetup, setShow2FASetup] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     username: '',
@@ -45,7 +48,8 @@ const Settings = () => {
     website: '',
     email_notifications: true,
     marketing_emails: true,
-    dark_mode: false
+    dark_mode: false,
+    two_factor_enabled: false
   });
 
   useEffect(() => {
@@ -88,7 +92,8 @@ const Settings = () => {
           website: profileData.website || '',
           email_notifications: profileData.email_notifications ?? true,
           marketing_emails: profileData.marketing_emails ?? true,
-          dark_mode: false
+          dark_mode: false,
+          two_factor_enabled: profileData.two_factor_enabled ?? false
         });
       } else {
         console.log("No profile found, creating one with default settings");
@@ -123,7 +128,8 @@ const Settings = () => {
             website: '',
             email_notifications: true,
             marketing_emails: true,
-            dark_mode: false
+            dark_mode: false,
+            two_factor_enabled: false
           });
         } else {
           console.log("Profile created successfully:", newProfile);
@@ -135,7 +141,8 @@ const Settings = () => {
             website: newProfile.website || '',
             email_notifications: newProfile.email_notifications ?? true,
             marketing_emails: newProfile.marketing_emails ?? true,
-            dark_mode: false
+            dark_mode: false,
+            two_factor_enabled: newProfile.two_factor_enabled ?? false
           });
         }
       }
@@ -158,7 +165,8 @@ const Settings = () => {
           website: '',
           email_notifications: true,
           marketing_emails: true,
-          dark_mode: false
+          dark_mode: false,
+          two_factor_enabled: false
         });
       }
     }
@@ -308,10 +316,14 @@ const Settings = () => {
   };
 
   const handleEnable2FA = () => {
-    toast({
-      title: "Two-Factor Authentication",
-      description: "2FA setup is coming soon. This feature will be available in a future update.",
-    });
+    setShow2FASetup(true);
+  };
+
+  const handle2FAStatusChange = (enabled: boolean) => {
+    setFormData(prev => ({ ...prev, two_factor_enabled: enabled }));
+    if (userProfile) {
+      setUserProfile({ ...userProfile, two_factor_enabled: enabled });
+    }
   };
 
   if (loading) {
@@ -559,14 +571,21 @@ const Settings = () => {
 
                   <div>
                     <h3 className="font-medium mb-2 text-slate-900 dark:text-white">Two-Factor Authentication</h3>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Add an extra layer of security</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
+                      {formData.two_factor_enabled ? 'Manage your 2FA settings' : 'Add an extra layer of security'}
+                    </p>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Badge variant={formData.two_factor_enabled ? "default" : "secondary"}>
+                        {formData.two_factor_enabled ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
                     <Button 
                       variant="outline" 
                       className="w-full"
                       onClick={handleEnable2FA}
                     >
                       <Shield className="w-4 h-4 mr-2" />
-                      Enable 2FA
+                      {formData.two_factor_enabled ? 'Manage 2FA' : 'Enable 2FA'}
                     </Button>
                   </div>
                 </div>
@@ -575,6 +594,13 @@ const Settings = () => {
           </div>
         </section>
       </main>
+      
+      <TwoFactorSetup
+        isOpen={show2FASetup}
+        onClose={() => setShow2FASetup(false)}
+        currentlyEnabled={formData.two_factor_enabled}
+        onStatusChange={handle2FAStatusChange}
+      />
       
       <Footer />
     </div>

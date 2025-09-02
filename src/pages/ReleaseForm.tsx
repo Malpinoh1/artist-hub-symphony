@@ -10,67 +10,107 @@ import {
   Info,
   ChevronDown,
   ChevronRight,
-  DollarSign
+  DollarSign,
+  Album,
+  Disc,
+  Music2
 } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { TracklistManager } from '../components/TracklistManager';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
-import { useToast } from '../hooks/use-toast';
-import { submitRelease } from '../services/releaseService';
+import { toast } from '@/hooks/use-toast';
 
-// Mock platforms data
-const distributionPlatforms = [
-  { id: 'spotify', name: 'Spotify', logo: 'https://storage.googleapis.com/pr-newsroom-wp/1/2018/11/Spotify_Logo_RGB_Green.png' },
-  { id: 'apple', name: 'Apple Music', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/5f/Apple_Music_icon.svg/2048px-Apple_Music_icon.svg.png' },
-  { id: 'audiomack', name: 'Audiomack', logo: 'https://audiomack.com/static-assets/branding/audiomack-logo.png' },
-  { id: 'boomplay', name: 'Boomplay', logo: 'https://www.boomplaymusic.com/static/web/logo.png' },
-  { id: 'youtube', name: 'YouTube Music', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/Youtube_Music_icon.svg/2048px-Youtube_Music_icon.svg.png' },
-  { id: 'deezer', name: 'Deezer', logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8a/Deezer_logo.svg/1280px-Deezer_logo.svg.png' }
+const releaseTypes = [
+  { 
+    id: 'single', 
+    name: 'Single', 
+    icon: <Music className="w-5 h-5" />,
+    description: 'Up to 3 tracks',
+    maxTracks: 3
+  },
+  { 
+    id: 'ep', 
+    name: 'EP', 
+    icon: <Disc className="w-5 h-5" />,
+    description: '4-6 tracks',
+    maxTracks: 6
+  },
+  { 
+    id: 'album', 
+    name: 'Album', 
+    icon: <Album className="w-5 h-5" />,
+    description: '7+ tracks',
+    maxTracks: 50
+  }
 ];
 
-// Genres
 const genres = [
   'Afrobeats', 'Highlife', 'Afro-Pop', 'Gospel', 'Hip-Hop', 'R&B', 'Amapiano',
-  'Traditional', 'Reggae/Dancehall', 'Alternative', 'Electronic', 'Jazz', 'Folk'
+  'Traditional', 'Reggae/Dancehall', 'Alternative', 'Electronic', 'Jazz', 'Folk',
+  'Pop', 'Rock', 'Country', 'Classical', 'Blues', 'Funk', 'Soul'
+];
+
+const distributionPlatforms = [
+  { id: 'spotify', name: 'Spotify' },
+  { id: 'apple', name: 'Apple Music' },
+  { id: 'youtube', name: 'YouTube Music' },
+  { id: 'audiomack', name: 'Audiomack' },
+  { id: 'boomplay', name: 'Boomplay' },
+  { id: 'deezer', name: 'Deezer' },
+  { id: 'tidal', name: 'Tidal' },
+  { id: 'amazon', name: 'Amazon Music' }
 ];
 
 const ReleaseForm = () => {
-  const { toast } = useToast();
   const navigate = useNavigate();
-  
-  // Form state
-  const [formState, setFormState] = useState({
-    title: '',
-    artist: '',
-    featuring: '',
-    releaseDate: '',
-    genres: [],
-    platforms: [],
-    explicitContent: false,
-    upc: '',
-    recordLabel: '',
-    language: 'English',
-    primaryArtist: '',
-    composer: '',
-    publisher: '',
-    notes: ''
-  });
-  
-  // File state
-  const [coverArt, setCoverArt] = useState<File | null>(null);
-  const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
-  const [audioFiles, setAudioFiles] = useState<File[]>([]);
-  const [audioTitles, setAudioTitles] = useState<string[]>([]);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // Refs for file inputs
   const coverArtInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
 
-  // Check authentication on component mount
+  // Form state
+  const [formData, setFormData] = useState({
+    title: '',
+    release_type: 'single',
+    genre: '',
+    description: '',
+    release_date: '',
+    artwork_credits: '',
+    producer_credits: '',
+    songwriter_credits: '',
+    primary_language: 'English',
+    explicit_content: false,
+    copyright_info: '',
+    submission_notes: '',
+    upc: '',
+    total_tracks: 1
+  });
+
+  const [tracks, setTracks] = useState([
+    {
+      track_number: 1,
+      title: '',
+      explicit_content: false,
+      featured_artists: []
+    }
+  ]);
+
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [coverArt, setCoverArt] = useState<File | null>(null);
+  const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
+  const [audioFiles, setAudioFiles] = useState<File[]>([]);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check authentication
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -83,40 +123,36 @@ const ReleaseForm = () => {
         navigate('/auth');
       }
     };
-    
     checkAuth();
-  }, [navigate, toast]);
+  }, [navigate]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormState(prev => ({ ...prev, [name]: value }));
+  // Update total tracks when release type changes
+  useEffect(() => {
+    const releaseType = releaseTypes.find(rt => rt.id === formData.release_type);
+    if (releaseType) {
+      setFormData(prev => ({ ...prev, total_tracks: tracks.length }));
+    }
+  }, [formData.release_type, tracks.length]);
+
+  const handleInputChange = (field: string, value: any) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormState(prev => ({ ...prev, [name]: checked }));
+  const handleReleaseTypeChange = (type: string) => {
+    setFormData(prev => ({ ...prev, release_type: type }));
+    
+    // Reset tracks if switching to single and have more than 1 track
+    if (type === 'single' && tracks.length > 1) {
+      setTracks([tracks[0]]);
+    }
   };
 
   const handlePlatformToggle = (platformId: string) => {
-    setFormState(prev => {
-      const platforms = [...prev.platforms];
-      if (platforms.includes(platformId)) {
-        return { ...prev, platforms: platforms.filter(id => id !== platformId) };
-      } else {
-        return { ...prev, platforms: [...platforms, platformId] };
-      }
-    });
-  };
-
-  const handleGenreToggle = (genre: string) => {
-    setFormState(prev => {
-      const genres = [...prev.genres];
-      if (genres.includes(genre)) {
-        return { ...prev, genres: genres.filter(g => g !== genre) };
-      } else {
-        return { ...prev, genres: [...genres, genre] };
-      }
-    });
+    setSelectedPlatforms(prev => 
+      prev.includes(platformId)
+        ? prev.filter(id => id !== platformId)
+        : [...prev, platformId]
+    );
   };
 
   const handleCoverArtChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -124,7 +160,6 @@ const ReleaseForm = () => {
       const file = e.target.files[0];
       setCoverArt(file);
       
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setCoverArtPreview(reader.result as string);
@@ -137,31 +172,10 @@ const ReleaseForm = () => {
     if (e.target.files && e.target.files.length > 0) {
       const newFiles = Array.from(e.target.files);
       setAudioFiles(prev => [...prev, ...newFiles]);
-      
-      // Extract initial titles from filenames without extension
-      const newTitles = newFiles.map(file => {
-        const fileName = file.name;
-        return fileName.substring(0, fileName.lastIndexOf('.'));
-      });
-      
-      setAudioTitles(prev => [...prev, ...newTitles]);
     }
   };
 
-  const handleRemoveAudio = (index: number) => {
-    setAudioFiles(prev => prev.filter((_, i) => i !== index));
-    setAudioTitles(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleAudioTitleChange = (index: number, newTitle: string) => {
-    setAudioTitles(prev => {
-      const updated = [...prev];
-      updated[index] = newTitle;
-      return updated;
-    });
-  };
-
-  const handleRemoveCoverArt = () => {
+  const removeCoverArt = () => {
     setCoverArt(null);
     setCoverArtPreview(null);
     if (coverArtInputRef.current) {
@@ -169,22 +183,15 @@ const ReleaseForm = () => {
     }
   };
 
-  const nextStep = () => {
-    window.scrollTo(0, 0);
-    setCurrentStep(prev => prev + 1);
-  };
-
-  const prevStep = () => {
-    window.scrollTo(0, 0);
-    setCurrentStep(prev => prev - 1);
+  const removeAudioFile = (index: number) => {
+    setAudioFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
+
     try {
-      // Check if user is authenticated
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
@@ -196,29 +203,89 @@ const ReleaseForm = () => {
         navigate('/auth');
         return;
       }
-      
-      const userId = session.user.id;
-      
-      // Submit the release
-      const result = await submitRelease(formState, userId, coverArt, audioFiles);
-      
-      if (result.success) {
-        toast({
-          title: "Release submitted",
-          description: "Your release has been submitted for review",
-          variant: "default"
-        });
+
+      // Upload cover art
+      let coverArtUrl = null;
+      if (coverArt) {
+        const fileExt = coverArt.name.split('.').pop();
+        const fileName = `${Date.now()}.${fileExt}`;
         
-        // Navigate to success step
-        nextStep();
-      } else {
-        throw new Error("Failed to submit release");
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('release_artwork')
+          .upload(fileName, coverArt);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('release_artwork')
+          .getPublicUrl(fileName);
+        
+        coverArtUrl = publicUrl;
       }
+
+      // Upload audio files
+      const audioUrls: string[] = [];
+      for (const file of audioFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('audio_files')
+          .upload(fileName, file);
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from('audio_files')
+          .getPublicUrl(fileName);
+        
+        audioUrls.push(publicUrl);
+      }
+
+      // Create release record
+      const releaseData = {
+        ...formData,
+        artist_id: session.user.id,
+        cover_art_url: coverArtUrl,
+        audio_file_url: audioUrls[0], // Primary audio file
+        platforms: selectedPlatforms,
+        status: 'Pending' as const
+      };
+
+      const { data: release, error: releaseError } = await supabase
+        .from('releases')
+        .insert(releaseData)
+        .select()
+        .single();
+
+      if (releaseError) throw releaseError;
+
+      // Create track records
+      if (tracks.length > 0) {
+        const trackData = tracks.map((track, index) => ({
+          ...track,
+          release_id: release.id,
+          track_number: index + 1
+        }));
+
+        const { error: tracksError } = await supabase
+          .from('release_tracks')
+          .insert(trackData);
+
+        if (tracksError) throw tracksError;
+      }
+
+      toast({
+        title: "Success!",
+        description: "Your release has been submitted for review"
+      });
+
+      setCurrentStep(4); // Success step
     } catch (error) {
       console.error('Error submitting release:', error);
       toast({
-        title: "Submission failed",
-        description: "An error occurred while submitting your release",
+        title: "Error",
+        description: "Failed to submit release. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -226,181 +293,218 @@ const ReleaseForm = () => {
     }
   };
 
-  // Render form step content
+  const nextStep = () => {
+    setCurrentStep(prev => prev + 1);
+    window.scrollTo(0, 0);
+  };
+
+  const prevStep = () => {
+    setCurrentStep(prev => prev - 1);
+    window.scrollTo(0, 0);
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-6">Release Information</h2>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <label htmlFor="title" className="label">Release Title*</label>
-                <input
-                  id="title"
-                  name="title"
-                  type="text"
-                  value={formState.title}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Enter the title of your release"
-                  required
-                />
-              </div>
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-semibold mb-4">Release Type & Basic Info</h2>
               
-              <div>
-                <label htmlFor="artist" className="label">Artist Name*</label>
-                <input
-                  id="artist"
-                  name="artist"
-                  type="text"
-                  value={formState.artist}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Your artist name"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="featuring" className="label">Featuring Artists</label>
-                <input
-                  id="featuring"
-                  name="featuring"
-                  type="text"
-                  value={formState.featuring}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Enter featured artists (comma separated)"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="releaseDate" className="label">Release Date*</label>
-                <div className="relative">
-                  <input
-                    id="releaseDate"
-                    name="releaseDate"
-                    type="date"
-                    value={formState.releaseDate}
-                    onChange={handleInputChange}
-                    className="input-field pr-10"
-                    required
-                    min={new Date().toISOString().split('T')[0]}
-                  />
-                  <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 pointer-events-none w-5 h-5" />
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Allow at least 2 weeks for processing</p>
-              </div>
-            </div>
-            
-            <div className="mb-8">
-              <label className="label">Genres* (Select up to 3)</label>
-              <div className="flex flex-wrap gap-2">
-                {genres.map(genre => (
-                  <button
-                    key={genre}
-                    type="button"
-                    onClick={() => handleGenreToggle(genre)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      formState.genres.includes(genre)
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                    }`}
-                    disabled={formState.genres.length >= 3 && !formState.genres.includes(genre)}
-                  >
-                    {genre}
-                  </button>
-                ))}
-              </div>
-              {formState.genres.length > 0 && (
-                <p className="text-sm text-slate-500 mt-2">
-                  Selected: {formState.genres.join(', ')}
-                </p>
-              )}
-            </div>
-            
-            <div className="mb-8">
-              <label className="label">Distribution Platforms* (Select at least one)</label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
-                {distributionPlatforms.map(platform => (
-                  <button
-                    key={platform.id}
-                    type="button"
-                    onClick={() => handlePlatformToggle(platform.id)}
-                    className={`flex flex-col items-center justify-center p-4 rounded-xl border transition-all ${
-                      formState.platforms.includes(platform.id)
-                        ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-500/20'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="w-12 h-12 mb-2 relative flex items-center justify-center">
-                      <img 
-                        src={platform.logo} 
-                        alt={platform.name}
-                        className="max-w-full max-h-full object-contain"
-                      />
-                      {formState.platforms.includes(platform.id) && (
-                        <div className="absolute -top-2 -right-2 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center">
-                          <Check className="w-3 h-3 text-white" />
+              {/* Release Type Selection */}
+              <div className="mb-6">
+                <Label className="text-base font-medium mb-3 block">Release Type *</Label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {releaseTypes.map((type) => (
+                    <Card 
+                      key={type.id}
+                      className={`cursor-pointer transition-all ${
+                        formData.release_type === type.id 
+                          ? 'ring-2 ring-primary border-primary' 
+                          : 'hover:border-muted-foreground'
+                      }`}
+                      onClick={() => handleReleaseTypeChange(type.id)}
+                    >
+                      <CardContent className="p-4 text-center">
+                        <div className="flex flex-col items-center space-y-2">
+                          {type.icon}
+                          <div>
+                            <h3 className="font-medium">{type.name}</h3>
+                            <p className="text-sm text-muted-foreground">{type.description}</p>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                    <span className="text-xs font-medium text-center text-slate-700">{platform.name}</span>
-                  </button>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
-            </div>
-            
-            <div className="flex items-center mb-8">
-              <input
-                id="explicitContent"
-                name="explicitContent"
-                type="checkbox"
-                checked={formState.explicitContent}
-                onChange={handleCheckboxChange}
-                className="w-4 h-4 text-blue-600 bg-gray-100 rounded border-gray-300 focus:ring-blue-500"
-              />
-              <label htmlFor="explicitContent" className="ml-2 text-sm font-medium text-slate-700">
-                This release contains explicit content
-              </label>
-            </div>
-            
-            <div className="mt-8 flex justify-end">
-              <button
-                type="button"
-                onClick={nextStep}
-                disabled={!formState.title || !formState.artist || !formState.releaseDate || formState.genres.length === 0 || formState.platforms.length === 0}
-                className="btn-primary flex items-center gap-2"
-              >
-                Continue to Upload Files
-                <ChevronRight className="w-4 h-4" />
-              </button>
+
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <Label htmlFor="title">Release Title *</Label>
+                  <Input
+                    id="title"
+                    value={formData.title}
+                    onChange={(e) => handleInputChange('title', e.target.value)}
+                    placeholder="Enter release title"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="genre">Genre *</Label>
+                  <Select value={formData.genre} onValueChange={(value) => handleInputChange('genre', value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select genre" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {genres.map((genre) => (
+                        <SelectItem key={genre} value={genre}>{genre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="release_date">Release Date *</Label>
+                  <Input
+                    id="release_date"
+                    type="date"
+                    value={formData.release_date}
+                    onChange={(e) => handleInputChange('release_date', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="primary_language">Primary Language</Label>
+                  <Select value={formData.primary_language} onValueChange={(value) => handleInputChange('primary_language', value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="English">English</SelectItem>
+                      <SelectItem value="Yoruba">Yoruba</SelectItem>
+                      <SelectItem value="Igbo">Igbo</SelectItem>
+                      <SelectItem value="Hausa">Hausa</SelectItem>
+                      <SelectItem value="French">French</SelectItem>
+                      <SelectItem value="Spanish">Spanish</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  placeholder="Brief description of your release"
+                  rows={3}
+                />
+              </div>
+
+              {/* Platform Selection */}
+              <div>
+                <Label className="text-base font-medium mb-3 block">Distribution Platforms * (Select at least one)</Label>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {distributionPlatforms.map((platform) => (
+                    <Card
+                      key={platform.id}
+                      className={`cursor-pointer transition-all ${
+                        selectedPlatforms.includes(platform.id)
+                          ? 'ring-2 ring-primary border-primary'
+                          : 'hover:border-muted-foreground'
+                      }`}
+                      onClick={() => handlePlatformToggle(platform.id)}
+                    >
+                      <CardContent className="p-3 text-center">
+                        <p className="text-sm font-medium">{platform.name}</p>
+                        {selectedPlatforms.includes(platform.id) && (
+                          <Check className="w-4 h-4 mx-auto mt-1 text-primary" />
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="explicit_content"
+                  checked={formData.explicit_content}
+                  onCheckedChange={(checked) => handleInputChange('explicit_content', checked)}
+                />
+                <Label htmlFor="explicit_content">Contains explicit content</Label>
+              </div>
+
+              <div className="flex justify-end">
+                <Button 
+                  type="button" 
+                  onClick={nextStep}
+                  disabled={!formData.title || !formData.genre || !formData.release_date || selectedPlatforms.length === 0}
+                >
+                  Continue to Tracks <ChevronRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
             </div>
           </div>
         );
-      
+
       case 2:
         return (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-6">Upload Files</h2>
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold mb-4">Tracklist</h2>
             
-            <div className="mb-8">
-              <label className="label">Cover Art* (Square image, minimum 3000x3000px)</label>
-              <div className="mt-2">
+            <TracklistManager
+              releaseType={formData.release_type as 'single' | 'ep' | 'album'}
+              tracks={tracks}
+              onTracksChange={setTracks}
+            />
+
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" onClick={prevStep}>
+                <ChevronDown className="w-4 h-4 mr-2 rotate-90" /> Back
+              </Button>
+              <Button 
+                type="button" 
+                onClick={nextStep}
+                disabled={tracks.length === 0 || tracks.some(track => !track.title.trim())}
+              >
+                Continue to Files <ChevronRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            <h2 className="text-2xl font-semibold mb-4">Upload Files & Additional Details</h2>
+            
+            {/* Cover Art Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Cover Art *</CardTitle>
+              </CardHeader>
+              <CardContent>
                 {!coverArtPreview ? (
                   <div 
-                    className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer"
+                    className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => coverArtInputRef.current?.click()}
                   >
-                    <div className="mx-auto w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                      <Upload className="w-6 h-6 text-slate-500" />
-                    </div>
-                    <h3 className="text-slate-700 font-medium">Upload Cover Art</h3>
-                    <p className="text-sm text-slate-500 mt-1">Click to browse or drag and drop</p>
-                    <p className="text-xs text-slate-400 mt-3">Accepted formats: JPG, PNG - Max size: 15MB</p>
-                    
+                    <Upload className="w-8 h-8 mx-auto mb-4 text-muted-foreground" />
+                    <h3 className="font-medium mb-2">Upload Cover Art</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Click to browse or drag and drop
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Square image, minimum 3000x3000px - JPG/PNG - Max 15MB
+                    </p>
                     <input
                       ref={coverArtInputRef}
                       type="file"
@@ -414,366 +518,200 @@ const ReleaseForm = () => {
                     <img 
                       src={coverArtPreview}
                       alt="Cover Art Preview"
-                      className="w-full max-w-xs h-auto object-contain rounded-lg border border-slate-200 shadow-sm"
+                      className="w-full max-w-xs mx-auto rounded-lg border"
                     />
-                    <button
+                    <Button
                       type="button"
-                      onClick={handleRemoveCoverArt}
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-white hover:bg-red-600 transition-colors"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2"
+                      onClick={removeCoverArt}
                     >
                       <X className="w-4 h-4" />
-                    </button>
-                    <p className="text-sm text-slate-600 mt-2">{coverArt?.name}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            <div className="mb-8">
-              <label className="label">Audio Files* (WAV format recommended, 16 bit, 44.1kHz)</label>
-              <div 
-                className="mt-2 border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer"
-                onClick={() => audioInputRef.current?.click()}
-              >
-                <div className="mx-auto w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center mb-4">
-                  <Music className="w-6 h-6 text-slate-500" />
-                </div>
-                <h3 className="text-slate-700 font-medium">Upload Audio Files</h3>
-                <p className="text-sm text-slate-500 mt-1">Click to browse or drag and drop</p>
-                <p className="text-xs text-slate-400 mt-3">Accepted formats: WAV, MP3, FLAC - Max size: 50MB per file</p>
-                
-                <input
-                  ref={audioInputRef}
-                  type="file"
-                  accept="audio/wav,audio/mpeg,audio/flac"
-                  onChange={handleAudioChange}
-                  multiple
-                  className="hidden"
-                />
-              </div>
-              
-              {audioFiles.length > 0 && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-medium text-slate-900 mb-3">Uploaded Tracks ({audioFiles.length})</h3>
-                  <ul className="space-y-4">
-                    {audioFiles.map((file, index) => (
-                      <li key={index} className="glass-card p-4">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
-                              <Music className="w-5 h-5 text-slate-600" />
-                            </div>
-                            <div className="flex-grow">
-                              <input
-                                type="text"
-                                value={audioTitles[index]}
-                                onChange={(e) => handleAudioTitleChange(index, e.target.value)}
-                                className="input-field"
-                                placeholder="Track title"
-                              />
-                              <p className="text-xs text-slate-500 mt-1">
-                                {(file.size / (1024 * 1024)).toFixed(2)}MB - {file.type}
-                              </p>
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAudio(index)}
-                            className="text-red-500 hover:text-red-600 transition-colors flex items-center gap-1"
-                          >
-                            <X className="w-4 h-4" />
-                            <span className="text-sm">Remove</span>
-                          </button>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-            
-            <div className="mt-8 flex justify-between">
-              <button
-                type="button"
-                onClick={prevStep}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <ChevronDown className="w-4 h-4 rotate-90" />
-                Back
-              </button>
-              
-              <button
-                type="button"
-                onClick={nextStep}
-                disabled={!coverArt || audioFiles.length === 0}
-                className="btn-primary flex items-center gap-2"
-              >
-                Continue to Details
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        );
-      
-      case 3:
-        return (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-display font-semibold text-slate-900 mb-6">Additional Details & Payment</h2>
-            
-            {/* Payment Information */}
-            <div className="glass-panel p-6 mb-8 bg-green-50 border-green-200">
-              <div className="flex items-start gap-3">
-                <DollarSign className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-green-800 font-medium">Payment Instructions</h3>
-                  <p className="text-sm text-green-700 mt-1">
-                    Please make a payment via bank transfer to the following account:
-                  </p>
-                  <div className="mt-3 p-4 bg-white rounded-md border border-green-200">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div>
-                        <span className="font-semibold">Account Name:</span> 
-                        <span className="ml-2">ABDULKADIR IBRAHIM OLUWASHINA</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">Account Number:</span> 
-                        <span className="ml-2">8168940582</span>
-                      </div>
-                      <div>
-                        <span className="font-semibold">Bank:</span> 
-                        <span className="ml-2">OPAY DIGITAL BANK</span>
-                      </div>
-                    </div>
-                    <p className="mt-3 text-xs text-green-700">
-                      Please include your artist name as reference when making the payment. Your submission will be processed after payment confirmation.
+                    </Button>
+                    <p className="text-sm text-muted-foreground mt-2 text-center">
+                      {coverArt?.name}
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="glass-panel p-6 mb-8">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-slate-900 font-medium">Why these details matter</h3>
-                  <p className="text-sm text-slate-600 mt-1">
-                    This information helps ensure accurate attribution and royalty payments.
-                    The more complete your metadata, the better your release will be managed
-                    across all platforms.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-              <div>
-                <label htmlFor="upc" className="label">UPC (Universal Product Code)</label>
-                <input
-                  id="upc"
-                  name="upc"
-                  type="text"
-                  value={formState.upc}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Leave blank if you don't have one"
-                />
-                <p className="text-xs text-slate-500 mt-1">We'll assign one if left blank</p>
-              </div>
-              
-              <div>
-                <label htmlFor="recordLabel" className="label">Record Label</label>
-                <input
-                  id="recordLabel"
-                  name="recordLabel"
-                  type="text"
-                  value={formState.recordLabel}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Enter your label name (if applicable)"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="language" className="label">Primary Language*</label>
-                <select
-                  id="language"
-                  name="language"
-                  value={formState.language}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                >
-                  <option value="English">English</option>
-                  <option value="Yoruba">Yoruba</option>
-                  <option value="Igbo">Igbo</option>
-                  <option value="Hausa">Hausa</option>
-                  <option value="Pidgin">Pidgin</option>
-                  <option value="French">French</option>
-                  <option value="Portuguese">Portuguese</option>
-                  <option value="Spanish">Spanish</option>
-                  <option value="Other">Other</option>
-                </select>
-              </div>
-              
-              <div>
-                <label htmlFor="primaryArtist" className="label">Primary Artist*</label>
-                <input
-                  id="primaryArtist"
-                  name="primaryArtist"
-                  type="text"
-                  value={formState.primaryArtist || formState.artist}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  required
-                />
-                <p className="text-xs text-slate-500 mt-1">Legal name of main artist</p>
-              </div>
-              
-              <div>
-                <label htmlFor="composer" className="label">Composer/Writer*</label>
-                <input
-                  id="composer"
-                  name="composer"
-                  type="text"
-                  value={formState.composer}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Who wrote the songs"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="publisher" className="label">Publisher</label>
-                <input
-                  id="publisher"
-                  name="publisher"
-                  type="text"
-                  value={formState.publisher}
-                  onChange={handleInputChange}
-                  className="input-field"
-                  placeholder="Leave blank if not published"
-                />
-              </div>
-            </div>
-            
-            <div className="mb-8">
-              <label htmlFor="notes" className="label">Additional Notes</label>
-              <textarea
-                id="notes"
-                name="notes"
-                value={formState.notes}
-                onChange={handleInputChange}
-                className="input-field min-h-[120px]"
-                placeholder="Any special instructions or information for your release"
-              />
-            </div>
-            
-            <div className="glass-panel p-6 mb-8 bg-amber-50 border-amber-200">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="text-amber-800 font-medium">Before you submit</h3>
-                  <p className="text-sm text-amber-700 mt-1">
-                    Please verify that you own or have proper licenses for all content.
-                    Submissions with copyright issues may be rejected.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="mt-8 flex justify-between">
-              <button
-                type="button"
-                onClick={prevStep}
-                className="btn-secondary flex items-center gap-2"
-              >
-                <ChevronDown className="w-4 h-4 rotate-90" />
-                Back
-              </button>
-              
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="btn-primary flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <span className="animate-spin mr-2">⏳</span>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    Submit Release
-                    <Check className="w-4 h-4" />
-                  </>
                 )}
-              </button>
+              </CardContent>
+            </Card>
+
+            {/* Audio Upload */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Audio Files *</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div 
+                  className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => audioInputRef.current?.click()}
+                >
+                  <Music className="w-8 h-8 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="font-medium mb-2">Upload Audio Files</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Click to browse or drag and drop
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    WAV, MP3, FLAC - Max 50MB per file
+                  </p>
+                  <input
+                    ref={audioInputRef}
+                    type="file"
+                    accept="audio/wav,audio/mpeg,audio/flac"
+                    onChange={handleAudioChange}
+                    multiple
+                    className="hidden"
+                  />
+                </div>
+                
+                {audioFiles.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <h4 className="font-medium">Uploaded Files ({audioFiles.length})</h4>
+                    {audioFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Music className="w-4 h-4 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm font-medium">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAudioFile(index)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Additional Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Additional Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="producer_credits">Producer Credits</Label>
+                    <Input
+                      id="producer_credits"
+                      value={formData.producer_credits}
+                      onChange={(e) => handleInputChange('producer_credits', e.target.value)}
+                      placeholder="Producer names"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="songwriter_credits">Songwriter Credits</Label>
+                    <Input
+                      id="songwriter_credits"
+                      value={formData.songwriter_credits}
+                      onChange={(e) => handleInputChange('songwriter_credits', e.target.value)}
+                      placeholder="Songwriter names"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="artwork_credits">Artwork Credits</Label>
+                    <Input
+                      id="artwork_credits"
+                      value={formData.artwork_credits}
+                      onChange={(e) => handleInputChange('artwork_credits', e.target.value)}
+                      placeholder="Artist/Designer names"
+                    />
+                  </div>
+                  
+                  <div>
+                    <Label htmlFor="upc">UPC Code</Label>
+                    <Input
+                      id="upc"
+                      value={formData.upc}
+                      onChange={(e) => handleInputChange('upc', e.target.value)}
+                      placeholder="Leave blank if you don't have one"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <Label htmlFor="copyright_info">Copyright Information</Label>
+                  <Input
+                    id="copyright_info"
+                    value={formData.copyright_info}
+                    onChange={(e) => handleInputChange('copyright_info', e.target.value)}
+                    placeholder="Copyright details"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="submission_notes">Submission Notes</Label>
+                  <Textarea
+                    id="submission_notes"
+                    value={formData.submission_notes}
+                    onChange={(e) => handleInputChange('submission_notes', e.target.value)}
+                    placeholder="Any additional information"
+                    rows={3}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="flex justify-between">
+              <Button type="button" variant="outline" onClick={prevStep}>
+                <ChevronDown className="w-4 h-4 mr-2 rotate-90" /> Back
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !coverArt || audioFiles.length === 0}
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit Release'} 
+                <Check className="w-4 h-4 ml-2" />
+              </Button>
             </div>
           </div>
         );
-      
+
       case 4:
         return (
-          <div className="animate-fade-in text-center py-8">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-600" />
+          <div className="text-center space-y-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+              <Check className="w-8 h-8 text-green-600" />
             </div>
             
-            <h2 className="text-3xl font-display font-semibold text-slate-900 mb-4">
-              Your Release Has Been Submitted!
-            </h2>
-            
-            <p className="text-lg text-slate-600 max-w-lg mx-auto mb-8">
-              We'll review your submission and get back to you soon. You can check the status in your dashboard.
-            </p>
-            
-            <div className="glass-panel p-6 mb-8 max-w-lg mx-auto">
-              <h3 className="text-xl font-semibold text-slate-900 mb-3">Payment Instructions</h3>
-              <p className="text-slate-600 mb-4">
-                Please make your payment to complete your release submission:
-              </p>
-              <div className="bg-slate-50 p-4 rounded-md border border-slate-200 text-left">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="font-semibold">Account Name:</span> 
-                    <span className="ml-2 text-slate-700">ABDULKADIR IBRAHIM OLUWASHINA</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Account Number:</span> 
-                    <span className="ml-2 text-slate-700">8168940582</span>
-                  </div>
-                  <div>
-                    <span className="font-semibold">Bank:</span> 
-                    <span className="ml-2 text-slate-700">OPAY DIGITAL BANK</span>
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-slate-500 mt-4">
-                Include your artist name in the payment reference to help us match your payment to your submission.
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Release Submitted Successfully!</h2>
+              <p className="text-muted-foreground">
+                Your release has been submitted for review. We'll notify you once it's processed.
               </p>
             </div>
             
-            <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-              <Link to="/dashboard" className="btn-primary px-8">
-                Return to Dashboard
-              </Link>
-              
-              <Link to="/releases" className="btn-secondary px-8">
-                View Your Releases
-              </Link>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild>
+                <Link to="/dashboard">Return to Dashboard</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link to="/releases">View Releases</Link>
+              </Button>
             </div>
           </div>
         );
-      
+
       default:
         return null;
     }
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
       
       <main className="flex-grow pt-24 pb-16">
@@ -782,8 +720,10 @@ const ReleaseForm = () => {
             <div className="max-w-4xl mx-auto">
               {currentStep < 4 && (
                 <div className="mb-8">
-                  <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-4">Submit New Release</h1>
-                  <p className="text-slate-600">Complete the form below to submit your music for distribution.</p>
+                  <h1 className="text-3xl font-bold mb-2">Submit New Release</h1>
+                  <p className="text-muted-foreground">
+                    Complete the form below to submit your music for distribution.
+                  </p>
                 </div>
               )}
               
@@ -794,31 +734,33 @@ const ReleaseForm = () => {
                       <div key={step} className="flex flex-col items-center">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-medium text-sm ${
                           currentStep >= step
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-slate-200 text-slate-600'
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
                         }`}>
                           {step}
                         </div>
-                        <span className="text-xs text-slate-600 mt-2">
-                          {step === 1 ? 'Information' : step === 2 ? 'Files' : 'Details & Payment'}
+                        <span className="text-xs text-muted-foreground mt-2">
+                          {step === 1 ? 'Info' : step === 2 ? 'Tracks' : 'Files'}
                         </span>
                       </div>
                     ))}
                   </div>
-                  <div className="relative h-1 max-w-lg mx-auto mt-4 bg-slate-200 rounded-full overflow-hidden">
+                  <div className="relative h-1 max-w-lg mx-auto mt-4 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="absolute h-full bg-blue-600 transition-all duration-300 rounded-full"
+                      className="absolute h-full bg-primary transition-all duration-300 rounded-full"
                       style={{ width: `${((currentStep - 1) / 2) * 100}%` }}
                     ></div>
                   </div>
                 </div>
               )}
               
-              <div className="glass-panel p-8">
-                <form onSubmit={handleSubmit}>
-                  {renderStepContent()}
-                </form>
-              </div>
+              <Card>
+                <CardContent className="p-8">
+                  <form onSubmit={handleSubmit}>
+                    {renderStepContent()}
+                  </form>
+                </CardContent>
+              </Card>
             </div>
           </AnimatedCard>
         </div>

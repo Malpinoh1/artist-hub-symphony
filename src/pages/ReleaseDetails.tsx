@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import Navbar from '../components/Navbar';
@@ -16,9 +16,12 @@ import StreamingLinksSection from '../components/release/StreamingLinksSection';
 import PerformanceStatsSection from '../components/release/PerformanceStatsSection';
 import TakeDownSection from '../components/release/TakeDownSection';
 import TakeDownRequestStatus from '../components/release/TakeDownRequestStatus';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 
 const ReleaseDetails = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [release, setRelease] = useState<Release | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [artistId, setArtistId] = useState<string | null>(null);
@@ -188,14 +191,106 @@ const ReleaseDetails = () => {
                       />
                     </div>
                     
-                    {/* Right Column (Release Info & Actions) */}
+                     {/* Right Column (Release Info & Actions) */}
                     <div className="w-full md:w-2/3">
-                      <ReleaseHeader 
-                        release={release}
-                        isArtist={!!artistId}
-                        onShowTakeDownForm={() => setShowTakeDownForm(true)}
-                        takeDownRequest={takeDownRequest}
-                      />
+                      <div className="space-y-6">
+                        <div>
+                          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{release.title}</h1>
+                          <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">by {release.artist}</p>
+                          
+                          {/* Release Type & Genre */}
+                          <div className="flex flex-wrap gap-2 mb-4">
+                            <Badge variant="secondary" className="capitalize">
+                              {release.release_type || 'Single'}
+                            </Badge>
+                            {release.genre && (
+                              <Badge variant="outline">{release.genre}</Badge>
+                            )}
+                          </div>
+
+                          {/* Release Information Grid */}
+                          <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700 mb-6">
+                            <h3 className="text-lg font-semibold mb-4 dark:text-slate-200">Release Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Release Date:</span>
+                                <p className="text-slate-900 dark:text-slate-200">
+                                  {new Date(release.releaseDate).toLocaleDateString()}
+                                </p>
+                              </div>
+                              
+                              {release.producer_credits && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Producer(s):</span>
+                                  <p className="text-slate-900 dark:text-slate-200">{release.producer_credits}</p>
+                                </div>
+                              )}
+                              
+                              {release.songwriter_credits && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Songwriter(s):</span>
+                                  <p className="text-slate-900 dark:text-slate-200">{release.songwriter_credits}</p>
+                                </div>
+                              )}
+                              
+                              {release.artwork_credits && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Artwork Credits:</span>
+                                  <p className="text-slate-900 dark:text-slate-200">{release.artwork_credits}</p>
+                                </div>
+                              )}
+                              
+                              {release.copyright_info && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Copyright:</span>
+                                  <p className="text-slate-900 dark:text-slate-200">{release.copyright_info}</p>
+                                </div>
+                              )}
+                              
+                              <div>
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Language:</span>
+                                <p className="text-slate-900 dark:text-slate-200">{release.primary_language || 'English'}</p>
+                              </div>
+                              
+                              <div>
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Tracks:</span>
+                                <p className="text-slate-900 dark:text-slate-200">{release.total_tracks || 1}</p>
+                              </div>
+                              
+                              {release.explicit_content && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Content:</span>
+                                  <Badge variant="destructive" className="ml-2">Explicit</Badge>
+                                </div>
+                              )}
+                            </div>
+                            
+                            {release.description && (
+                              <div className="mt-4">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Description:</span>
+                                <p className="text-slate-900 dark:text-slate-200 mt-1">{release.description}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {/* Edit Request Button for Artists */}
+                        {!!artistId && (release.status === 'approved' || release.status === 'processing') && (
+                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Need to make changes?</h4>
+                            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
+                              You can request edits to your release information. Our team will review your request.
+                            </p>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => navigate(`/releases/${release.id}/edit-request`)}
+                            >
+                              Request Edit
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                       
                       {release.status === 'approved' ? (
                         <div className="space-y-6">
