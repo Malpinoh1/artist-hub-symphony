@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as OTPAuth from 'https://esm.sh/otpauth@9.2.3'
+import { TOTP } from 'https://esm.sh/otpauth@9.2.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     // Verify the token
-    const totp = new OTPAuth.TOTP({
+    const totp = new TOTP({
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
@@ -59,12 +59,20 @@ serve(async (req) => {
       )
     }
 
+    // Get the backup codes from setup
+    const { data: setupData } = await supabaseClient
+      .from('profiles')
+      .select('backup_codes')
+      .eq('id', user.id)
+      .single();
+
     // Enable 2FA in the user's profile
     const { error: updateError } = await supabaseClient
       .from('profiles')
       .update({
         two_factor_enabled: true,
         two_factor_secret: secret,
+        backup_codes: setupData?.backup_codes || []
       })
       .eq('id', user.id)
 

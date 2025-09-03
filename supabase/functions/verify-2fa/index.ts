@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as OTPAuth from 'https://esm.sh/otpauth@9.2.3'
+import { TOTP } from 'https://esm.sh/otpauth@9.2.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,7 +83,7 @@ serve(async (req) => {
     }
 
     // Verify the TOTP token
-    const totp = new OTPAuth.TOTP({
+    const totp = new TOTP({
       algorithm: 'SHA1',
       digits: 6,
       period: 30,

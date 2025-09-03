@@ -18,6 +18,7 @@ import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import MarketingOptInPopup from '../components/MarketingOptInPopup';
 import Notification from '../components/Notification';
+import { TwoFactorLogin } from '../components/TwoFactorLogin';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { sendWelcomeEmail } from '../services/emailService';
@@ -34,6 +35,8 @@ const Auth = () => {
   const [showMarketingPopup, setShowMarketingPopup] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
   const [error, setError] = useState('');
+  const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
+  const [pendingSession, setPendingSession] = useState<any>(null);
   const [notification, setNotification] = useState<{
     show: boolean;
     type: 'success' | 'error' | 'info';
@@ -228,22 +231,24 @@ const Auth = () => {
         return;
       }
       
-      // Check if user is admin
       if (data.user) {
-        showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
-        
-        const { data: roleData } = await supabase
-          .from('user_roles')
-          .select('*')
-          .eq('user_id', data.user.id)
-          .eq('role', 'admin')
-          .maybeSingle();
-          
-        if (roleData) {
-          navigate('/admin');
-        } else {
-          navigate('/dashboard');
+        // Check if user has 2FA enabled
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('two_factor_enabled')
+          .eq('id', data.user.id)
+          .single();
+
+        if (profile?.two_factor_enabled) {
+          // User needs 2FA verification
+          setPendingSession(data);
+          setNeedsTwoFactor(true);
+          setLoading(false);
+          return;
         }
+
+        // Complete login without 2FA
+        await completeLogin(data.user);
       }
     } catch (error: any) {
       console.error('Error logging in:', error);
@@ -259,6 +264,35 @@ const Auth = () => {
     }
   };
   
+  const completeLogin = async (user: any) => {
+    showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
+    
+    const { data: roleData } = await supabase
+      .from('user_roles')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('role', 'admin')
+      .maybeSingle();
+      
+    if (roleData) {
+      navigate('/admin');
+    } else {
+      navigate('/dashboard');
+    }
+  };
+
+  const handle2FAVerificationSuccess = async () => {
+    if (pendingSession?.user) {
+      await completeLogin(pendingSession.user);
+    }
+  };
+
+  const handleBack2FA = () => {
+    setNeedsTwoFactor(false);
+    setPendingSession(null);
+    setError('');
+  };
+
   const handleMarketingPopupClose = () => {
     setShowMarketingPopup(false);
   };
@@ -283,7 +317,16 @@ const Auth = () => {
         <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="max-w-md mx-auto">
-              <div className="mb-8 text-center">
+
+              {needsTwoFactor ? (
+                <TwoFactorLogin
+                  onVerificationSuccess={handle2FAVerificationSuccess}
+                  onBack={handleBack2FA}
+                  userEmail={email}
+                />
+              ) : (
+                <>
+                  <div className="mb-8 text-center">
                 <h1 className="text-3xl md:text-4xl font-semibold text-black mb-4">
                   {isLogin ? 'Welcome Back' : 'Create Account'}
                 </h1>
@@ -460,7 +503,9 @@ const Auth = () => {
                     </p>
                   </div>
                 </form>
-              </div>
+                  </div>
+                </>
+              )}
             </div>
           </AnimatedCard>
         </div>

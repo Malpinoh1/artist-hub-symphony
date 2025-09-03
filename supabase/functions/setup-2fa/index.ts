@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import * as OTPAuth from 'https://esm.sh/otpauth@9.2.3'
+import { TOTP, Secret } from 'https://esm.sh/otpauth@9.2.3'
 import { toDataURL } from 'https://esm.sh/qrcode@1.5.3'
 
 const corsHeaders = {
@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Generate a secret
-    const secret = OTPAuth.Secret.fromRaw(crypto.getRandomValues(new Uint8Array(20))).base32
+    const secret = Secret.fromRaw(crypto.getRandomValues(new Uint8Array(20))).base32
     
     // Generate backup codes
     const backupCodes = Array.from({ length: 8 }, () => 
@@ -48,7 +48,7 @@ serve(async (req) => {
     // Create QR code URL
     const serviceName = 'Malpinoh Distribution'
     const accountName = user.email || user.id
-    const totp = new OTPAuth.TOTP({
+    const totp = new TOTP({
       issuer: serviceName,
       label: accountName,
       algorithm: 'SHA1',
@@ -58,6 +58,16 @@ serve(async (req) => {
     })
     const otpauthUrl = totp.toString()
     const qrCodeUrl = await toDataURL(otpauthUrl)
+
+    // Store backup codes temporarily (they'll be saved when 2FA is enabled)
+    const { error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({ backup_codes: backupCodes })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Error storing backup codes:', updateError);
+    }
 
     return new Response(
       JSON.stringify({

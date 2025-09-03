@@ -5,6 +5,7 @@ import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import InviteNotifications from '../components/InviteNotifications';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
+import { AdminTwoFactorReset } from '../components/AdminTwoFactorReset';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ const Settings = () => {
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [show2FASetup, setShow2FASetup] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [formData, setFormData] = useState({
     full_name: '',
     username: '',
@@ -55,7 +57,26 @@ const Settings = () => {
   useEffect(() => {
     fetchUserProfile();
     fetchSubscriptionData();
+    checkAdminStatus();
   }, []);
+
+  const checkAdminStatus = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+        
+      setIsAdmin(!!roleData);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+    }
+  };
 
   const fetchUserProfile = async () => {
     try {
@@ -593,6 +614,13 @@ const Settings = () => {
             </AnimatedCard>
           </div>
         </section>
+
+        {/* Admin 2FA Reset Section */}
+        {isAdmin && (
+          <section className="container mx-auto px-4 py-8">
+            <AdminTwoFactorReset />
+          </section>
+        )}
       </main>
       
       <TwoFactorSetup
