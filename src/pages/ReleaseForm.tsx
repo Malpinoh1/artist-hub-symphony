@@ -486,10 +486,75 @@ const ReleaseForm = () => {
           <div className="space-y-6">
             <h2 className="text-2xl font-semibold mb-4">Upload Files & Additional Details</h2>
             
+            {/* Credits and Copyright */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <Label htmlFor="producer_credits">Producer Credits</Label>
+                <Input
+                  id="producer_credits"
+                  value={formData.producer_credits}
+                  onChange={(e) => handleInputChange('producer_credits', e.target.value)}
+                  placeholder="Producer name(s)"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="songwriter_credits">Songwriter Credits</Label>
+                <Input
+                  id="songwriter_credits"
+                  value={formData.songwriter_credits}
+                  onChange={(e) => handleInputChange('songwriter_credits', e.target.value)}
+                  placeholder="Songwriter name(s)"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="artwork_credits">Artwork Credits</Label>
+                <Input
+                  id="artwork_credits"
+                  value={formData.artwork_credits}
+                  onChange={(e) => handleInputChange('artwork_credits', e.target.value)}
+                  placeholder="Artist/Designer name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="copyright_info">Copyright Information</Label>
+                <Input
+                  id="copyright_info"
+                  value={formData.copyright_info}
+                  onChange={(e) => handleInputChange('copyright_info', e.target.value)}
+                  placeholder="© 2025 Artist Name"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="upc">UPC/Barcode (Optional)</Label>
+                <Input
+                  id="upc"
+                  value={formData.upc}
+                  onChange={(e) => handleInputChange('upc', e.target.value)}
+                  placeholder="Universal Product Code"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="submission_notes">Additional Notes</Label>
+              <Textarea
+                id="submission_notes"
+                value={formData.submission_notes}
+                onChange={(e) => handleInputChange('submission_notes', e.target.value)}
+                placeholder="Any additional information or special requirements"
+                rows={3}
+              />
+            </div>
+
             {/* Cover Art Upload */}
             <Card>
               <CardHeader>
                 <CardTitle>Cover Art *</CardTitle>
+                <p className="text-sm text-muted-foreground">Upload a high-quality image (minimum 3000x3000px, square format)</p>
               </CardHeader>
               <CardContent>
                 {!coverArtPreview ? (
@@ -594,76 +659,6 @@ const ReleaseForm = () => {
               </CardContent>
             </Card>
 
-            {/* Additional Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Additional Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="producer_credits">Producer Credits</Label>
-                    <Input
-                      id="producer_credits"
-                      value={formData.producer_credits}
-                      onChange={(e) => handleInputChange('producer_credits', e.target.value)}
-                      placeholder="Producer names"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="songwriter_credits">Songwriter Credits</Label>
-                    <Input
-                      id="songwriter_credits"
-                      value={formData.songwriter_credits}
-                      onChange={(e) => handleInputChange('songwriter_credits', e.target.value)}
-                      placeholder="Songwriter names"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="artwork_credits">Artwork Credits</Label>
-                    <Input
-                      id="artwork_credits"
-                      value={formData.artwork_credits}
-                      onChange={(e) => handleInputChange('artwork_credits', e.target.value)}
-                      placeholder="Artist/Designer names"
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="upc">UPC Code</Label>
-                    <Input
-                      id="upc"
-                      value={formData.upc}
-                      onChange={(e) => handleInputChange('upc', e.target.value)}
-                      placeholder="Leave blank if you don't have one"
-                    />
-                  </div>
-                </div>
-                
-                <div>
-                  <Label htmlFor="copyright_info">Copyright Information</Label>
-                  <Input
-                    id="copyright_info"
-                    value={formData.copyright_info}
-                    onChange={(e) => handleInputChange('copyright_info', e.target.value)}
-                    placeholder="Copyright details"
-                  />
-                </div>
-                
-                <div>
-                  <Label htmlFor="submission_notes">Submission Notes</Label>
-                  <Textarea
-                    id="submission_notes"
-                    value={formData.submission_notes}
-                    onChange={(e) => handleInputChange('submission_notes', e.target.value)}
-                    placeholder="Any additional information"
-                    rows={3}
-                  />
-                </div>
-              </CardContent>
-            </Card>
 
             <div className="flex justify-between">
               <Button type="button" variant="outline" onClick={prevStep}>

@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticator } from 'https://esm.sh/otplib@12.0.1'
+import * as OTPAuth from 'https://esm.sh/otpauth@9.2.3'
 import { toDataURL } from 'https://esm.sh/qrcode@1.5.3'
 
 const corsHeaders = {
@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Generate a secret
-    const secret = authenticator.generateSecret()
+    const secret = OTPAuth.Secret.fromRaw(crypto.getRandomValues(new Uint8Array(20))).base32
     
     // Generate backup codes
     const backupCodes = Array.from({ length: 8 }, () => 
@@ -48,7 +48,15 @@ serve(async (req) => {
     // Create QR code URL
     const serviceName = 'Malpinoh Distribution'
     const accountName = user.email || user.id
-    const otpauthUrl = authenticator.keyuri(accountName, serviceName, secret)
+    const totp = new OTPAuth.TOTP({
+      issuer: serviceName,
+      label: accountName,
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
+      secret: secret,
+    })
+    const otpauthUrl = totp.toString()
     const qrCodeUrl = await toDataURL(otpauthUrl)
 
     return new Response(

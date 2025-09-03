@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { authenticator } from 'https://esm.sh/otplib@12.0.1'
+import * as OTPAuth from 'https://esm.sh/otpauth@9.2.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -83,10 +83,13 @@ serve(async (req) => {
     }
 
     // Verify the TOTP token
-    const isValid = authenticator.verify({
-      token,
+    const totp = new OTPAuth.TOTP({
+      algorithm: 'SHA1',
+      digits: 6,
+      period: 30,
       secret: profile.two_factor_secret,
     })
+    const isValid = totp.validate({ token }) !== null
 
     return new Response(
       JSON.stringify({ valid: isValid }),
