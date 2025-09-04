@@ -161,9 +161,10 @@ export async function fetchUserStats(userId: string) {
   }
 }
 
-export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[]) {
+export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[], tracksData: any[] = []) {
   try {
     console.log('Starting release submission for user:', userId);
+    console.log('Release form data:', releaseFormData);
     
     // Get user email for notification
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -272,17 +273,28 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       console.log('Audio files uploaded successfully');
     }
     
-    // Insert release record
+    // Insert release record with all the collected data
     console.log('Inserting release record...');
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
         title: releaseFormData.title,
         artist_id: userId,
-        release_date: releaseFormData.releaseDate,
+        release_date: releaseFormData.release_date,
+        release_type: releaseFormData.release_type,
+        genre: releaseFormData.genre,
+        description: releaseFormData.description,
+        primary_language: releaseFormData.primary_language,
+        explicit_content: releaseFormData.explicit_content,
+        producer_credits: releaseFormData.producer_credits,
+        songwriter_credits: releaseFormData.songwriter_credits,
+        artwork_credits: releaseFormData.artwork_credits,
+        copyright_info: releaseFormData.copyright_info,
+        submission_notes: releaseFormData.submission_notes,
+        total_tracks: releaseFormData.total_tracks,
         status: 'Pending',
         cover_art_url: coverArtUrl,
-        platforms: releaseFormData.platforms,
+        platforms: releaseFormData.platforms || [],
         audio_file_url: audioFilesUrls[0] || null,
         upc: releaseFormData.upc || null,
         isrc: releaseFormData.isrc || null,
@@ -296,6 +308,32 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     }
     
     console.log('Release inserted successfully:', insertedRelease.id);
+
+    // Insert track records if provided
+    if (tracksData && tracksData.length > 0) {
+      console.log('Inserting track records...');
+      const trackRecords = tracksData.map((track, index) => ({
+        release_id: insertedRelease.id,
+        track_number: track.track_number || (index + 1),
+        title: track.title,
+        duration: track.duration,
+        isrc: track.isrc,
+        explicit_content: track.explicit_content || false,
+        featured_artists: track.featured_artists || []
+      }));
+
+      const { error: tracksError } = await supabase
+        .from('release_tracks')
+        .insert(trackRecords);
+
+      if (tracksError) {
+        console.error("Error inserting tracks:", tracksError);
+        // Don't fail the entire submission for track insertion issues
+        console.warn("Tracks insertion failed, continuing with release submission");
+      } else {
+        console.log('Tracks inserted successfully');
+      }
+    }
     
     // Send confirmation email
     try {
@@ -385,7 +423,17 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
       streamingLinks: streamingLinks,
       upc: releaseData.upc || 'Not assigned',
       isrc: releaseData.isrc || 'Not assigned',
-      statistics: statistics
+      statistics: statistics,
+      release_type: releaseData.release_type,
+      genre: releaseData.genre,
+      description: releaseData.description,
+      producer_credits: releaseData.producer_credits,
+      songwriter_credits: releaseData.songwriter_credits,
+      artwork_credits: releaseData.artwork_credits,
+      copyright_info: releaseData.copyright_info,
+      primary_language: releaseData.primary_language,
+      total_tracks: releaseData.total_tracks,
+      explicit_content: releaseData.explicit_content
     };
   } catch (error) {
     console.error('Error fetching release details:', error);

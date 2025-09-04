@@ -242,37 +242,26 @@ const ReleaseForm = () => {
         audioUrls.push(publicUrl);
       }
 
-      // Create release record
-      const releaseData = {
+      // Prepare form data with proper structure
+      const releaseFormData = {
         ...formData,
-        artist_id: session.user.id,
-        cover_art_url: coverArtUrl,
-        audio_file_url: audioUrls[0], // Primary audio file
-        platforms: selectedPlatforms,
-        status: 'Pending' as const
+        platforms: selectedPlatforms
       };
 
-      const { data: release, error: releaseError } = await supabase
-        .from('releases')
-        .insert(releaseData)
-        .select()
-        .single();
+      // Import the submitRelease function dynamically to use the updated version
+      const { submitRelease } = await import('../services/releaseService');
+      
+      // Submit release with all data including tracks
+      const result = await submitRelease(
+        releaseFormData,
+        session.user.id,
+        coverArt,
+        audioFiles,
+        tracks
+      );
 
-      if (releaseError) throw releaseError;
-
-      // Create track records
-      if (tracks.length > 0) {
-        const trackData = tracks.map((track, index) => ({
-          ...track,
-          release_id: release.id,
-          track_number: index + 1
-        }));
-
-        const { error: tracksError } = await supabase
-          .from('release_tracks')
-          .insert(trackData);
-
-        if (tracksError) throw tracksError;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to submit release');
       }
 
       toast({

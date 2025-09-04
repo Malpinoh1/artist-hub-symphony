@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { generateTwoFactorSecret, enableTwoFactor, disableTwoFactor, verifyTwoFactorToken } from '../services/twoFactorService';
+import { supabase } from '../integrations/supabase/client';
 
 interface TwoFactorSetupProps {
   isOpen: boolean;
@@ -46,12 +46,18 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   const initiate2FASetup = async () => {
     try {
       setLoading(true);
-      const setupData = await generateTwoFactorSecret();
-      setQrCode(setupData.qrCodeUrl);
-      setSecret(setupData.secret);
-      setBackupCodes(setupData.backupCodes);
+      const { data, error } = await supabase.functions.invoke('setup-2fa');
+      
+      if (error) {
+        throw error;
+      }
+      
+      setQrCode(data.qrCodeUrl);
+      setSecret(data.secret);
+      setBackupCodes(data.backupCodes);
       setStep('setup');
     } catch (error) {
+      console.error('2FA setup error:', error);
       toast({
         title: "Error",
         description: "Failed to generate 2FA setup. Please try again.",
@@ -92,9 +98,15 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
 
     try {
       setLoading(true);
-      const success = await enableTwoFactor(verificationCode, secret);
+      const { data, error } = await supabase.functions.invoke('enable-2fa', {
+        body: { token: verificationCode, secret }
+      });
       
-      if (success) {
+      if (error) {
+        throw error;
+      }
+      
+      if (data.success) {
         toast({
           title: "2FA Enabled!",
           description: "Two-factor authentication has been successfully enabled for your account."
@@ -104,11 +116,12 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
       } else {
         toast({
           title: "Invalid code",
-          description: "The verification code is incorrect. Please try again.",
+          description: data.error || "The verification code is incorrect. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('2FA enable error:', error);
       toast({
         title: "Error",
         description: "Failed to enable 2FA. Please try again.",
@@ -120,20 +133,15 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   };
 
   const handleDisable = async () => {
-    if (!password) {
-      toast({
-        title: "Password required",
-        description: "Please enter your password to disable 2FA",
-        variant: "destructive"
-      });
-      return;
-    }
-
     try {
       setLoading(true);
-      const success = await disableTwoFactor(password);
+      const { data, error } = await supabase.functions.invoke('disable-2fa');
       
-      if (success) {
+      if (error) {
+        throw error;
+      }
+      
+      if (data.success) {
         toast({
           title: "2FA Disabled",
           description: "Two-factor authentication has been disabled for your account."
@@ -142,12 +150,13 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         onClose();
       } else {
         toast({
-          title: "Invalid password",
-          description: "The password is incorrect. Please try again.",
+          title: "Error",
+          description: data.error || "Failed to disable 2FA. Please try again.",
           variant: "destructive"
         });
       }
     } catch (error) {
+      console.error('2FA disable error:', error);
       toast({
         title: "Error",
         description: "Failed to disable 2FA. Please try again.",
@@ -294,36 +303,14 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         <AlertTriangle className="w-12 h-12 mx-auto mb-4 text-destructive" />
         <h3 className="text-lg font-semibold">Disable Two-Factor Authentication</h3>
         <p className="text-sm text-muted-foreground">
-          Enter your password to disable 2FA. This will make your account less secure.
+          Are you sure you want to disable 2FA? This will make your account less secure.
         </p>
-      </div>
-
-      <div>
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Input
-            id="password"
-            type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Enter your password"
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="absolute right-2 top-1/2 -translate-y-1/2"
-            onClick={() => setShowPassword(!showPassword)}
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </Button>
-        </div>
       </div>
 
       <Alert>
         <AlertTriangle className="w-4 h-4" />
         <AlertDescription>
-          Disabling 2FA will reduce your account security. We recommend keeping it enabled.
+          Disabling 2FA will reduce your account security. We recommend keeping it enabled to protect your music and earnings.
         </AlertDescription>
       </Alert>
 
@@ -335,7 +322,7 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
           type="button" 
           variant="destructive"
           onClick={handleDisable} 
-          disabled={loading || !password}
+          disabled={loading}
           className="flex-1"
         >
           {loading ? 'Disabling...' : 'Disable 2FA'}
