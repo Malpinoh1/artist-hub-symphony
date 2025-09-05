@@ -38,7 +38,7 @@ serve(async (req) => {
     }
 
     // Generate a secret
-    const secret = Secret.fromRaw(crypto.getRandomValues(new Uint8Array(20))).base32
+    const secret = new Secret().base32
     
     // Generate backup codes
     const backupCodes = Array.from({ length: 8 }, () => 
@@ -54,7 +54,7 @@ serve(async (req) => {
       algorithm: 'SHA1',
       digits: 6,
       period: 30,
-      secret: secret,
+      secret: Secret.fromBase32(secret),
     })
     const otpauthUrl = totp.toString()
     const qrCodeUrl = await toDataURL(otpauthUrl)
