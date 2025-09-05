@@ -36,7 +36,8 @@ export const TwoFactorLogin: React.FC<TwoFactorLoginProps> = ({
 
     try {
       setLoading(true);
-      const isValid = await verifyTwoFactorToken(verificationCode);
+      const tokenToVerify = isBackupCode ? verificationCode.toUpperCase() : verificationCode;
+      const isValid = await verifyTwoFactorToken(tokenToVerify);
       
       if (isValid) {
         toast({
@@ -82,7 +83,13 @@ export const TwoFactorLogin: React.FC<TwoFactorLoginProps> = ({
           <Input
             id="verification-code"
             value={verificationCode}
-            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            onChange={(e) => {
+              const val = e.target.value;
+              const cleaned = isBackupCode
+                ? val.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 6)
+                : val.replace(/\D/g, '').slice(0, 6);
+              setVerificationCode(cleaned);
+            }}
             placeholder={isBackupCode ? "XXXXXX" : "000000"}
             className="text-center text-lg font-mono tracking-widest mt-1"
             maxLength={6}

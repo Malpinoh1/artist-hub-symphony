@@ -204,43 +204,8 @@ const ReleaseForm = () => {
         return;
       }
 
-      // Upload cover art
-      let coverArtUrl = null;
-      if (coverArt) {
-        const fileExt = coverArt.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('release_artwork')
-          .upload(fileName, coverArt);
+      // File uploads are handled by the submitRelease service function to keep logic centralized
 
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('release_artwork')
-          .getPublicUrl(fileName);
-        
-        coverArtUrl = publicUrl;
-      }
-
-      // Upload audio files
-      const audioUrls: string[] = [];
-      for (const file of audioFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${Date.now()}-${Math.random()}.${fileExt}`;
-        
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('audio_files')
-          .upload(fileName, file);
-
-        if (uploadError) throw uploadError;
-        
-        const { data: { publicUrl } } = supabase.storage
-          .from('audio_files')
-          .getPublicUrl(fileName);
-        
-        audioUrls.push(publicUrl);
-      }
 
       // Prepare form data with proper structure
       const releaseFormData = {

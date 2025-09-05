@@ -256,6 +256,13 @@ const ReleaseDetails = () => {
                                 <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Tracks:</span>
                                 <p className="text-slate-900 dark:text-slate-200">{release.total_tracks || 1}</p>
                               </div>
+
+                              {release.platforms && release.platforms.length > 0 && (
+                                <div>
+                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Platforms:</span>
+                                  <p className="text-slate-900 dark:text-slate-200">{release.platforms.join(', ')}</p>
+                                </div>
+                              )}
                               
                               {release.explicit_content && (
                                 <div>
@@ -271,7 +278,34 @@ const ReleaseDetails = () => {
                                 <p className="text-slate-900 dark:text-slate-200 mt-1">{release.description}</p>
                               </div>
                             )}
+
+                            {release.submission_notes && (
+                              <div className="mt-4">
+                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Submission Notes:</span>
+                                <p className="text-slate-900 dark:text-slate-200 mt-1">{release.submission_notes}</p>
+                              </div>
+                            )}
                           </div>
+
+                          {/* Tracklist */}
+                          {release.tracks && release.tracks.length > 0 && (
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700 mt-6">
+                              <h3 className="text-lg font-semibold mb-4 dark:text-slate-200">Tracklist</h3>
+                              <ol className="space-y-2 list-decimal list-inside">
+                                {release.tracks.map((track) => (
+                                  <li key={track.track_number} className="text-slate-900 dark:text-slate-200">
+                                    <span className="font-medium mr-2">{track.title}</span>
+                                    {track.featured_artists && track.featured_artists.length > 0 && (
+                                      <span className="text-sm text-slate-600 dark:text-slate-400">feat. {track.featured_artists.join(', ')}</span>
+                                    )}
+                                    {track.explicit_content && (
+                                      <Badge variant="destructive" className="ml-2">Explicit</Badge>
+                                    )}
+                                  </li>
+                                ))}
+                              </ol>
+                            </div>
+                          )}
                         </div>
                         
                         {/* Edit Request Button for Artists */}

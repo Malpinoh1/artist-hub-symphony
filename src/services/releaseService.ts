@@ -26,6 +26,16 @@ export type Release = {
   primary_language?: string;
   total_tracks?: number;
   explicit_content?: boolean;
+  submission_notes?: string;
+  platforms?: string[];
+  tracks?: Array<{
+    track_number: number;
+    title: string;
+    duration?: number | null;
+    isrc?: string | null;
+    explicit_content?: boolean;
+    featured_artists?: string[];
+  }>;
 };
 
 export async function fetchUserReleases(userId: string): Promise<Release[]> {
@@ -412,6 +422,15 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
       .maybeSingle();
     
     const statistics = !statsError && statsData ? statsData : null;
+
+    // Get tracklist for this release
+    const { data: trackData, error: tracksError } = await supabase
+      .from('release_tracks')
+      .select('track_number, title, duration, isrc, explicit_content, featured_artists')
+      .eq('release_id', releaseId)
+      .order('track_number', { ascending: true });
+
+    const tracks = tracksError || !trackData ? [] : trackData;
     
     return {
       id: releaseData.id,
@@ -433,7 +452,10 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
       copyright_info: releaseData.copyright_info,
       primary_language: releaseData.primary_language,
       total_tracks: releaseData.total_tracks,
-      explicit_content: releaseData.explicit_content
+      explicit_content: releaseData.explicit_content,
+      submission_notes: releaseData.submission_notes,
+      platforms: releaseData.platforms || [],
+      tracks: tracks
     };
   } catch (error) {
     console.error('Error fetching release details:', error);
