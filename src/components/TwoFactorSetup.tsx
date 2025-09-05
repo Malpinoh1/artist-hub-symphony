@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '../integrations/supabase/client';
+import QRCode from 'react-qr-code';
 
 interface TwoFactorSetupProps {
   isOpen: boolean;
@@ -26,6 +27,7 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   const { toast } = useToast();
   const [step, setStep] = useState<'setup' | 'verify' | 'disable'>('setup');
   const [qrCode, setQrCode] = useState<string>('');
+  const [otpauthUrl, setOtpauthUrl] = useState<string>('');
   const [secret, setSecret] = useState<string>('');
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
   const [verificationCode, setVerificationCode] = useState<string>('');
@@ -52,7 +54,8 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         throw error;
       }
       
-      setQrCode(data.qrCodeUrl);
+      setOtpauthUrl(data.otpauthUrl || '');
+      setQrCode(data.qrCodeUrl || '');
       setSecret(data.secret);
       setBackupCodes(data.backupCodes);
       setStep('setup');
@@ -170,7 +173,15 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
   const renderSetupStep = () => (
     <div className="space-y-6">
       <div className="text-center">
-        <img src={qrCode} alt="QR Code" className="mx-auto mb-4 border rounded-lg" />
+        {otpauthUrl ? (
+          <div className="mx-auto mb-4 inline-block border rounded-lg p-3 bg-background">
+            <QRCode value={otpauthUrl} size={192} />
+          </div>
+        ) : (
+          qrCode ? (
+            <img src={qrCode} alt="2FA QR code" className="mx-auto mb-4 border rounded-lg" />
+          ) : null
+        )}
         <p className="text-sm text-muted-foreground mb-4">
           Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
         </p>

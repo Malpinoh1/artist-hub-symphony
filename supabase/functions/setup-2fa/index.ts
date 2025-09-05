@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { TOTP, Secret } from 'https://esm.sh/otpauth@9.2.3'
-import { toDataURL } from 'https://esm.sh/qrcode@1.5.3'
+
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -57,7 +57,7 @@ serve(async (req) => {
       secret: Secret.fromBase32(secret),
     })
     const otpauthUrl = totp.toString()
-    const qrCodeUrl = await toDataURL(otpauthUrl)
+    
 
     // Store backup codes temporarily (they'll be saved when 2FA is enabled)
     const { error: updateError } = await supabaseClient
@@ -72,7 +72,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         secret,
-        qrCodeUrl,
+        otpauthUrl,
         backupCodes,
       }),
       {
