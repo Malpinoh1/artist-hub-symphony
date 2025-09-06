@@ -174,15 +174,15 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
     <div className="space-y-6">
       <div className="text-center">
         {otpauthUrl ? (
-          <div className="mx-auto mb-4 inline-block border rounded-lg p-3 bg-background">
-            <QRCode value={otpauthUrl} size={192} />
+          <div className="mx-auto mb-4 inline-block border rounded-lg p-2 sm:p-3 bg-background">
+            <QRCode value={otpauthUrl} size={window.innerWidth < 640 ? 160 : 192} />
           </div>
         ) : (
           qrCode ? (
-            <img src={qrCode} alt="2FA QR code" className="mx-auto mb-4 border rounded-lg" />
+            <img src={qrCode} alt="2FA QR code" className="mx-auto mb-4 border rounded-lg max-w-full h-auto" />
           ) : null
         )}
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-xs sm:text-sm text-muted-foreground mb-4">
           Scan this QR code with your authenticator app (Google Authenticator, Authy, etc.)
         </p>
       </div>
@@ -229,10 +229,10 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         </CardHeader>
         <CardContent>
           {showBackupCodes ? (
-            <div className="space-y-2">
-              <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {backupCodes.map((code, index) => (
-                  <Badge key={index} variant="outline" className="justify-center font-mono">
+                  <Badge key={index} variant="outline" className="justify-center font-mono text-xs p-2">
                     {code}
                   </Badge>
                 ))}
@@ -249,12 +249,12 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
               </Button>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Click the eye icon to reveal backup codes</p>
+            <p className="text-xs sm:text-sm text-muted-foreground">Click the eye icon to reveal backup codes</p>
           )}
         </CardContent>
       </Card>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button type="button" variant="outline" onClick={onClose} className="flex-1">
           Cancel
         </Button>
@@ -292,7 +292,7 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         />
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button type="button" variant="outline" onClick={() => setStep('setup')} className="flex-1">
           Back
         </Button>
@@ -325,7 +325,7 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
         </AlertDescription>
       </Alert>
 
-      <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row gap-2">
         <Button type="button" variant="outline" onClick={onClose} className="flex-1">
           Cancel
         </Button>
@@ -344,12 +344,12 @@ export const TwoFactorSetup: React.FC<TwoFactorSetupProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="w-[95vw] max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
             {currentlyEnabled ? 'Disable Two-Factor Authentication' : 'Setup Two-Factor Authentication'}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-sm">
             {currentlyEnabled 
               ? 'Disable 2FA for your account'
               : 'Add an extra layer of security to your account'
