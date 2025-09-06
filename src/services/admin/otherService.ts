@@ -16,3 +16,6 @@ export async function fetchTakeDownRequestsCount() {
     return 0;
   }
 }
+
+// Re-export artist earnings function that is also used in admin dashboard
+export { fetchArtistsEarningSummary } from './artistService';

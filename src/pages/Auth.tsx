@@ -240,8 +240,15 @@ const Auth = () => {
           .single();
 
         if (profile?.two_factor_enabled) {
-          // User needs 2FA verification
-          setPendingSession(data);
+          // User needs 2FA verification - store complete session info but sign out for security
+          const sessionData = {
+            user: data.user,
+            session: data.session,
+            email: email,
+            password: password
+          };
+          setPendingSession(sessionData);
+          await supabase.auth.signOut();
           setNeedsTwoFactor(true);
           setLoading(false);
           return;
@@ -282,8 +289,16 @@ const Auth = () => {
   };
 
   const handle2FAVerificationSuccess = async () => {
-    if (pendingSession?.user) {
-      await completeLogin(pendingSession.user);
+    if (pendingSession?.email && pendingSession?.password) {
+      // Re-authenticate with stored credentials after 2FA verification
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: pendingSession.email,
+        password: pendingSession.password
+      });
+      
+      if (!error && data.user) {
+        await completeLogin(data.user);
+      }
     }
   };
 
@@ -322,7 +337,7 @@ const Auth = () => {
                 <TwoFactorLogin
                   onVerificationSuccess={handle2FAVerificationSuccess}
                   onBack={handleBack2FA}
-                  userEmail={email}
+                  userEmail={pendingSession?.email || email}
                 />
               ) : (
                 <>

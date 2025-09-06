@@ -13,41 +13,67 @@ serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json()
+    const { token, email } = await req.json()
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
     )
 
-    // Get the user from the request
-    const authClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
+    // If email is provided (during login), get user by email
+    // Otherwise, get user from Authorization header
+    let userId = null;
+    
+    if (email) {
+      // Get user by email for login verification
+      const { data: userData, error: userError } = await supabaseClient.auth.admin.listUsers()
+      if (userError) {
+        console.error('Error fetching users:', userError)
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify user' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
       }
-    )
-
-    const {
-      data: { user },
-      error: userError,
-    } = await authClient.auth.getUser()
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      
+      const user = userData.users.find(u => u.email === email)
+      if (!user) {
+        return new Response(
+          JSON.stringify({ error: 'User not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      userId = user.id
+    } else {
+      // Get user from auth header for authenticated requests
+      const authClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        {
+          global: {
+            headers: { Authorization: req.headers.get('Authorization')! },
+          },
+        }
       )
+
+      const {
+        data: { user },
+        error: userError,
+      } = await authClient.auth.getUser()
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      userId = user.id
     }
 
     // Get user's 2FA secret
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('two_factor_secret, backup_codes')
-      .eq('id', user.id)
+      .eq('id', userId)
       .single()
 
     if (profileError || !profile) {
@@ -72,7 +98,7 @@ serve(async (req) => {
       await supabaseClient
         .from('profiles')
         .update({ backup_codes: updatedBackupCodes })
-        .eq('id', user.id)
+        .eq('id', userId)
 
       return new Response(
         JSON.stringify({ valid: true }),

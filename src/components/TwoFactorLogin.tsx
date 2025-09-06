@@ -37,7 +37,7 @@ export const TwoFactorLogin: React.FC<TwoFactorLoginProps> = ({
     try {
       setLoading(true);
       const tokenToVerify = isBackupCode ? verificationCode.toUpperCase() : verificationCode;
-      const isValid = await verifyTwoFactorToken(tokenToVerify);
+      const isValid = await verifyTwoFactorToken(tokenToVerify, userEmail);
       
       if (isValid) {
         toast({

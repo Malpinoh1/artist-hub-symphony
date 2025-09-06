@@ -34,18 +34,21 @@ export const enableTwoFactor = async (token: string, secret: string): Promise<bo
   }
 };
 
-export const verifyTwoFactorToken = async (token: string): Promise<boolean> => {
+export const verifyTwoFactorToken = async (token: string, email?: string): Promise<boolean> => {
   try {
     const { data, error } = await supabase.functions.invoke('verify-2fa', {
-      body: { token }
+      body: { token, email }
     });
     
-    if (error) throw error;
+    if (error) {
+      console.error('2FA verification error:', error);
+      return false;
+    }
     
-    return data.valid;
+    return data?.valid || false;
   } catch (error) {
     console.error('Error verifying 2FA token:', error);
-    throw new Error('Failed to verify 2FA token');
+    return false;
   }
 };
 
