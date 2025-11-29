@@ -855,7 +855,7 @@ export type Database = {
           created_at: string | null
           expires_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           session_token: string
           two_factor_verified: boolean | null
           user_agent: string | null
@@ -865,7 +865,7 @@ export type Database = {
           created_at?: string | null
           expires_at: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           session_token: string
           two_factor_verified?: boolean | null
           user_agent?: string | null
@@ -875,7 +875,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           session_token?: string
           two_factor_verified?: boolean | null
           user_agent?: string | null
@@ -942,12 +942,15 @@ export type Database = {
         }
         Returns: boolean
       }
-      has_role: {
-        Args:
-          | { role: Database["public"]["Enums"]["user_role"]; user_id: string }
-          | { role_name: string }
-        Returns: boolean
-      }
+      has_role:
+        | {
+            Args: {
+              role: Database["public"]["Enums"]["user_role"]
+              user_id: string
+            }
+            Returns: boolean
+          }
+        | { Args: { role_name: string }; Returns: boolean }
       is_account_admin: {
         Args: { target_account_id: string }
         Returns: boolean
@@ -956,10 +959,7 @@ export type Database = {
         Args: { user_id?: string }
         Returns: boolean
       }
-      user_is_admin: {
-        Args: { user_id?: string }
-        Returns: boolean
-      }
+      user_is_admin: { Args: { user_id?: string }; Returns: boolean }
     }
     Enums: {
       account_role: "account_admin" | "manager" | "viewer"
