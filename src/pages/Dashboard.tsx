@@ -2,14 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet, Lock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
@@ -122,17 +119,11 @@ const Dashboard = () => {
 
   if (loading || subscriptionLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading your dashboard...</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -140,60 +131,50 @@ const Dashboard = () => {
   // Show access denied if user doesn't have subscription or admin access
   if (!hasAccess()) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-10 h-10 text-muted-foreground" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground mb-4">Subscription Required</h1>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                You need an active subscription to access the dashboard and its features. Please contact support or upgrade your account.
-              </p>
-              <div className="flex gap-4 justify-center">
-                <Button asChild>
-                  <Link to="/pricing">View Pricing</Link>
-                </Button>
-                <Button variant="outline" asChild>
-                  <Link to="/contact">Contact Support</Link>
-                </Button>
-              </div>
-            </div>
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center py-20">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-10 h-10 text-muted-foreground" />
           </div>
-        </main>
-        <Footer />
+          <h1 className="text-2xl font-bold text-foreground mb-4">Subscription Required</h1>
+          <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+            You need an active subscription to access the dashboard and its features. Please contact support or upgrade your account.
+          </p>
+          <div className="flex gap-4 justify-center">
+            <Button asChild>
+              <Link to="/pricing">View Pricing</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link to="/contact">Contact Support</Link>
+            </Button>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
-                  Welcome back, {user?.email?.split('@')[0] || 'Artist'}!
-                </h1>
-                <p className="text-muted-foreground text-lg">
-                  Manage your music distribution and track your performance
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                {isAdmin && (
-                  <Badge variant="destructive">Admin Access</Badge>
-                )}
-                {subscribed && (
-                  <Badge variant="secondary">Subscribed</Badge>
-                )}
-              </div>
-            </div>
+    <div className="container mx-auto px-4 py-8 pb-16">
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+              Welcome back, {user?.email?.split('@')[0] || 'Artist'}!
+            </h1>
+            <p className="text-muted-foreground text-lg">
+              Manage your music distribution and track your performance
+            </p>
           </div>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Badge variant="destructive">Admin Access</Badge>
+            )}
+            {subscribed && (
+              <Badge variant="secondary">Subscribed</Badge>
+            )}
+          </div>
+        </div>
+      </div>
 
           {/* Quick Actions */}
           <div className="mb-8">
@@ -363,11 +344,7 @@ const Dashboard = () => {
               </Card>
             </AnimatedCard>
           </div>
-        </section>
-      </main>
-      
-      <Footer />
-    </div>
+        </div>
   );
 };
 

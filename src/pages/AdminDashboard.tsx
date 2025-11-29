@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { toast } from 'sonner';
 import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
@@ -209,60 +207,52 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <AnimatedCard>
-            <div className="mb-6">
-              <h1 className="text-3xl font-display font-bold text-black">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage your distribution platform</p>
-            </div>
-            
-            {/* Dashboard Stats */}
-            <DashboardStats 
-              releasesCount={releases.length}
-              artistsCount={artists.length}
-              pendingWithdrawalsCount={withdrawals.filter(w => w.status === 'PENDING').length}
-              takeDownRequestsCount={takeDownRequestsCount}
-              totalArtistEarnings={totalArtistEarnings}
-              pendingWithdrawalsAmount={pendingWithdrawalsAmount}
-            />
-            
-            {/* Tabs Navigation */}
-            <div className="border-b border-gray-200 mb-6">
-              <div className="flex overflow-x-auto space-x-1">
-                {tabs.map((tab) => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`px-4 py-2 border-b-2 whitespace-nowrap flex items-center ${
-                      activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600 font-medium'
-                        : 'border-transparent hover:text-blue-500'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.badge && (
-                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            {/* Tab Content */}
-            <div className="glass-panel p-6">
-              {renderActiveTabContent()}
-            </div>
-          </AnimatedCard>
+    <div className="container mx-auto px-4 py-8 pb-16">
+      <AnimatedCard>
+        <div className="mb-6">
+          <h1 className="text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2">Manage your distribution platform</p>
         </div>
-      </main>
-      
-      <Footer />
+        
+        {/* Dashboard Stats */}
+        <DashboardStats 
+          releasesCount={releases.length}
+          artistsCount={artists.length}
+          pendingWithdrawalsCount={withdrawals.filter(w => w.status === 'PENDING').length}
+          takeDownRequestsCount={takeDownRequestsCount}
+          totalArtistEarnings={totalArtistEarnings}
+          pendingWithdrawalsAmount={pendingWithdrawalsAmount}
+        />
+        
+        {/* Tabs Navigation */}
+        <div className="border-b border-border mb-6">
+          <div className="flex overflow-x-auto space-x-1">
+            {tabs.map((tab) => (
+              <button 
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id)}
+                className={`px-4 py-2 border-b-2 whitespace-nowrap flex items-center ${
+                  activeTab === tab.id
+                    ? 'border-primary text-primary font-medium'
+                    : 'border-transparent hover:text-primary'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.badge && (
+                  <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-destructive/10 text-destructive">
+                    {tab.badge}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+        
+        {/* Tab Content */}
+        <div className="bg-card rounded-lg border p-6">
+          {renderActiveTabContent()}
+        </div>
+      </AnimatedCard>
     </div>
   );
 };
