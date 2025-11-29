@@ -190,6 +190,15 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     const userEmail = userData.user.email;
     console.log('User email found:', userEmail);
 
+    // Get user profile to get the name
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    const artistName = profileData?.full_name || userEmail.split('@')[0];
+    
     // Check if artist record exists, create if not
     let { data: artistData, error: artistError } = await supabase
       .from('artists')
@@ -209,7 +218,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         .from('artists')
         .insert({
           id: userId,
-          name: releaseFormData.artist || releaseFormData.primaryArtist || 'Unknown Artist',
+          name: artistName,
           email: userEmail
         })
         .select('name')
