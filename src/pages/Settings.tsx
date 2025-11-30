@@ -340,11 +340,15 @@ const Settings = () => {
     setShow2FASetup(true);
   };
 
-  const handle2FAStatusChange = (enabled: boolean) => {
+  const handle2FAStatusChange = async (enabled: boolean) => {
+    // Update local state immediately for UI
     setFormData(prev => ({ ...prev, two_factor_enabled: enabled }));
     if (userProfile) {
       setUserProfile({ ...userProfile, two_factor_enabled: enabled });
     }
+    
+    // Refetch from database to ensure consistency
+    await fetchUserProfile();
   };
 
   if (loading) {
