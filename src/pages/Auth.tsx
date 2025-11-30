@@ -36,6 +36,7 @@ const Auth = () => {
   const [newUserEmail, setNewUserEmail] = useState('');
   const [error, setError] = useState('');
   const [needsTwoFactor, setNeedsTwoFactor] = useState(false);
+  const [showRecovery, setShowRecovery] = useState(false);
   const [pendingSession, setPendingSession] = useState<any>(null);
   const [notification, setNotification] = useState<{
     show: boolean;
@@ -304,8 +305,23 @@ const Auth = () => {
 
   const handleBack2FA = () => {
     setNeedsTwoFactor(false);
+    setShowRecovery(false);
     setPendingSession(null);
     setError('');
+  };
+
+  const handleShowRecovery = () => {
+    setShowRecovery(true);
+  };
+
+  const handleRecoverySuccess = () => {
+    setShowRecovery(false);
+    setNeedsTwoFactor(false);
+    setPendingSession(null);
+    toast({
+      title: '2FA Disabled',
+      description: 'You can now log in with your password only. Remember to set up 2FA again for security.'
+    });
   };
 
   const handleMarketingPopupClose = () => {
@@ -333,11 +349,26 @@ const Auth = () => {
           <AnimatedCard>
             <div className="max-w-md mx-auto">
 
-              {needsTwoFactor ? (
-                <TwoFactorLogin
-                  onVerificationSuccess={handle2FAVerificationSuccess}
-                  onBack={handleBack2FA}
+              {needsTwoFactor && !showRecovery ? (
+                <div className="space-y-4">
+                  <TwoFactorLogin
+                    onVerificationSuccess={handle2FAVerificationSuccess}
+                    onBack={handleBack2FA}
+                    userEmail={pendingSession?.email || email}
+                  />
+                  <Button
+                    variant="link"
+                    onClick={handleShowRecovery}
+                    className="w-full text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Lost access to your authenticator app?
+                  </Button>
+                </div>
+              ) : showRecovery ? (
+                <TwoFactorRecovery
                   userEmail={pendingSession?.email || email}
+                  onBack={handleBack2FA}
+                  onRecoverySuccess={handleRecoverySuccess}
                 />
               ) : (
                 <>
