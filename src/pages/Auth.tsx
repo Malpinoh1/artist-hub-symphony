@@ -240,14 +240,14 @@ const Auth = () => {
           .single();
 
         if (profile?.two_factor_enabled) {
-          // User needs 2FA verification - store complete session info but sign out for security
-          const sessionData = {
+          // User needs 2FA verification - store session data for re-authentication
+          setPendingSession({
             user: data.user,
             session: data.session,
             email: email,
             password: password
-          };
-          setPendingSession(sessionData);
+          });
+          // Sign out temporarily until 2FA is verified
           await supabase.auth.signOut();
           setNeedsTwoFactor(true);
           setLoading(false);
