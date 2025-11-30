@@ -93,6 +93,11 @@ export const TwoFactorLogin: React.FC<TwoFactorLoginProps> = ({
             placeholder={isBackupCode ? "XXXXXX" : "000000"}
             className="text-center text-lg font-mono tracking-widest mt-1"
             maxLength={6}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && verificationCode.length === 6) {
+                handleVerify();
+              }
+            }}
           />
         </div>
 
