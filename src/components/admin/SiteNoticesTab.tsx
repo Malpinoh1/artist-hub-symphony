@@ -88,6 +88,33 @@ export function SiteNoticesTab() {
     }
 
     try {
+      // Check if user is admin
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast({
+          title: "Error",
+          description: "You must be logged in",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', session.user.id)
+        .eq('role', 'admin')
+        .single();
+
+      if (roleError || !roleData) {
+        toast({
+          title: "Error",
+          description: "You do not have permission to manage site notices",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const noticeData = {
         title: formData.title.trim() || null,
         message: formData.message.trim(),
@@ -95,7 +122,8 @@ export function SiteNoticesTab() {
         is_active: formData.is_active,
         start_at: formData.start_at || new Date().toISOString(),
         end_at: formData.end_at || null,
-        dismissible: formData.dismissible
+        dismissible: formData.dismissible,
+        created_by: session.user.id
       };
 
       if (editingNotice) {
@@ -104,7 +132,10 @@ export function SiteNoticesTab() {
           .update(noticeData)
           .eq('id', editingNotice.id);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Update error:', error);
+          throw error;
+        }
         
         toast({
           title: "Success",
@@ -115,7 +146,10 @@ export function SiteNoticesTab() {
           .from('site_notices')
           .insert([noticeData]);
 
-        if (error) throw error;
+        if (error) {
+          console.error('Insert error:', error);
+          throw error;
+        }
         
         toast({
           title: "Success",
@@ -125,11 +159,11 @@ export function SiteNoticesTab() {
 
       resetForm();
       fetchNotices();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving notice:', error);
       toast({
         title: "Error",
-        description: "Failed to save notice",
+        description: error.message || "Failed to save notice. Please check your permissions.",
         variant: "destructive"
       });
     }
