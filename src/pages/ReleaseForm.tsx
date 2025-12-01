@@ -29,6 +29,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { TermsAndConditions } from '@/components/TermsAndConditions';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const releaseTypes = [
   { 
@@ -109,6 +119,7 @@ const ReleaseForm = () => {
   const [audioFiles, setAudioFiles] = useState<File[]>([]);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Check authentication
   useEffect(() => {
@@ -613,6 +624,35 @@ const ReleaseForm = () => {
               </CardContent>
             </Card>
 
+            {/* Terms and Conditions */}
+            <Card className="border-primary/20 bg-muted/30">
+              <CardHeader>
+                <CardTitle className="text-base">Terms & Conditions</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <TermsAndConditions />
+                
+                <div className="flex items-start space-x-3 pt-4">
+                  <Checkbox 
+                    id="terms"
+                    checked={termsAccepted}
+                    onCheckedChange={(checked) => setTermsAccepted(checked as boolean)}
+                  />
+                  <div className="grid gap-1.5 leading-none">
+                    <Label
+                      htmlFor="terms"
+                      className="text-sm font-medium leading-relaxed cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      I have read and agree to the Terms & Conditions *
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      By submitting this release, you confirm that you have full rights to distribute this content 
+                      and agree to all terms outlined above.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             <div className="flex justify-between">
               <Button type="button" variant="outline" onClick={prevStep}>
@@ -620,7 +660,7 @@ const ReleaseForm = () => {
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || !coverArt || audioFiles.length === 0}
+                disabled={isSubmitting || !coverArt || audioFiles.length === 0 || !termsAccepted}
               >
                 {isSubmitting ? 'Submitting...' : 'Submit Release'} 
                 <Check className="w-4 h-4 ml-2" />
