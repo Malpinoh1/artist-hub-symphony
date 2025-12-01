@@ -19,6 +19,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import MarketingOptInPopup from '../components/MarketingOptInPopup';
 import Notification from '../components/Notification';
 import { TwoFactorLogin } from '../components/TwoFactorLogin';
+import { TwoFactorRecovery } from '../components/TwoFactorRecovery';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { sendWelcomeEmail } from '../services/emailService';
@@ -356,13 +357,13 @@ const Auth = () => {
                     onBack={handleBack2FA}
                     userEmail={pendingSession?.email || email}
                   />
-                  <Button
-                    variant="link"
+                  <button
+                    type="button"
                     onClick={handleShowRecovery}
-                    className="w-full text-sm text-muted-foreground hover:text-foreground"
+                    className="w-full text-sm text-muted-foreground hover:text-foreground underline text-center py-2"
                   >
                     Lost access to your authenticator app?
-                  </Button>
+                  </button>
                 </div>
               ) : showRecovery ? (
                 <TwoFactorRecovery
