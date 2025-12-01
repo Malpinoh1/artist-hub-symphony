@@ -27,9 +27,14 @@ const Navbar = () => {
     checkAuth();
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Only synchronous state updates inside callback
       setUser(session?.user || null);
+      
+      // Defer async Supabase calls to prevent auth loop
       if (session?.user) {
-        fetchProfile(session.user.id);
+        setTimeout(() => {
+          fetchProfile(session.user.id);
+        }, 0);
       } else {
         setProfile(null);
       }
