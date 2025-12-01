@@ -392,6 +392,8 @@ export type Database = {
           id: string
           marketing_emails: boolean | null
           two_factor_enabled: boolean | null
+          two_factor_recovery_code: string | null
+          two_factor_recovery_expires: string | null
           two_factor_secret: string | null
           updated_at: string
           username: string
@@ -407,6 +409,8 @@ export type Database = {
           id: string
           marketing_emails?: boolean | null
           two_factor_enabled?: boolean | null
+          two_factor_recovery_code?: string | null
+          two_factor_recovery_expires?: string | null
           two_factor_secret?: string | null
           updated_at?: string
           username: string
@@ -422,6 +426,8 @@ export type Database = {
           id?: string
           marketing_emails?: boolean | null
           two_factor_enabled?: boolean | null
+          two_factor_recovery_code?: string | null
+          two_factor_recovery_expires?: string | null
           two_factor_secret?: string | null
           updated_at?: string
           username?: string
