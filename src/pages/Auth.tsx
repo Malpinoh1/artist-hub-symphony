@@ -234,12 +234,16 @@ const Auth = () => {
       }
       
       if (data.user) {
-        // Check if user has 2FA enabled
-        const { data: profile } = await supabase
+        // Check if user has 2FA enabled (if profile exists)
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('two_factor_enabled')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Error fetching profile for 2FA check:', profileError);
+        }
 
         if (profile?.two_factor_enabled) {
           // User needs 2FA verification - store session data for re-authentication
@@ -256,7 +260,7 @@ const Auth = () => {
           return;
         }
 
-        // Complete login without 2FA
+        // Complete login without 2FA (no profile or 2FA disabled)
         await completeLogin(data.user);
       }
     } catch (error: any) {
