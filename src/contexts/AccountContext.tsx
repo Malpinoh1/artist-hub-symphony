@@ -45,12 +45,16 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
     
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user) {
+        // Only synchronous state updates inside callback
         setCurrentUser(session.user);
-        // Check for stored account preference or default to user's own account
         const storedAccountId = localStorage.getItem('currentAccountId');
         const accountId = storedAccountId || session.user.id;
         setCurrentAccountId(accountId);
-        fetchTeamAccounts(session.user.id);
+        
+        // Defer async Supabase calls to prevent auth loop
+        setTimeout(() => {
+          fetchTeamAccounts(session.user.id);
+        }, 0);
       } else {
         setCurrentUser(null);
         setCurrentAccountId(null);
