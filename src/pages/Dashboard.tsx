@@ -15,11 +15,12 @@ import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { fetchUserStats } from '../services/releaseService';
 import { useSubscriptionCheck } from '../hooks/useSubscriptionCheck';
+import { useAuth } from '../contexts/AuthContext';
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { user, isLoading: authLoading } = useAuth();
   const { hasAccess, loading: subscriptionLoading, isAdmin, subscribed } = useSubscriptionCheck();
-  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<any[]>([]);
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -31,24 +32,22 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    checkAuthAndLoadData();
-  }, []);
+    if (authLoading) return;
+    
+    if (!user) {
+      window.location.href = '/auth';
+      return;
+    }
+    
+    loadData(user.id);
+  }, [user, authLoading]);
 
-  const checkAuthAndLoadData = async () => {
+  const loadData = async (userId: string) => {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      
-      if (!session) {
-        window.location.href = '/auth';
-        return;
-      }
-      
-      setUser(session.user);
       await Promise.all([
-        loadReleases(session.user.id),
-        loadUserRole(session.user.id),
-        loadStats(session.user.id)
+        loadReleases(userId),
+        loadUserRole(userId),
+        loadStats(userId)
       ]);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -120,7 +119,7 @@ const Dashboard = () => {
     }
   };
 
-  if (loading || subscriptionLoading) {
+  if (loading || subscriptionLoading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
         <Navbar />

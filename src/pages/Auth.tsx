@@ -47,15 +47,8 @@ const Auth = () => {
   }>({ show: false, type: 'info', title: '', message: '' });
   
   useEffect(() => {
-    // Check if user is already logged in
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/dashboard');
-      }
-    };
-    
-    checkSession();
+    // Don't check session on mount - let the login process complete first
+    // The auth state is managed by AuthContext
   }, [navigate]);
 
   const showNotification = (type: 'success' | 'error' | 'info', title: string, message: string) => {

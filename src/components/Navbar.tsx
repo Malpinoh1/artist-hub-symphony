@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X, User, LogOut, Settings, Users, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../integrations/supabase/client';
-import { signOut } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
 import TeamSwitcher from './TeamSwitcher';
 import {
@@ -17,39 +17,19 @@ import {
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const { user, signOut: authSignOut } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
 
   useEffect(() => {
-    checkAuth();
-    
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      // Only synchronous state updates inside callback
-      setUser(session?.user || null);
-      
-      // Defer async Supabase calls to prevent auth loop
-      if (session?.user) {
-        setTimeout(() => {
-          fetchProfile(session.user.id);
-        }, 0);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUser(session?.user || null);
-    if (session?.user) {
-      fetchProfile(session.user.id);
+    if (user) {
+      fetchProfile(user.id);
+    } else {
+      setProfile(null);
     }
-  };
+  }, [user]);
 
   const fetchProfile = async (userId: string) => {
     try {
@@ -72,8 +52,7 @@ const Navbar = () => {
 
   const handleSignOut = async () => {
     try {
-      await signOut();
-      setUser(null);
+      await authSignOut();
       setProfile(null);
       navigate('/');
       toast({
