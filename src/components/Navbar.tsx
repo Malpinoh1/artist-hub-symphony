@@ -53,15 +53,18 @@ const Navbar = () => {
 
   const fetchProfile = async (userId: string) => {
     try {
-      const { data: profileData } = await supabase
+      const { data: profileData, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
       
-      if (profileData) {
-        setProfile(profileData);
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return;
       }
+      
+      setProfile(profileData);
     } catch (error) {
       console.error('Error fetching profile:', error);
     }

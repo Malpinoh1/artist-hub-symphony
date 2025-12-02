@@ -108,11 +108,15 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
       
       if (data) {
         for (const access of data) {
-          const { data: artistData } = await supabase
+          const { data: artistData, error: artistError } = await supabase
             .from('artists')
             .select('name, email')
             .eq('id', access.account_owner_id)
-            .single();
+            .maybeSingle();
+
+          if (artistError) {
+            console.error('Error fetching artist data:', artistError);
+          }
 
           accounts.push({
             account_owner_id: access.account_owner_id,

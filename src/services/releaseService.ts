@@ -265,9 +265,11 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     let audioFilesUrls = [];
     if (audioFiles && audioFiles.length > 0) {
       console.log('Uploading audio files...');
-      for (const audioFile of audioFiles) {
+      for (let i = 0; i < audioFiles.length; i++) {
+        const audioFile = audioFiles[i];
         const folderPath = `${userId}`;
-        const audioFileName = `${Date.now()}_audio.${audioFile.name.split('.').pop()}`;
+        // Use index and original filename to ensure uniqueness
+        const audioFileName = `${Date.now()}_${i}_${audioFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
         const audioPath = `${folderPath}/${audioFileName}`;
         
         const { data: audioUploadData, error: audioUploadError } = await supabase.storage
