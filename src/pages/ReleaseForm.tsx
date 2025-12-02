@@ -120,6 +120,12 @@ const ReleaseForm = () => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{
+    step: 'idle' | 'cover' | 'audio' | 'saving' | 'done';
+    currentFile?: string;
+    currentIndex?: number;
+    totalFiles?: number;
+  }>({ step: 'idle' });
 
   // Check authentication
   useEffect(() => {
@@ -215,9 +221,6 @@ const ReleaseForm = () => {
         return;
       }
 
-      // File uploads are handled by the submitRelease service function to keep logic centralized
-
-
       // Prepare form data with proper structure
       const releaseFormData = {
         ...formData,
@@ -227,19 +230,22 @@ const ReleaseForm = () => {
       // Import the submitRelease function dynamically to use the updated version
       const { submitRelease } = await import('../services/releaseService');
       
-      // Submit release with all data including tracks
+      // Submit release with all data including tracks and progress callback
       const result = await submitRelease(
         releaseFormData,
         session.user.id,
         coverArt,
         audioFiles,
-        tracks
+        tracks,
+        (progress) => setUploadProgress(progress)
       );
 
       if (!result.success) {
         throw new Error(result.error || 'Failed to submit release');
       }
 
+      setUploadProgress({ step: 'done' });
+      
       toast({
         title: "Success!",
         description: "Your release has been submitted for review"
@@ -248,13 +254,15 @@ const ReleaseForm = () => {
       setCurrentStep(4); // Success step
     } catch (error) {
       console.error('Error submitting release:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to submit release';
       toast({
-        title: "Error",
-        description: "Failed to submit release. Please try again.",
+        title: "Upload Failed",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
       setIsSubmitting(false);
+      setUploadProgress({ step: 'idle' });
     }
   };
 
@@ -654,15 +662,43 @@ const ReleaseForm = () => {
               </CardContent>
             </Card>
 
+            {/* Upload Progress Indicator */}
+            {isSubmitting && uploadProgress.step !== 'idle' && (
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="animate-spin rounded-full h-5 w-5 border-2 border-primary border-t-transparent" />
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">
+                        {uploadProgress.step === 'cover' && 'Uploading cover art...'}
+                        {uploadProgress.step === 'audio' && (
+                          <>Uploading audio file {uploadProgress.currentIndex}/{uploadProgress.totalFiles}: {uploadProgress.currentFile}</>
+                        )}
+                        {uploadProgress.step === 'saving' && 'Saving release information...'}
+                      </p>
+                      {uploadProgress.step === 'audio' && uploadProgress.totalFiles && uploadProgress.totalFiles > 1 && (
+                        <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary transition-all duration-300"
+                            style={{ width: `${((uploadProgress.currentIndex || 0) / uploadProgress.totalFiles) * 100}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             <div className="flex justify-between">
-              <Button type="button" variant="outline" onClick={prevStep}>
+              <Button type="button" variant="outline" onClick={prevStep} disabled={isSubmitting}>
                 <ChevronDown className="w-4 h-4 mr-2 rotate-90" /> Back
               </Button>
               <Button 
                 type="submit" 
                 disabled={isSubmitting || !coverArt || audioFiles.length === 0 || !termsAccepted}
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Release'} 
+                {isSubmitting ? 'Uploading...' : 'Submit Release'} 
                 <Check className="w-4 h-4 ml-2" />
               </Button>
             </div>
