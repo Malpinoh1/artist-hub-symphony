@@ -6,9 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccountProvider } from "./contexts/AccountContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import FloatingTeamSwitcher from "./components/FloatingTeamSwitcher";
-import { supabase } from "./integrations/supabase/client";
-import { useState, useEffect } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
@@ -42,66 +41,65 @@ import MarketingGuide from "./pages/resources/MarketingGuide";
 
 const queryClient = new QueryClient();
 
+// Inner component that uses auth context
+const AppContent = () => {
+  const { user } = useAuth();
+
+  return (
+    <>
+      <Routes>
+        <Route path="/" element={<Index />} />
+        <Route path="/auth" element={<Auth />} />
+        <Route path="/pricing" element={<Pricing />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/releases" element={<Releases />} />
+        <Route path="/releases/:id" element={<ReleaseDetails />} />
+        <Route path="/release-form" element={<ReleaseForm />} />
+        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/earnings" element={<Earnings />} />
+        <Route path="/settings" element={<Settings />} />
+        <Route path="/help" element={<HelpCenter />} />
+        <Route path="/team" element={<Team />} />
+        <Route path="/team/guide" element={<TeamGuide />} />
+        <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
+        <Route path="/admin" element={<AdminDashboard />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/services" element={<Services />} />
+        <Route path="/resources" element={<Resources />} />
+        <Route path="/resources/marketing-guide" element={<MarketingGuide />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/partners" element={<Partners />} />
+        <Route path="/terms" element={<TermsOfService />} />
+        <Route path="/privacy" element={<PrivacyPolicy />} />
+        <Route path="/cookies" element={<Cookies />} />
+        <Route path="/copyright" element={<Copyright />} />
+        <Route path="/password-reset" element={<PasswordReset />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+      
+      {user && <FloatingTeamSwitcher currentUserId={user.id} />}
+    </>
+  );
+};
+
 const App = () => {
-  const [user, setUser] = useState<any>(null);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AccountProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/pricing" element={<Pricing />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/releases" element={<Releases />} />
-                <Route path="/releases/:id" element={<ReleaseDetails />} />
-                <Route path="/release-form" element={<ReleaseForm />} />
-                <Route path="/analytics" element={<Analytics />} />
-                <Route path="/earnings" element={<Earnings />} />
-                <Route path="/settings" element={<Settings />} />
-                <Route path="/help" element={<HelpCenter />} />
-                <Route path="/team" element={<Team />} />
-                <Route path="/team/guide" element={<TeamGuide />} />
-                <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/services" element={<Services />} />
-                <Route path="/resources" element={<Resources />} />
-                <Route path="/resources/marketing-guide" element={<MarketingGuide />} />
-                <Route path="/blog" element={<Blog />} />
-                <Route path="/contact" element={<Contact />} />
-                <Route path="/faq" element={<FAQ />} />
-                <Route path="/partners" element={<Partners />} />
-                <Route path="/terms" element={<TermsOfService />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/cookies" element={<Cookies />} />
-                <Route path="/copyright" element={<Copyright />} />
-                <Route path="/password-reset" element={<PasswordReset />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-              
-              {user && <FloatingTeamSwitcher currentUserId={user.id} />}
-            </BrowserRouter>
-          </TooltipProvider>
-        </AccountProvider>
+        <AuthProvider>
+          <AccountProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppContent />
+              </BrowserRouter>
+            </TooltipProvider>
+          </AccountProvider>
+        </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

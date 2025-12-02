@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { useAuth } from './AuthContext';
 
 interface AccountContextType {
   currentAccountId: string | null;
@@ -35,57 +36,29 @@ interface AccountProviderProps {
 
 export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) => {
   const { toast } = useToast();
+  const { user: authUser, isLoading: authLoading } = useAuth();
   const [currentAccountId, setCurrentAccountId] = useState<string | null>(null);
   const [currentUser, setCurrentUser] = useState<any | null>(null);
   const [teamAccounts, setTeamAccounts] = useState<TeamAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    initializeAccount();
+    if (authLoading) return;
     
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user) {
-        // Only synchronous state updates inside callback
-        setCurrentUser(session.user);
-        const storedAccountId = localStorage.getItem('currentAccountId');
-        const accountId = storedAccountId || session.user.id;
-        setCurrentAccountId(accountId);
-        
-        // Defer async Supabase calls to prevent auth loop
-        setTimeout(() => {
-          fetchTeamAccounts(session.user.id);
-        }, 0);
-      } else {
-        setCurrentUser(null);
-        setCurrentAccountId(null);
-        setTeamAccounts([]);
-        localStorage.removeItem('currentAccountId');
-      }
-      setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  const initializeAccount = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setCurrentUser(session.user);
-        
-        // Check for stored account preference
-        const storedAccountId = localStorage.getItem('currentAccountId');
-        const accountId = storedAccountId || session.user.id;
-        setCurrentAccountId(accountId);
-        
-        await fetchTeamAccounts(session.user.id);
-      }
-    } catch (error) {
-      console.error('Error initializing account:', error);
-    } finally {
-      setIsLoading(false);
+    if (authUser) {
+      setCurrentUser(authUser);
+      const storedAccountId = localStorage.getItem('currentAccountId');
+      const accountId = storedAccountId || authUser.id;
+      setCurrentAccountId(accountId);
+      fetchTeamAccounts(authUser.id);
+    } else {
+      setCurrentUser(null);
+      setCurrentAccountId(null);
+      setTeamAccounts([]);
+      localStorage.removeItem('currentAccountId');
     }
-  };
+    setIsLoading(false);
+  }, [authUser, authLoading]);
 
   const fetchTeamAccounts = async (userId: string) => {
     try {
