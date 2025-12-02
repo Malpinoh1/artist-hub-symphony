@@ -171,7 +171,21 @@ export async function fetchUserStats(userId: string) {
   }
 }
 
-export async function submitRelease(releaseFormData: any, userId: string, coverArt: File | null, audioFiles: File[], tracksData: any[] = []) {
+type UploadProgress = {
+  step: 'idle' | 'cover' | 'audio' | 'saving' | 'done';
+  currentFile?: string;
+  currentIndex?: number;
+  totalFiles?: number;
+};
+
+export async function submitRelease(
+  releaseFormData: any, 
+  userId: string, 
+  coverArt: File | null, 
+  audioFiles: File[], 
+  tracksData: any[] = [],
+  onProgress?: (progress: UploadProgress) => void
+) {
   try {
     console.log('Starting release submission for user:', userId);
     console.log('Release form data:', releaseFormData);
@@ -236,6 +250,8 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     let coverArtUrl = null;
     if (coverArt) {
       console.log('Uploading cover art...');
+      onProgress?.({ step: 'cover', currentFile: coverArt.name });
+      
       const folderPath = `${userId}`;
       const coverArtFileName = `${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
       const coverArtPath = `${folderPath}/${coverArtFileName}`;
@@ -249,7 +265,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
         
       if (coverUploadError) {
         console.error("Error uploading cover art:", coverUploadError);
-        throw new Error("Failed to upload cover art. Please try again.");
+        throw new Error(`Failed to upload cover art "${coverArt.name}": ${coverUploadError.message}`);
       }
       
       // Get public URL for the uploaded cover art
@@ -267,6 +283,13 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
       console.log('Uploading audio files...');
       for (let i = 0; i < audioFiles.length; i++) {
         const audioFile = audioFiles[i];
+        onProgress?.({ 
+          step: 'audio', 
+          currentFile: audioFile.name,
+          currentIndex: i + 1,
+          totalFiles: audioFiles.length 
+        });
+        
         const folderPath = `${userId}`;
         // Use index and original filename to ensure uniqueness
         const audioFileName = `${Date.now()}_${i}_${audioFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
@@ -281,7 +304,7 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
           
         if (audioUploadError) {
           console.error("Error uploading audio file:", audioUploadError);
-          throw new Error("Failed to upload audio file. Please try again.");
+          throw new Error(`Failed to upload audio file "${audioFile.name}" (${i + 1}/${audioFiles.length}): ${audioUploadError.message}`);
         }
         
         // Get public URL for the uploaded audio file
@@ -296,6 +319,8 @@ export async function submitRelease(releaseFormData: any, userId: string, coverA
     
     // Insert release record with all the collected data
     console.log('Inserting release record...');
+    onProgress?.({ step: 'saving' });
+    
     const { data: insertedRelease, error: releaseError } = await supabase
       .from('releases')
       .insert({
