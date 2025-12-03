@@ -14,6 +14,15 @@ serve(async (req) => {
 
   try {
     const { token, secret } = await req.json()
+    
+    console.log('Enable 2FA request received, token length:', token?.length, 'secret length:', secret?.length)
+
+    if (!token || !secret) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Token and secret are required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -37,34 +46,52 @@ serve(async (req) => {
     } = await authClient.auth.getUser()
 
     if (userError || !user) {
+      console.error('User auth error:', userError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ success: false, error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // Verify the token
-    const totp = new TOTP({
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-      secret: Secret.fromBase32(secret),
-    })
-    const isValid = totp.validate({ token }) !== null
+    console.log('User authenticated:', user.id)
 
-    if (!isValid) {
+    // Verify the token
+    try {
+      const totp = new TOTP({
+        algorithm: 'SHA1',
+        digits: 6,
+        period: 30,
+        secret: Secret.fromBase32(secret),
+      })
+      const validationResult = totp.validate({ token, window: 1 })
+      const isValid = validationResult !== null
+      
+      console.log('TOTP validation result:', isValid, 'delta:', validationResult)
+
+      if (!isValid) {
+        return new Response(
+          JSON.stringify({ success: false, error: 'Invalid verification code' }),
+          { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+    } catch (totpError) {
+      console.error('TOTP validation error:', totpError)
       return new Response(
-        JSON.stringify({ error: 'Invalid verification code' }),
+        JSON.stringify({ success: false, error: 'Invalid secret format' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
     // Get the backup codes from setup
-    const { data: setupData } = await supabaseClient
+    const { data: setupData, error: selectError } = await supabaseClient
       .from('profiles')
       .select('backup_codes')
       .eq('id', user.id)
-      .single();
+      .single()
+
+    if (selectError) {
+      console.error('Error fetching backup codes:', selectError)
+    }
 
     // Enable 2FA in the user's profile
     const { error: updateError } = await supabaseClient
@@ -77,8 +104,14 @@ serve(async (req) => {
       .eq('id', user.id)
 
     if (updateError) {
-      throw updateError
+      console.error('Error updating profile:', updateError)
+      return new Response(
+        JSON.stringify({ success: false, error: 'Failed to save 2FA settings' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
+
+    console.log('2FA enabled successfully for user:', user.id)
 
     return new Response(
       JSON.stringify({ success: true }),
@@ -87,9 +120,9 @@ serve(async (req) => {
       }
     )
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Enable 2FA error:', error)
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ success: false, error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
