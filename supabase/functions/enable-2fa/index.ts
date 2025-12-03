@@ -53,7 +53,7 @@ serve(async (req) => {
       )
     }
 
-    console.log('User authenticated:', user.id)
+    console.log('User authenticated:', user.id, 'email:', user.email)
 
     // Verify the token
     try {
@@ -82,36 +82,44 @@ serve(async (req) => {
       )
     }
 
-    // Get the backup codes from setup
+    // Get the backup codes from setup (use maybeSingle to avoid error if no row)
     const { data: setupData, error: selectError } = await supabaseClient
       .from('profiles')
       .select('backup_codes')
       .eq('id', user.id)
-      .single()
+      .maybeSingle()
 
     if (selectError) {
-      console.error('Error fetching backup codes:', selectError)
+      console.error('Error fetching profile:', selectError)
     }
 
-    // Enable 2FA in the user's profile
-    const { error: updateError } = await supabaseClient
+    console.log('Profile exists:', !!setupData, 'has backup codes:', !!setupData?.backup_codes)
+
+    // Use upsert to ensure the profile exists and is updated
+    const { data: updateData, error: updateError } = await supabaseClient
       .from('profiles')
-      .update({
+      .upsert({
+        id: user.id,
+        username: user.email || user.id,
+        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
         two_factor_enabled: true,
         two_factor_secret: secret,
         backup_codes: setupData?.backup_codes || []
+      }, {
+        onConflict: 'id'
       })
-      .eq('id', user.id)
+      .select()
+      .single()
 
     if (updateError) {
       console.error('Error updating profile:', updateError)
       return new Response(
-        JSON.stringify({ success: false, error: 'Failed to save 2FA settings' }),
+        JSON.stringify({ success: false, error: 'Failed to save 2FA settings: ' + updateError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log('2FA enabled successfully for user:', user.id)
+    console.log('2FA enabled successfully for user:', user.id, 'two_factor_enabled:', updateData?.two_factor_enabled)
 
     return new Response(
       JSON.stringify({ success: true }),
