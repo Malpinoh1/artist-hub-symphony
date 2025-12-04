@@ -35,6 +35,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Cookies from "./pages/Cookies";
 import Copyright from "./pages/Copyright";
 import NotFound from "./pages/NotFound";
+import ConfirmSubscription from "./pages/ConfirmSubscription";
 import PasswordReset from "./pages/PasswordReset";
 import ResetPassword from "./pages/ResetPassword";
 import MarketingGuide from "./pages/resources/MarketingGuide";
@@ -77,6 +78,7 @@ const AppContent = () => {
         <Route path="/copyright" element={<Copyright />} />
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       
