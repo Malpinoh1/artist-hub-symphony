@@ -32,6 +32,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [emailOptIn, setEmailOptIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showMarketingPopup, setShowMarketingPopup] = useState(false);
   const [newUserEmail, setNewUserEmail] = useState('');
@@ -99,6 +100,11 @@ const Auth = () => {
       return;
     }
 
+    if (!emailOptIn) {
+      setError("You must agree to receive updates and emails from MALPINOHDISTRO");
+      return;
+    }
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
@@ -127,6 +133,7 @@ const Auth = () => {
         options: {
           data: {
             full_name: fullName,
+            email_opt_in: emailOptIn,
           }
         }
       });
@@ -499,6 +506,24 @@ const Auth = () => {
                       </div>
                     )}
                   </div>
+                  
+                  {/* Email Opt-In Checkbox - Only show on signup */}
+                  {!isLogin && (
+                    <div className="mb-6">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={emailOptIn}
+                          onChange={(e) => setEmailOptIn(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          disabled={loading}
+                        />
+                        <span className="text-sm text-gray-700">
+                          I agree to receive updates and emails from MALPINOHDISTRO. <span className="text-red-500">*</span>
+                        </span>
+                      </label>
+                    </div>
+                  )}
                   
                   <div className="mb-6">
                     <button
