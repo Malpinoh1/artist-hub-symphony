@@ -388,6 +388,7 @@ export type Database = {
           bio: string | null
           created_at: string
           email_notifications: boolean | null
+          email_opt_in: boolean | null
           full_name: string
           id: string
           marketing_emails: boolean | null
@@ -405,6 +406,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           email_notifications?: boolean | null
+          email_opt_in?: boolean | null
           full_name: string
           id: string
           marketing_emails?: boolean | null
@@ -422,6 +424,7 @@ export type Database = {
           bio?: string | null
           created_at?: string
           email_notifications?: boolean | null
+          email_opt_in?: boolean | null
           full_name?: string
           id?: string
           marketing_emails?: boolean | null
