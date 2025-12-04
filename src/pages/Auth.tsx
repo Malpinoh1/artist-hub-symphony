@@ -164,6 +164,26 @@ const Auth = () => {
           console.error('Error sending welcome email:', emailError);
         }
         
+        // Send double opt-in confirmation email if user agreed to emails
+        if (emailOptIn) {
+          try {
+            const response = await supabase.functions.invoke('send-confirmation-email', {
+              body: {
+                userId: data.user.id,
+                email: email,
+                fullName: fullName,
+              },
+            });
+            if (response.error) {
+              console.error('Error sending confirmation email:', response.error);
+            } else {
+              console.log('Confirmation email sent successfully');
+            }
+          } catch (confirmError) {
+            console.error('Error sending confirmation email:', confirmError);
+          }
+        }
+        
         showNotification('success', 'Account Created!', 'Welcome to MALPINOHdistro! You can now sign in.');
         
         toast({

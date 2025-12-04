@@ -387,6 +387,9 @@ export type Database = {
           backup_codes: string[] | null
           bio: string | null
           created_at: string
+          email_confirmation_sent_at: string | null
+          email_confirmation_token: string | null
+          email_confirmed_at: string | null
           email_notifications: boolean | null
           email_opt_in: boolean | null
           full_name: string
@@ -405,6 +408,9 @@ export type Database = {
           backup_codes?: string[] | null
           bio?: string | null
           created_at?: string
+          email_confirmation_sent_at?: string | null
+          email_confirmation_token?: string | null
+          email_confirmed_at?: string | null
           email_notifications?: boolean | null
           email_opt_in?: boolean | null
           full_name: string
@@ -423,6 +429,9 @@ export type Database = {
           backup_codes?: string[] | null
           bio?: string | null
           created_at?: string
+          email_confirmation_sent_at?: string | null
+          email_confirmation_token?: string | null
+          email_confirmed_at?: string | null
           email_notifications?: boolean | null
           email_opt_in?: boolean | null
           full_name?: string
