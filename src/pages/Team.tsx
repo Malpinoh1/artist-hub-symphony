@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2 } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2, Lock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -15,6 +15,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import SubscriptionGate from '../components/SubscriptionGate';
 
 
 interface TeamMember {
@@ -42,6 +44,15 @@ interface Invitation {
 
 const Team = () => {
   const { toast } = useToast();
+  const { 
+    canManageTeam, 
+    isOwner, 
+    isAdmin, 
+    role, 
+    isPersonalAccount,
+    getEffectiveAccountId,
+    isWebsiteAdmin 
+  } = useTeamPermissions();
   const [user, setUser] = useState<any>(null);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [invitations, setInvitations] = useState<Invitation[]>([]);
@@ -663,16 +674,26 @@ const Team = () => {
                         Team Members
                       </CardTitle>
                       <CardDescription>
-                        Users with access to your account ({teamMembers.length} members)
+                        {isPersonalAccount 
+                          ? `Users with access to your account (${teamMembers.length} members)`
+                          : `Team members for this account (${teamMembers.length} members)`
+                        }
+                        {!canManageTeam && role && (
+                          <span className="block mt-1 text-xs">
+                            Your role: <Badge variant="outline" className="ml-1">{role}</Badge>
+                          </span>
+                        )}
                       </CardDescription>
                     </div>
-                    <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
-                      <DialogTrigger asChild>
-                        <Button className="gap-2">
-                          <UserPlus className="w-4 h-4" />
-                          Invite User
-                        </Button>
-                      </DialogTrigger>
+                    {/* Only show invite button for owners and admins */}
+                    {canManageTeam && isPersonalAccount && (
+                      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+                        <DialogTrigger asChild>
+                          <Button className="gap-2">
+                            <UserPlus className="w-4 h-4" />
+                            Invite User
+                          </Button>
+                        </DialogTrigger>
                       <DialogContent>
                         <DialogHeader>
                           <DialogTitle>Invite Team Member</DialogTitle>
@@ -757,6 +778,13 @@ const Team = () => {
                         </div>
                       </DialogContent>
                     </Dialog>
+                    )}
+                    {!canManageTeam && isPersonalAccount && (
+                      <Badge variant="secondary" className="gap-1">
+                        <Lock className="w-3 h-3" />
+                        View Only
+                      </Badge>
+                    )}
                   </CardHeader>
                   <CardContent>
                     {teamMembers.length === 0 ? (
@@ -796,22 +824,25 @@ const Team = () => {
                                   {new Date(member.created_at).toLocaleDateString()}
                                 </TableCell>
                                 <TableCell>
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreHorizontal className="w-4 h-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                      <DropdownMenuItem 
-                                        onClick={() => handleRemoveTeamMember(member.id)}
-                                        className="text-destructive"
-                                      >
-                                        <Trash2 className="w-4 h-4 mr-2" />
-                                        Remove Access
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
+                                  {/* Only show remove button for owners and admins */}
+                                  {canManageTeam && isPersonalAccount ? (
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <MoreHorizontal className="w-4 h-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem 
+                                          onClick={() => handleRemoveTeamMember(member.id)}
+                                          className="text-destructive"
+                                        >
+                                          <Trash2 className="w-4 h-4 mr-2" />
+                                          Remove Access
+                                        </DropdownMenuItem>
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
+                                  ) : null}
                                 </TableCell>
                               </TableRow>
                             ))}
@@ -939,4 +970,13 @@ const Team = () => {
   );
 };
 
-export default Team;
+// Wrap with subscription gate - requires subscription to access team management
+const TeamPage = () => {
+  return (
+    <SubscriptionGate fallbackMessage="You need an active subscription to manage team access.">
+      <Team />
+    </SubscriptionGate>
+  );
+};
+
+export default TeamPage;

@@ -8,6 +8,8 @@ import { supabase } from '../integrations/supabase/client';
 import { fetchPlatformAnalytics } from '../services/statisticsService';
 import { Button } from '@/components/ui/button';
 import { useToast } from '../hooks/use-toast';
+import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import SubscriptionGate from '../components/SubscriptionGate';
 
 // Define interface for platform analytics data
 interface PlatformAnalyticsData {
@@ -33,8 +35,9 @@ interface TrackData {
   release_date?: string;
 }
 
-const Analytics = () => {
+const AnalyticsContent = () => {
   const { toast } = useToast();
+  const { getEffectiveAccountId, isWebsiteAdmin } = useTeamPermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string } | null>(null);
@@ -133,24 +136,25 @@ const Analytics = () => {
         return;
       }
 
-      const userId = session.user.id;
+      // Use effective account ID (respects team context)
+      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
       
       // Get user's profile information
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', userId)
+        .eq('id', session.user.id)
         .maybeSingle();
 
       if (profileData) {
         setUserProfile({ name: profileData.full_name });
       }
 
-      // Get artist data
+      // Get artist data using effective account ID
       const { data: artistInfo } = await supabase
         .from('artists')
         .select('*')
-        .eq('email', session.user.email)
+        .eq('id', effectiveAccountId)
         .maybeSingle();
 
       if (artistInfo) {
@@ -340,6 +344,15 @@ const Analytics = () => {
       
       <Footer />
     </div>
+  );
+};
+
+// Wrap with subscription gate
+const Analytics = () => {
+  return (
+    <SubscriptionGate fallbackMessage="You need an active subscription to access analytics.">
+      <AnalyticsContent />
+    </SubscriptionGate>
   );
 };
 

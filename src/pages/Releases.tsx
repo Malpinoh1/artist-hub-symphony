@@ -10,15 +10,19 @@ import { Button } from '@/components/ui/button';
 import { supabase } from '../integrations/supabase/client';
 import { fetchUserReleases, Release } from '../services/releaseService';
 import { toast } from '@/hooks/use-toast';
+import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import SubscriptionGate from '../components/SubscriptionGate';
 
-const Releases = () => {
+const ReleasesContent = () => {
+  const { getEffectiveAccountId, canManage, isLoading: permissionsLoading } = useTeamPermissions();
   const [releases, setReleases] = useState<Release[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
+    if (permissionsLoading) return;
     checkAuthAndFetchReleases();
-  }, []);
+  }, [permissionsLoading]);
 
   const checkAuthAndFetchReleases = async () => {
     try {
@@ -31,7 +35,9 @@ const Releases = () => {
       }
       
       setUser(session.user);
-      const userReleases = await fetchUserReleases(session.user.id);
+      // Use effective account ID (respects team context)
+      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
+      const userReleases = await fetchUserReleases(effectiveAccountId);
       setReleases(userReleases);
     } catch (error) {
       console.error('Error fetching releases:', error);
@@ -45,7 +51,7 @@ const Releases = () => {
     }
   };
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
         <Navbar />
@@ -77,12 +83,15 @@ const Releases = () => {
                 Manage and track all your music releases
               </p>
             </div>
-            <Button asChild className="gap-2">
-              <Link to="/new-release">  
-                <Plus className="w-4 h-4" />
-                New Release
-              </Link>
-            </Button>
+            {/* Only show New Release button if user has manager permissions */}
+            {canManage && (
+              <Button asChild className="gap-2">
+                <Link to="/new-release">  
+                  <Plus className="w-4 h-4" />
+                  New Release
+                </Link>
+              </Button>
+            )}
           </div>
 
           {releases.length === 0 ? (
@@ -91,14 +100,19 @@ const Releases = () => {
                 <Music className="w-16 h-16 mx-auto mb-6 text-muted-foreground/50" />
                 <h2 className="text-2xl font-semibold mb-4 text-foreground">No releases yet</h2>
                 <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                  Get started by uploading your first release and share your music with the world.
+                  {canManage 
+                    ? "Get started by uploading your first release and share your music with the world."
+                    : "No releases available for this account yet."
+                  }
                 </p>
-                <Button asChild size="lg" className="gap-2">
-                  <Link to="/new-release">
-                    <Plus className="w-5 h-5" />
-                    Upload Your First Release
-                  </Link>
-                </Button>
+                {canManage && (
+                  <Button asChild size="lg" className="gap-2">
+                    <Link to="/new-release">
+                      <Plus className="w-5 h-5" />
+                      Upload Your First Release
+                    </Link>
+                  </Button>
+                )}
               </div>
             </AnimatedCard>
           ) : (
@@ -118,6 +132,15 @@ const Releases = () => {
       
       <Footer />
     </div>
+  );
+};
+
+// Wrap with subscription gate
+const Releases = () => {
+  return (
+    <SubscriptionGate fallbackMessage="You need an active subscription to view releases.">
+      <ReleasesContent />
+    </SubscriptionGate>
   );
 };
 

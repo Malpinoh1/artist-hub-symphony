@@ -14,16 +14,24 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { fetchUserStats } from '../services/releaseService';
-import { useSubscriptionCheck } from '../hooks/useSubscriptionCheck';
+import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import { useAuth } from '../contexts/AuthContext';
+import SubscriptionGate from '../components/SubscriptionGate';
 
-const Dashboard = () => {
+const DashboardContent = () => {
   const { toast } = useToast();
   const { user, isLoading: authLoading } = useAuth();
-  const { hasAccess, loading: subscriptionLoading, isAdmin, subscribed } = useSubscriptionCheck();
+  const { 
+    hasAccess, 
+    isLoading: permissionsLoading, 
+    isWebsiteAdmin, 
+    hasSubscription,
+    getEffectiveAccountId,
+    isPersonalAccount,
+    role
+  } = useTeamPermissions();
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<any[]>([]);
-  const [userRole, setUserRole] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalReleases: 0,
     activeReleases: 0,
@@ -32,22 +40,23 @@ const Dashboard = () => {
   });
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading || permissionsLoading) return;
     
     if (!user) {
       window.location.href = '/auth';
       return;
     }
     
-    loadData(user.id);
-  }, [user, authLoading]);
+    // Use effective account ID (respects team context)
+    const effectiveAccountId = getEffectiveAccountId() || user.id;
+    loadData(effectiveAccountId);
+  }, [user, authLoading, permissionsLoading]);
 
-  const loadData = async (userId: string) => {
+  const loadData = async (accountId: string) => {
     try {
       await Promise.all([
-        loadReleases(userId),
-        loadUserRole(userId),
-        loadStats(userId)
+        loadReleases(accountId),
+        loadStats(accountId)
       ]);
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -61,7 +70,7 @@ const Dashboard = () => {
     }
   };
 
-  const loadReleases = async (userId: string) => {
+  const loadReleases = async (accountId: string) => {
     try {
       const { data, error } = await supabase
         .from('releases')
@@ -69,7 +78,7 @@ const Dashboard = () => {
           *,
           artists(name, email)
         `)
-        .eq('artist_id', userId)
+        .eq('artist_id', accountId)
         .order('release_date', { ascending: false })
         .limit(6);
 
@@ -91,35 +100,16 @@ const Dashboard = () => {
     }
   };
 
-  const loadUserRole = async (userId: string) => {
+  const loadStats = async (accountId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') {
-        console.error('Error loading user role:', error);
-        return;
-      }
-
-      setUserRole(data?.role || 'user');
-    } catch (error) {
-      console.error('Error loading user role:', error);
-    }
-  };
-
-  const loadStats = async (userId: string) => {
-    try {
-      const userStats = await fetchUserStats(userId);
+      const userStats = await fetchUserStats(accountId);
       setStats(userStats);
     } catch (error) {
       console.error('Error loading user stats:', error);
     }
   };
 
-  if (loading || subscriptionLoading || authLoading) {
+  if (loading || permissionsLoading || authLoading) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
         <Navbar />
@@ -136,7 +126,7 @@ const Dashboard = () => {
     );
   }
 
-  if (!hasAccess()) {
+  if (!hasAccess) {
     return (
       <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
         <Navbar />
@@ -146,9 +136,14 @@ const Dashboard = () => {
               <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
                 <Lock className="w-10 h-10 text-muted-foreground" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground mb-4">Subscription Required</h1>
+              <h1 className="text-2xl font-bold text-foreground mb-4">
+                {!hasSubscription ? 'Subscription Required' : 'Access Denied'}
+              </h1>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                You need an active subscription to access the dashboard and its features. Please contact support or upgrade your account.
+                {!hasSubscription 
+                  ? 'You need an active subscription to access the dashboard and its features. Please contact support or upgrade your account.'
+                  : 'You don\'t have access to this account. Please contact the account owner.'
+                }
               </p>
               <div className="flex gap-4 justify-center">
                 <Button asChild>
@@ -183,11 +178,14 @@ const Dashboard = () => {
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                {isAdmin && (
+                {isWebsiteAdmin && (
                   <Badge variant="destructive">Admin Access</Badge>
                 )}
-                {subscribed && (
+                {hasSubscription && (
                   <Badge variant="secondary">Subscribed</Badge>
+                )}
+                {!isPersonalAccount && role && (
+                  <Badge variant="outline">{role} Access</Badge>
                 )}
               </div>
             </div>
@@ -367,6 +365,11 @@ const Dashboard = () => {
       <Footer />
     </div>
   );
+};
+
+// Main Dashboard component
+const Dashboard = () => {
+  return <DashboardContent />;
 };
 
 export default Dashboard;

@@ -12,6 +12,8 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import SubscriptionGate from '../components/SubscriptionGate';
 
 // Define types to avoid circular dependencies
 export interface EarningsSummary {
@@ -22,8 +24,9 @@ export interface EarningsSummary {
   withdrawals: any[];
 }
 
-const Earnings = () => {
+const EarningsContent = () => {
   const { toast } = useToast();
+  const { getEffectiveAccountId, canManage, isWebsiteAdmin } = useTeamPermissions();
   const [activeTab, setActiveTab] = useState("overview");
   const [isLoading, setIsLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<any>(null);
@@ -53,24 +56,25 @@ const Earnings = () => {
         return;
       }
 
-      const userId = session.user.id;
+      // Use effective account ID (respects team context)
+      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
       
       // Get user's profile information
       const { data: profileData } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
+        .eq('id', session.user.id)
         .maybeSingle();
 
       if (profileData) {
         setUserProfile(profileData);
       }
 
-      // Get artist data
+      // Get artist data using effective account ID
       const { data: artistInfo } = await supabase
         .from('artists')
         .select('*')
-        .eq('email', session.user.email)
+        .eq('id', effectiveAccountId)
         .maybeSingle();
 
       if (artistInfo) {
@@ -247,6 +251,15 @@ const Earnings = () => {
       
       <Footer />
     </div>
+  );
+};
+
+// Wrap with subscription gate
+const Earnings = () => {
+  return (
+    <SubscriptionGate fallbackMessage="You need an active subscription to access earnings.">
+      <EarningsContent />
+    </SubscriptionGate>
   );
 };
 
