@@ -1,6 +1,6 @@
 
 import { supabase } from "../integrations/supabase/client";
-import { sendReleaseApprovalEmail } from "./emailService";
+import { sendReleaseApprovedEmail } from "./emailService";
 
 // Define types for our admin service data
 export interface Artist {

@@ -1,5 +1,5 @@
 import { supabase } from "../../integrations/supabase/client";
-import { sendReleaseApprovalEmail } from "../emailService";
+import { sendReleaseApprovedEmail } from "../emailService";
 
 export interface Release {
   id: string;
@@ -107,7 +107,7 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
       try {
         const artist = Array.isArray(updatedRelease.artists) ? updatedRelease.artists[0] : updatedRelease.artists;
         if (artist && artist.email && artist.name) {
-          await sendReleaseApprovalEmail(
+          await sendReleaseApprovedEmail(
             artist.email,
             artist.name,
             updatedRelease.title
