@@ -1,8 +1,4 @@
-
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
-
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -25,19 +21,22 @@ const handler = async (req: Request): Promise<Response> => {
 
   try {
     const { to, subject, html, from }: EmailRequest = await req.json();
+    const apiKey = Deno.env.get("BREVO_API_KEY");
+
+    if (!apiKey) {
+      console.error("BREVO_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "Email service not configured" }),
+        { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
 
     // Validate required fields
     if (!to || !subject || !html) {
       console.error("Missing required fields:", { to: !!to, subject: !!subject, html: !!html });
       return new Response(
-        JSON.stringify({ 
-          error: "Missing required fields",
-          details: "Email address, subject, and content are required"
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: "Missing required fields" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
@@ -46,117 +45,49 @@ const handler = async (req: Request): Promise<Response> => {
     if (!emailRegex.test(to)) {
       console.error("Invalid email format:", to);
       return new Response(
-        JSON.stringify({ 
-          error: "Invalid email format",
-          details: "Please provide a valid email address"
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: "Invalid email format" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    console.log(`Attempting to send email to: ${to}`);
-    console.log(`Subject: ${subject}`);
-    console.log(`From: ${from || "MALPINOHdistro <noreply@malpinohdistro.com.ng>"}`);
-    console.log(`Content length: ${html.length} characters`);
+    console.log(`Sending email via Brevo to: ${to}, Subject: ${subject}`);
 
-    // Send email with enhanced configuration for better deliverability
-    const emailResponse = await resend.emails.send({
-      from: from || "MALPINOHdistro <noreply@malpinohdistro.com.ng>",
-      to: [to],
-      subject: subject,
-      html: html,
+    // Send email via Brevo API
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
       headers: {
-        'X-Entity-Ref-ID': Math.random().toString(36).substring(7),
-        'X-Mailer': 'MALPINOHdistro-EmailService',
-        'X-Priority': '1',
-        'Importance': 'high',
+        "api-key": apiKey,
+        "Content-Type": "application/json",
       },
-      tags: [
-        {
-          name: 'category',
-          value: 'transactional'
-        },
-        {
-          name: 'environment',
-          value: 'production'
-        }
-      ]
+      body: JSON.stringify({
+        sender: { name: "MALPINOHDISTRO", email: "no-reply@malpinohdistro.com" },
+        to: [{ email: to }],
+        subject,
+        htmlContent: html,
+      }),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    const result = await response.json();
+    console.log("Brevo API response:", result);
 
-    // Check for errors in the response
-    if (emailResponse.error) {
-      console.error("Resend API error:", emailResponse.error);
-      
-      // Handle specific Resend errors
-      let errorMessage = "Failed to send email";
-      if (emailResponse.error.message) {
-        if (emailResponse.error.message.includes("Invalid email")) {
-          errorMessage = "Invalid email address format";
-        } else if (emailResponse.error.message.includes("rate limit")) {
-          errorMessage = "Email sending rate limit exceeded. Please try again later.";
-        } else if (emailResponse.error.message.includes("authentication")) {
-          errorMessage = "Email service authentication failed";
-        } else {
-          errorMessage = emailResponse.error.message;
-        }
-      }
-      
+    if (!response.ok) {
+      console.error("Brevo API error:", result);
       return new Response(
-        JSON.stringify({ 
-          error: errorMessage,
-          details: emailResponse.error 
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json", ...corsHeaders },
-        }
+        JSON.stringify({ error: result.message || "Failed to send email" }),
+        { status: response.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
-    // Success response
     return new Response(
-      JSON.stringify({
-        success: true,
-        id: emailResponse.data?.id || 'unknown',
-        message: "Email sent successfully"
-      }), 
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ success: true, messageId: result.messageId }),
+      { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 
   } catch (error: any) {
-    console.error("Unexpected error in send-email function:", error);
-    
-    // Handle different types of errors
-    let errorMessage = "Internal server error";
-    let statusCode = 500;
-    
-    if (error.name === 'SyntaxError') {
-      errorMessage = "Invalid request format";
-      statusCode = 400;
-    } else if (error.message?.includes("fetch")) {
-      errorMessage = "Email service temporarily unavailable";
-      statusCode = 503;
-    } else if (error.message) {
-      errorMessage = error.message;
-    }
-    
+    console.error("Error in send-email function:", error);
     return new Response(
-      JSON.stringify({ 
-        error: errorMessage,
-        details: error.stack || error.toString()
-      }),
-      {
-        status: statusCode,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
   }
 };
