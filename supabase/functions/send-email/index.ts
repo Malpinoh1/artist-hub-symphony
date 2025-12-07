@@ -20,7 +20,28 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { to, subject, html, from }: EmailRequest = await req.json();
+    // Check if request has a body
+    const contentLength = req.headers.get("content-length");
+    if (!contentLength || contentLength === "0") {
+      console.error("Empty request body received");
+      return new Response(
+        JSON.stringify({ error: "Request body is required" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    let body: EmailRequest;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      console.error("Failed to parse JSON body:", parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const { to, subject, html } = body;
     const apiKey = Deno.env.get("BREVO_API_KEY");
 
     if (!apiKey) {
@@ -35,7 +56,7 @@ const handler = async (req: Request): Promise<Response> => {
     if (!to || !subject || !html) {
       console.error("Missing required fields:", { to: !!to, subject: !!subject, html: !!html });
       return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
+        JSON.stringify({ error: "Missing required fields: to, subject, and html are required" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -68,23 +89,24 @@ const handler = async (req: Request): Promise<Response> => {
     });
 
     const result = await response.json();
-    console.log("Brevo API response:", result);
+    console.log("Brevo API response:", JSON.stringify(result));
 
     if (!response.ok) {
-      console.error("Brevo API error:", result);
+      console.error("Brevo API error:", JSON.stringify(result));
       return new Response(
         JSON.stringify({ error: result.message || "Failed to send email" }),
         { status: response.status, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
 
+    console.log("Email sent successfully to:", to);
     return new Response(
       JSON.stringify({ success: true, messageId: result.messageId }),
       { status: 200, headers: { "Content-Type": "application/json", ...corsHeaders } }
     );
 
   } catch (error: any) {
-    console.error("Error in send-email function:", error);
+    console.error("Error in send-email function:", error.message || error);
     return new Response(
       JSON.stringify({ error: error.message || "Internal server error" }),
       { status: 500, headers: { "Content-Type": "application/json", ...corsHeaders } }
