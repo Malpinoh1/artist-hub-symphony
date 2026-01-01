@@ -8,9 +8,10 @@ const corsHeaders = {
 
 interface EmailRequest {
   to: string;
-  subject: string;
-  html: string;
-  from?: string;
+  subject?: string;
+  html?: string;
+  templateId?: number;
+  params?: Record<string, any>;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -41,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    const { to, subject, html } = body;
+    const { to, subject, html, templateId, params } = body;
     const apiKey = Deno.env.get("BREVO_API_KEY");
 
     if (!apiKey) {
@@ -52,11 +53,11 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Validate required fields
-    if (!to || !subject || !html) {
-      console.error("Missing required fields:", { to: !!to, subject: !!subject, html: !!html });
+    // Validate email recipient
+    if (!to) {
+      console.error("Missing recipient email");
       return new Response(
-        JSON.stringify({ error: "Missing required fields: to, subject, and html are required" }),
+        JSON.stringify({ error: "Missing required field: to" }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }
@@ -71,7 +72,34 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Sending email via Brevo to: ${to}, Subject: ${subject}`);
+    // Determine if using template or raw HTML
+    const useTemplate = templateId !== undefined;
+
+    if (!useTemplate && (!subject || !html)) {
+      console.error("Missing required fields for raw email:", { subject: !!subject, html: !!html });
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: subject and html are required for non-template emails" }),
+        { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    console.log(`Sending email via Brevo to: ${to}, ${useTemplate ? `Template ID: ${templateId}` : `Subject: ${subject}`}`);
+
+    // Build request body based on email type
+    const emailBody: Record<string, any> = {
+      sender: { name: "MALPINOHDISTRO", email: "no-reply@malpinohdistro.com" },
+      to: [{ email: to }],
+    };
+
+    if (useTemplate) {
+      emailBody.templateId = templateId;
+      if (params) {
+        emailBody.params = params;
+      }
+    } else {
+      emailBody.subject = subject;
+      emailBody.htmlContent = html;
+    }
 
     // Send email via Brevo API
     const response = await fetch("https://api.brevo.com/v3/smtp/email", {
@@ -80,12 +108,7 @@ const handler = async (req: Request): Promise<Response> => {
         "api-key": apiKey,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        sender: { name: "MALPINOHDISTRO", email: "no-reply@malpinohdistro.com" },
-        to: [{ email: to }],
-        subject,
-        htmlContent: html,
-      }),
+      body: JSON.stringify(emailBody),
     });
 
     const result = await response.json();
