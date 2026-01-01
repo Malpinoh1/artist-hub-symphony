@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { fetchReleaseDetails } from '@/services/releaseService';
 import { fetchStreamingLinks, StreamingLink } from '@/services/streamingLinksService';
@@ -49,6 +50,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [identifierDialogOpen, setIdentifierDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
   const [statsDialogOpen, setStatsDialogOpen] = useState(false);
   const [linksDialogOpen, setLinksDialogOpen] = useState(false);
   const [releaseStatistics, setReleaseStatistics] = useState<PerformanceStatistics | null>(null);
@@ -84,6 +86,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     console.log('Opening status dialog for release:', release);
     setSelectedRelease(release);
     setSelectedStatus(release.status);
+    setRejectionReason('');
     setStatusDialogOpen(true);
   };
   
@@ -92,22 +95,42 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       console.log('Cannot update status: missing data or already updating');
       return;
     }
+
+    // Require rejection reason for rejected status
+    if (selectedStatus === 'Rejected' && !rejectionReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
     
     setUpdating(true);
     console.log(`Attempting to update release ${selectedRelease.id} status from ${selectedRelease.status} to ${selectedStatus}`);
     
     try {
-      const result = await updateReleaseStatus(selectedRelease.id, selectedStatus as any);
+      const result = await updateReleaseStatus(
+        selectedRelease.id, 
+        selectedStatus as any,
+        selectedStatus === 'Rejected' ? rejectionReason : undefined
+      );
       
       console.log('Status update result:', result);
       
       if (result.success && result.data) {
         console.log('Status update successful, updating UI with:', result.data);
         onReleaseUpdate(selectedRelease.id, selectedStatus, result.data);
-        toast.success(`Release status updated to ${selectedStatus}`);
+        
+        // Show appropriate success message
+        if (selectedStatus === 'Approved') {
+          toast.success('Release approved and artist notified via email');
+        } else if (selectedStatus === 'Rejected') {
+          toast.success('Release rejected and artist notified via email');
+        } else {
+          toast.success(`Release status updated to ${selectedStatus}`);
+        }
+        
         setStatusDialogOpen(false);
         setSelectedRelease(null);
         setSelectedStatus('');
+        setRejectionReason('');
       } else {
         console.error('Failed to update release status:', result.error);
         toast.error(`Failed to update release status: ${result.error?.message || 'Unknown error'}`);
@@ -339,6 +362,23 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                     </SelectContent>
                   </Select>
                 </div>
+                
+                {/* Show rejection reason field when Rejected is selected */}
+                {selectedStatus === 'Rejected' && (
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="rejectionReason" className="text-right pt-2">
+                      Reason
+                    </Label>
+                    <Textarea
+                      id="rejectionReason"
+                      value={rejectionReason}
+                      onChange={(e) => setRejectionReason(e.target.value)}
+                      className="col-span-3"
+                      placeholder="Explain why this release is being rejected..."
+                      rows={3}
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button 
@@ -348,6 +388,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                     setStatusDialogOpen(false);
                     setSelectedRelease(null);
                     setSelectedStatus('');
+                    setRejectionReason('');
                   }} 
                   disabled={updating}
                 >
@@ -356,9 +397,10 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 <Button 
                   type="button" 
                   onClick={handleStatusChange} 
-                  disabled={updating || !selectedStatus}
+                  disabled={updating || !selectedStatus || (selectedStatus === 'Rejected' && !rejectionReason.trim())}
+                  variant={selectedStatus === 'Rejected' ? 'destructive' : 'default'}
                 >
-                  {updating ? 'Updating...' : 'Save changes'}
+                  {updating ? 'Updating...' : selectedStatus === 'Approved' ? 'Approve Release' : selectedStatus === 'Rejected' ? 'Reject Release' : 'Save changes'}
                 </Button>
               </DialogFooter>
             </DialogContent>
