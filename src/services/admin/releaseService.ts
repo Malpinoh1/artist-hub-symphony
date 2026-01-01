@@ -1,5 +1,8 @@
 import { supabase } from "../../integrations/supabase/client";
-import { sendReleaseApprovedEmail } from "../emailService";
+import { 
+  sendReleaseApproved, 
+  sendReleaseRejected 
+} from "../../utils/email";
 
 export interface Release {
   id: string;
@@ -45,7 +48,11 @@ export async function fetchAdminReleases() {
 }
 
 // Update release status with proper error handling
-export async function updateReleaseStatus(releaseId: string, newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested") {
+export async function updateReleaseStatus(
+  releaseId: string, 
+  newStatus: "Pending" | "Approved" | "Rejected" | "TakeDown" | "TakeDownRequested",
+  rejectionReason?: string
+) {
   console.log(`Updating release ${releaseId} to status ${newStatus}`);
   
   try {
@@ -66,10 +73,21 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
       return { success: false, error: { message: 'Release not found' } };
     }
 
+    // Build update object
+    const updateData: Record<string, any> = { 
+      status: newStatus,
+      updated_at: new Date().toISOString()
+    };
+    
+    // Add admin notes for rejection
+    if (newStatus === 'Rejected' && rejectionReason) {
+      updateData.admin_notes = rejectionReason;
+    }
+
     // Update the status
     const { error: updateError } = await supabase
       .from('releases')
-      .update({ status: newStatus })
+      .update(updateData)
       .eq('id', releaseId);
       
     if (updateError) {
@@ -89,6 +107,7 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
         upc,
         isrc,
         artist_id,
+        admin_notes,
         artists(id, name, email)
       `)
       .eq('id', releaseId)
@@ -101,21 +120,43 @@ export async function updateReleaseStatus(releaseId: string, newStatus: "Pending
     
     console.log('Release status updated successfully:', updatedRelease);
     
-    // If a release is approved, send notification email to artist
-    if (newStatus === 'Approved' && updatedRelease.artists) {
-      console.log('Release approved, sending notification email');
-      try {
-        const artist = Array.isArray(updatedRelease.artists) ? updatedRelease.artists[0] : updatedRelease.artists;
-        if (artist && artist.email && artist.name) {
-          await sendReleaseApprovedEmail(
-            artist.email,
-            artist.name,
-            updatedRelease.title
-          );
-          console.log('Approval email sent successfully');
+    // Send notification emails based on status change
+    if (updatedRelease.artists) {
+      const artist = Array.isArray(updatedRelease.artists) 
+        ? updatedRelease.artists[0] 
+        : updatedRelease.artists;
+        
+      if (artist && artist.email && artist.name) {
+        try {
+          if (newStatus === 'Approved') {
+            console.log('Release approved, sending notification email');
+            const emailResult = await sendReleaseApproved(
+              { title: updatedRelease.title, artist: artist.name },
+              { email: artist.email, name: artist.name }
+            );
+            if (emailResult.success) {
+              console.log('Approval email sent successfully');
+            } else {
+              console.error('Failed to send approval email:', emailResult.error);
+            }
+          } else if (newStatus === 'Rejected') {
+            console.log('Release rejected, sending notification email');
+            const reason = rejectionReason || updatedRelease.admin_notes || 'Your release did not meet our quality guidelines.';
+            const emailResult = await sendReleaseRejected(
+              { title: updatedRelease.title, artist: artist.name },
+              { email: artist.email, name: artist.name },
+              reason
+            );
+            if (emailResult.success) {
+              console.log('Rejection email sent successfully');
+            } else {
+              console.error('Failed to send rejection email:', emailResult.error);
+            }
+          }
+        } catch (emailError) {
+          console.error('Error sending notification email:', emailError);
+          // Don't fail the status update if email fails
         }
-      } catch (emailError) {
-        console.error('Error sending approval email:', emailError);
       }
     }
     
@@ -153,7 +194,8 @@ export async function updateReleaseIdentifiers(releaseId: string, upc: string, i
       .from('releases')
       .update({ 
         upc: upc || null,
-        isrc: isrc || null
+        isrc: isrc || null,
+        updated_at: new Date().toISOString()
       })
       .eq('id', releaseId);
       
