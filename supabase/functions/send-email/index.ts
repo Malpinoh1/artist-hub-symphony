@@ -87,7 +87,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Build request body based on email type
     const emailBody: Record<string, any> = {
-      sender: { name: "MALPINOHDISTRO", email: "no-reply@malpinohdistro.com" },
+      sender: { name: "MALPINOHDISTRO", email: "no-reply@malpinohdistro.com.ng" },
       to: [{ email: to }],
     };
 
