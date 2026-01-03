@@ -65,7 +65,9 @@ export const AdminTwoFactorReset: React.FC = () => {
         .update({
           two_factor_enabled: false,
           two_factor_secret: null,
-          backup_codes: null
+          backup_codes: null,
+          two_factor_recovery_code: null,
+          two_factor_recovery_expires: null
         })
         .eq('id', targetUserId);
 
