@@ -52,3 +52,13 @@ export * from './admin/releaseService';
 export * from './admin/withdrawalService';
 export * from './admin/artistService';
 export * from './admin/otherService';
+
+// Re-export specific functions that are commonly used
+export { 
+  fetchAdminReleases, 
+  updateReleaseStatus, 
+  updateReleaseIdentifiers, 
+  deleteRelease, 
+  adminCreateRelease,
+  fetchAllArtists 
+} from './admin/releaseService';

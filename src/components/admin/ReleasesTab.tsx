@@ -8,10 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { MoreVertical, Pencil, Barcode, BarChart, Link } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoreVertical, Pencil, Barcode, BarChart, Link, Trash2, Plus } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
-import { Release, updateReleaseStatus, updateReleaseIdentifiers } from '@/services/adminService';
+import { Release, updateReleaseStatus, updateReleaseIdentifiers, deleteRelease } from '@/services/adminService';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -21,6 +21,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -28,6 +38,7 @@ import { fetchReleaseDetails } from '@/services/releaseService';
 import { fetchStreamingLinks, StreamingLink } from '@/services/streamingLinksService';
 import PerformanceStatisticsEditor from './PerformanceStatisticsEditor';
 import StreamingLinksEditor from './StreamingLinksEditor';
+import AdminReleaseUpload from './AdminReleaseUpload';
 import { PerformanceStatistics } from '@/services/statisticsService';
 import {
   Select,
@@ -41,9 +52,10 @@ interface ReleasesTabProps {
   releases: Release[];
   loading: boolean;
   onReleaseUpdate: (id: string, status: string, updatedData?: any) => void;
+  onRefreshData?: () => void;
 }
 
-const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseUpdate }) => {
+const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseUpdate, onRefreshData }) => {
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [upc, setUpc] = useState('');
   const [isrc, setIsrc] = useState('');
@@ -57,6 +69,10 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [streamingLinks, setStreamingLinks] = useState<StreamingLink[]>([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [releaseToDelete, setReleaseToDelete] = useState<Release | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -243,6 +259,37 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     }
   };
 
+  const openDeleteDialog = (release: Release) => {
+    setReleaseToDelete(release);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteRelease = async () => {
+    if (!releaseToDelete || deleting) return;
+    
+    setDeleting(true);
+    try {
+      const result = await deleteRelease(releaseToDelete.id);
+      if (result.success) {
+        toast.success(`Release "${releaseToDelete.title}" deleted successfully`);
+        setDeleteDialogOpen(false);
+        setReleaseToDelete(null);
+        onRefreshData?.();
+      } else {
+        toast.error(`Failed to delete release: ${result.error?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting release:', error);
+      toast.error('An error occurred while deleting the release');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleUploadSuccess = () => {
+    onRefreshData?.();
+  };
+
   return (
     <div>
       {loading ? (
@@ -251,6 +298,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
         </div>
       ) : (
         <div className="w-full overflow-x-auto">
+          <div className="flex justify-end mb-4">
+            <Button onClick={() => setUploadDialogOpen(true)}>
+              <Plus className="w-4 h-4 mr-2" /> Upload Release
+            </Button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
@@ -322,6 +374,14 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                           >
                             <Link className="mr-2 h-4 w-4" />
                             Update Streaming Links
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => openDeleteDialog(release)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete Release
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -487,6 +547,36 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               onUpdate={handleLinksUpdate}
             />
           )}
+
+          {/* Delete Confirmation Dialog */}
+          <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Release</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete "{releaseToDelete?.title}"? This action cannot be undone.
+                  All associated tracks, streaming links, and statistics will also be deleted.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleDeleteRelease}
+                  disabled={deleting}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {deleting ? 'Deleting...' : 'Delete'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          {/* Admin Release Upload Dialog */}
+          <AdminReleaseUpload
+            open={uploadDialogOpen}
+            onOpenChange={setUploadDialogOpen}
+            onSuccess={handleUploadSuccess}
+          />
         </div>
       )}
     </div>

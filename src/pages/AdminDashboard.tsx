@@ -144,7 +144,8 @@ const AdminDashboard = () => {
           <ReleasesTab 
             releases={releases} 
             loading={loading}
-            onReleaseUpdate={handleReleaseUpdate} 
+            onReleaseUpdate={handleReleaseUpdate}
+            onRefreshData={handleRefreshData}
           />
         );
       case 'withdrawals':
