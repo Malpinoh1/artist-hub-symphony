@@ -87,6 +87,7 @@ export type Database = {
           name: string
           phone: string | null
           status: string | null
+          team_name: string | null
           total_earnings: number | null
           wallet_balance: number | null
         }
@@ -99,6 +100,7 @@ export type Database = {
           name: string
           phone?: string | null
           status?: string | null
+          team_name?: string | null
           total_earnings?: number | null
           wallet_balance?: number | null
         }
@@ -111,6 +113,7 @@ export type Database = {
           name?: string
           phone?: string | null
           status?: string | null
+          team_name?: string | null
           total_earnings?: number | null
           wallet_balance?: number | null
         }

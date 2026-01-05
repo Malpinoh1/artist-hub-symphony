@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2, Lock } from 'lucide-react';
+import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2, Lock, Building2, Loader2, Send } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
@@ -17,6 +17,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import SubscriptionGate from '../components/SubscriptionGate';
+import { sendTeamInviteEmail } from '../utils/email';
 
 
 interface TeamMember {
@@ -65,6 +66,11 @@ const Team = () => {
   const [manualInviteLink, setManualInviteLink] = useState<string | null>(null);
   const [directInviteToken, setDirectInviteToken] = useState('');
   const [processingDirectInvite, setProcessingDirectInvite] = useState(false);
+  const [teamName, setTeamName] = useState('');
+  const [isEditingTeamName, setIsEditingTeamName] = useState(false);
+  const [newTeamName, setNewTeamName] = useState('');
+  const [savingTeamName, setSavingTeamName] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -84,7 +90,8 @@ const Team = () => {
       await Promise.all([
         fetchTeamMembers(session.user.id),
         fetchInvitations(session.user.id),
-        fetchMyInvitations(session.user.email)
+        fetchMyInvitations(session.user.email),
+        fetchTeamName(session.user.id)
       ]);
     } catch (error) {
       console.error('Error checking auth:', error);
@@ -209,6 +216,61 @@ const Team = () => {
     } catch (error) {
       console.error('Error fetching my invitations:', error);
       setMyInvitations([]);
+    }
+  };
+
+  const fetchTeamName = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('artists')
+        .select('team_name')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching team name:', error);
+        return;
+      }
+
+      if (data?.team_name) {
+        setTeamName(data.team_name);
+        setNewTeamName(data.team_name);
+      }
+    } catch (error) {
+      console.error('Error fetching team name:', error);
+    }
+  };
+
+  const handleSaveTeamName = async () => {
+    if (!user || !newTeamName.trim()) return;
+
+    setSavingTeamName(true);
+    try {
+      const { error } = await supabase
+        .from('artists')
+        .update({ team_name: newTeamName.trim() })
+        .eq('id', user.id);
+
+      if (error) {
+        console.error('Error saving team name:', error);
+        throw error;
+      }
+
+      setTeamName(newTeamName.trim());
+      setIsEditingTeamName(false);
+      toast({
+        title: "Team name updated",
+        description: "Your team name has been saved successfully."
+      });
+    } catch (error) {
+      console.error('Error saving team name:', error);
+      toast({
+        title: "Failed to save team name",
+        description: "There was an error saving your team name. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSavingTeamName(false);
     }
   };
 
@@ -354,14 +416,59 @@ const Team = () => {
 
       console.log('Invitation created:', data);
 
-      // Create invitation URL for manual sharing
+      // Create invitation URL for sharing
       const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${data.token}`;
       setManualInviteLink(inviteUrl);
 
-      toast({
-        title: "Invitation sent successfully!",
-        description: `${inviteEmail} has been invited as ${inviteRole.replace('_', ' ')}. They will see this invitation in their Settings page when they log in.`
-      });
+      // Get user's profile name for the email
+      let inviterName = 'A team owner';
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        if (profile?.full_name) {
+          inviterName = profile.full_name;
+        }
+      } catch (e) {
+        console.warn('Could not fetch inviter name:', e);
+      }
+
+      // Send invitation email
+      setSendingEmail(true);
+      try {
+        const emailResult = await sendTeamInviteEmail({
+          to: normalizedEmail,
+          inviterName,
+          teamName: teamName || 'MALPINOHdistro Team',
+          role: inviteRole,
+          inviteLink: inviteUrl,
+          expiresAt: data.expires_at
+        });
+
+        if (emailResult.success) {
+          toast({
+            title: "Invitation sent!",
+            description: `An email invitation has been sent to ${inviteEmail}.`
+          });
+        } else {
+          console.error('Email send failed:', emailResult.error);
+          toast({
+            title: "Invitation created",
+            description: `Invitation created but email could not be sent. Share the link manually with ${inviteEmail}.`,
+            variant: "default"
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending email:', emailError);
+        toast({
+          title: "Invitation created",
+          description: `Invitation created. Share the link with ${inviteEmail} to complete the process.`
+        });
+      } finally {
+        setSendingEmail(false);
+      }
 
       setInviteEmail('');
       setInviteRole('viewer');
@@ -392,6 +499,62 @@ const Team = () => {
         description: "Could not copy to clipboard. Please copy manually.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleResendInviteEmail = async (invitation: Invitation) => {
+    if (!user) return;
+
+    setSendingEmail(true);
+    try {
+      const inviteUrl = `${window.location.origin}/team/accept-invitation?token=${invitation.token}`;
+      
+      // Get user's profile name for the email
+      let inviterName = 'A team owner';
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        if (profile?.full_name) {
+          inviterName = profile.full_name;
+        }
+      } catch (e) {
+        console.warn('Could not fetch inviter name:', e);
+      }
+
+      const emailResult = await sendTeamInviteEmail({
+        to: invitation.invited_email,
+        inviterName,
+        teamName: teamName || 'MALPINOHdistro Team',
+        role: invitation.role,
+        inviteLink: inviteUrl,
+        expiresAt: invitation.expires_at
+      });
+
+      if (emailResult.success) {
+        toast({
+          title: "Email resent!",
+          description: `Invitation email has been resent to ${invitation.invited_email}.`
+        });
+      } else {
+        console.error('Email resend failed:', emailResult.error);
+        toast({
+          title: "Email failed",
+          description: "Could not resend the invitation email. Try copying the link instead.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error resending email:', error);
+      toast({
+        title: "Email failed",
+        description: "Could not resend the invitation email. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -561,6 +724,75 @@ const Team = () => {
               Manage who has access to your music distribution account and control their permissions
             </p>
           </div>
+
+          {/* Team Name Section */}
+          {isPersonalAccount && canManageTeam && (
+            <div className="mb-8">
+              <AnimatedCard>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-primary" />
+                      Team Name
+                    </CardTitle>
+                    <CardDescription>
+                      Set a name for your team. This will be shown in invitation emails.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {isEditingTeamName ? (
+                      <div className="flex gap-3">
+                        <Input
+                          placeholder="Enter your team name..."
+                          value={newTeamName}
+                          onChange={(e) => setNewTeamName(e.target.value)}
+                          className="flex-1"
+                        />
+                        <Button 
+                          onClick={handleSaveTeamName}
+                          disabled={savingTeamName || !newTeamName.trim()}
+                        >
+                          {savingTeamName ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Saving...
+                            </>
+                          ) : 'Save'}
+                        </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={() => {
+                            setIsEditingTeamName(false);
+                            setNewTeamName(teamName);
+                          }}
+                        >
+                          Cancel
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          {teamName ? (
+                            <span className="text-lg font-medium">{teamName}</span>
+                          ) : (
+                            <span className="text-muted-foreground italic">No team name set</span>
+                          )}
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setIsEditingTeamName(true)}
+                        >
+                          <Edit3 className="w-4 h-4 mr-2" />
+                          {teamName ? 'Edit' : 'Set Name'}
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </AnimatedCard>
+            </div>
+          )}
 
           {/* Direct Invitation Acceptance */}
           <div className="mb-8">
@@ -882,6 +1114,19 @@ const Team = () => {
                               </div>
                               <div className="flex items-center gap-2">
                                 {getRoleBadge(invitation.role)}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleResendInviteEmail(invitation)}
+                                  disabled={sendingEmail}
+                                  title="Resend invitation email"
+                                >
+                                  {sendingEmail ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Send className="w-4 h-4" />
+                                  )}
+                                </Button>
                                 <Button
                                   variant="ghost"
                                   size="sm"
