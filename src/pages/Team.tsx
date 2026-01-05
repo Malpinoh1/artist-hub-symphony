@@ -17,7 +17,7 @@ import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import SubscriptionGate from '../components/SubscriptionGate';
-import { sendTeamInviteEmail } from '../utils/email';
+import { sendTeamInviteEmail, sendTeamNotificationEmail } from '../utils/email';
 
 
 interface TeamMember {
@@ -558,7 +558,7 @@ const Team = () => {
     }
   };
 
-  const handleRemoveTeamMember = async (memberId: string) => {
+  const handleRemoveTeamMember = async (memberId: string, memberEmail?: string) => {
     if (!user) return;
     
     try {
@@ -580,12 +580,73 @@ const Team = () => {
         description: "The team member has been removed from your account."
       });
 
+      // Send notification email to removed member
+      if (memberEmail) {
+        try {
+          await sendTeamNotificationEmail({
+            to: memberEmail,
+            type: 'removed',
+            teamName: teamName || 'MALPINOHdistro Team',
+          });
+          console.log('Removal notification sent to:', memberEmail);
+        } catch (emailError) {
+          console.error('Failed to send removal notification:', emailError);
+        }
+      }
+
       await fetchTeamMembers(user.id);
     } catch (error) {
       console.error('Error removing team member:', error);
       toast({
         title: "Failed to remove member",
         description: "There was an error removing the team member. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleUpdateMemberRole = async (memberId: string, memberEmail: string, currentRole: string, newRole: 'account_admin' | 'manager' | 'viewer') => {
+    if (!user || currentRole === newRole) return;
+    
+    try {
+      console.log('Updating member role:', { memberId, currentRole, newRole });
+      
+      const { error } = await supabase
+        .from('account_access')
+        .update({ role: newRole, updated_at: new Date().toISOString() })
+        .eq('id', memberId)
+        .eq('account_owner_id', user.id);
+
+      if (error) {
+        console.error('Error updating member role:', error);
+        throw error;
+      }
+
+      toast({
+        title: "Role updated",
+        description: `Member role has been changed to ${newRole.replace('_', ' ')}.`
+      });
+
+      // Send notification email about role change
+      try {
+        await sendTeamNotificationEmail({
+          to: memberEmail,
+          type: 'role_updated',
+          teamName: teamName || 'MALPINOHdistro Team',
+          oldRole: currentRole,
+          newRole: newRole,
+        });
+        console.log('Role update notification sent to:', memberEmail);
+      } catch (emailError) {
+        console.error('Failed to send role update notification:', emailError);
+      }
+
+      await fetchTeamMembers(user.id);
+    } catch (error) {
+      console.error('Error updating member role:', error);
+      toast({
+        title: "Failed to update role",
+        description: "There was an error updating the member's role. Please try again.",
         variant: "destructive"
       });
     }
@@ -1050,7 +1111,25 @@ const Team = () => {
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  {getRoleBadge(member.role)}
+                                  {canManageTeam && isPersonalAccount ? (
+                                    <Select 
+                                      value={member.role} 
+                                      onValueChange={(newRole: 'account_admin' | 'manager' | 'viewer') => 
+                                        handleUpdateMemberRole(member.id, member.user_email || '', member.role, newRole)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-[130px]">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="viewer">Viewer</SelectItem>
+                                        <SelectItem value="manager">Manager</SelectItem>
+                                        <SelectItem value="account_admin">Admin</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                  ) : (
+                                    getRoleBadge(member.role)
+                                  )}
                                 </TableCell>
                                 <TableCell className="text-muted-foreground">
                                   {new Date(member.created_at).toLocaleDateString()}
@@ -1066,7 +1145,7 @@ const Team = () => {
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
                                         <DropdownMenuItem 
-                                          onClick={() => handleRemoveTeamMember(member.id)}
+                                          onClick={() => handleRemoveTeamMember(member.id, member.user_email)}
                                           className="text-destructive"
                                         >
                                           <Trash2 className="w-4 h-4 mr-2" />

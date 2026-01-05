@@ -201,3 +201,46 @@ export async function sendTeamInviteEmail(params: TeamInviteParams): Promise<Ema
     return { success: false, error: error.message };
   }
 }
+
+// ============================================
+// TEAM NOTIFICATION EMAILS (Member removed/role updated)
+// ============================================
+
+interface TeamNotificationParams {
+  to: string;
+  type: 'removed' | 'role_updated';
+  teamName: string;
+  memberName?: string;
+  oldRole?: string;
+  newRole?: string;
+}
+
+const TEAM_NOTIFICATION_FUNCTION_URL = 'https://hewyffhdykietximpfbu.supabase.co/functions/v1/send-team-notification';
+
+export async function sendTeamNotificationEmail(params: TeamNotificationParams): Promise<EmailResult> {
+  try {
+    console.log('Sending team notification email:', params);
+
+    const response = await fetch(TEAM_NOTIFICATION_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld3lmZmhkeWtpZXR4aW1wZmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzMjk1ODYsImV4cCI6MjA1ODkwNTU4Nn0.UqxDgfYqm3yhC8nDYdfcb8UDm9rz9qFKq-pIh6xEB-Y',
+      },
+      body: JSON.stringify(params),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Team notification email error:', result);
+      return { success: false, error: result.error || 'Failed to send notification email' };
+    }
+
+    console.log('Team notification email sent successfully:', result);
+    return { success: true, messageId: result.messageId };
+  } catch (error: any) {
+    console.error('Team notification email error:', error.message);
+    return { success: false, error: error.message };
+  }
+}
