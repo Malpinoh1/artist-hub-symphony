@@ -18,6 +18,7 @@ export const TEMPLATE_ADDED_TO_TEAM = 7;
 export const TEMPLATE_ROLE_UPDATED = 8;
 export const TEMPLATE_TEAM_MEMBER_REMOVED = 9;
 export const TEMPLATE_PASSWORD_RESET = 10;
+export const TEMPLATE_TEAM_INVITATION = 11;
 
 // ============================================
 // BASE FUNCTION
@@ -156,4 +157,47 @@ export async function sendPasswordReset(user: User, link: string): Promise<Email
   return sendTemplateEmail(user.email, TEMPLATE_PASSWORD_RESET, {
     resetLink: link,
   });
+}
+
+// ============================================
+// TEAM INVITATION EMAIL (Uses dedicated edge function)
+// ============================================
+
+interface TeamInviteParams {
+  to: string;
+  inviterName: string;
+  teamName: string;
+  role: string;
+  inviteLink: string;
+  expiresAt: string;
+}
+
+const TEAM_INVITE_FUNCTION_URL = 'https://hewyffhdykietximpfbu.supabase.co/functions/v1/send-team-invite';
+
+export async function sendTeamInviteEmail(params: TeamInviteParams): Promise<EmailResult> {
+  try {
+    console.log('Sending team invite email:', params);
+
+    const response = await fetch(TEAM_INVITE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld3lmZmhkeWtpZXR4aW1wZmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzMjk1ODYsImV4cCI6MjA1ODkwNTU4Nn0.UqxDgfYqm3yhC8nDYdfcb8UDm9rz9qFKq-pIh6xEB-Y',
+      },
+      body: JSON.stringify(params),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      console.error('Team invite email error:', result);
+      return { success: false, error: result.error || 'Failed to send invitation email' };
+    }
+
+    console.log('Team invite email sent successfully:', result);
+    return { success: true, messageId: result.messageId };
+  } catch (error: any) {
+    console.error('Team invite email error:', error.message);
+    return { success: false, error: error.message };
+  }
 }
