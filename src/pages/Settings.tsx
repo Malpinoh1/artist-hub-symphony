@@ -6,6 +6,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import InviteNotifications from '../components/InviteNotifications';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { AdminTwoFactorReset } from '../components/AdminTwoFactorReset';
+import ArtistAccountsManager from '../components/admin/ArtistAccountsManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -617,6 +618,11 @@ const Settings = () => {
               </div>
             </AnimatedCard>
           </div>
+        </section>
+
+        {/* Artist Accounts Section */}
+        <section className="container mx-auto px-4 py-8">
+          <ArtistAccountsManager />
         </section>
 
         {/* Admin 2FA Reset Section */}

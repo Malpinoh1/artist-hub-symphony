@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Helper logging function for enhanced debugging
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[ADMIN-UPDATE-SUBSCRIPTION] ${step}${detailsStr}`);
@@ -17,7 +16,6 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Use the service role key to perform writes (upsert) in Supabase
   const supabaseClient = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
@@ -29,18 +27,14 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) throw new Error("No authorization header provided");
-    logStep("Authorization header found");
 
     const token = authHeader.replace("Bearer ", "");
-    logStep("Authenticating user with token");
-    
     const { data: userData, error: userError } = await supabaseClient.auth.getUser(token);
     if (userError) throw new Error(`Authentication error: ${userError.message}`);
     const user = userData.user;
     if (!user?.email) throw new Error("User not authenticated or email not available");
-    logStep("User authenticated", { userId: user.id, email: user.email });
+    logStep("User authenticated", { userId: user.id });
 
-    // Check if user is admin
     const { data: userRole } = await supabaseClient
       .from('user_roles')
       .select('role')
@@ -52,7 +46,6 @@ serve(async (req) => {
     }
     logStep("Admin access verified");
 
-    // Parse request body
     const body = await req.json();
     const { target_user_email, subscribed, subscription_tier, subscription_end } = body;
 
@@ -60,15 +53,23 @@ serve(async (req) => {
       throw new Error("target_user_email is required");
     }
 
-    logStep("Updating subscription for user", { target_user_email, subscribed, subscription_tier, subscription_end });
+    logStep("Updating subscription", { target_user_email, subscribed, subscription_tier, subscription_end });
 
-    // Get target user ID
     const { data: targetUser } = await supabaseClient.auth.admin.getUserByEmail(target_user_email);
     if (!targetUser.user) {
       throw new Error("Target user not found");
     }
 
-    // Update or insert subscription record
+    // Get previous subscription status to determine if this is an activation
+    const { data: previousSub } = await supabaseClient
+      .from("subscribers")
+      .select("subscribed")
+      .eq("email", target_user_email)
+      .maybeSingle();
+
+    const wasSubscribed = previousSub?.subscribed || false;
+    const isNowSubscribed = subscribed || false;
+
     const { data: updatedSubscription, error: updateError } = await supabaseClient
       .from("subscribers")
       .upsert({
@@ -87,6 +88,46 @@ serve(async (req) => {
       throw updateError;
     }
 
+    // Send email notification if subscription was just activated or renewed
+    if (isNowSubscribed && subscription_end) {
+      try {
+        // Get user's profile name
+        const { data: profile } = await supabaseClient
+          .from('profiles')
+          .select('full_name')
+          .eq('id', targetUser.user.id)
+          .maybeSingle();
+
+        const userName = profile?.full_name || target_user_email.split('@')[0];
+        const action = wasSubscribed ? 'renewed' : 'activated';
+
+        logStep("Sending subscription email", { userName, action, subscription_tier });
+
+        const emailResponse = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/send-subscription-email`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          },
+          body: JSON.stringify({
+            to: target_user_email,
+            userName,
+            subscriptionTier: subscription_tier || 'Standard',
+            subscriptionEnd: subscription_end,
+            action
+          }),
+        });
+
+        if (!emailResponse.ok) {
+          logStep("Email send warning - non-fatal", { status: emailResponse.status });
+        } else {
+          logStep("Subscription email sent successfully");
+        }
+      } catch (emailError) {
+        logStep("Email send error - non-fatal", { error: emailError.message });
+      }
+    }
+
     logStep("Subscription updated successfully", { updatedSubscription });
     return new Response(JSON.stringify({
       success: true,
@@ -97,7 +138,7 @@ serve(async (req) => {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    logStep("ERROR in admin-update-subscription", { message: errorMessage });
+    logStep("ERROR", { message: errorMessage });
     return new Response(JSON.stringify({ error: errorMessage }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
