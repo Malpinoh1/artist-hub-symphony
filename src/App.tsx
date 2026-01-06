@@ -39,6 +39,7 @@ import ConfirmSubscription from "./pages/ConfirmSubscription";
 import PasswordReset from "./pages/PasswordReset";
 import ResetPassword from "./pages/ResetPassword";
 import MarketingGuide from "./pages/resources/MarketingGuide";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,7 @@ const AppContent = () => {
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
+        <Route path="/support" element={<Support />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       

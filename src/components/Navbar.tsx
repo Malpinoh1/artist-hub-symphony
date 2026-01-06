@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, Settings, Users, ChevronDown } from 'lucide-react';
+import { Menu, X, User, LogOut, Settings, Users, ChevronDown, HelpCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
@@ -183,6 +183,12 @@ const Navbar = () => {
                         Team Management
                       </Link>
                     </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link to="/support" className="flex items-center">
+                        <HelpCircle className="mr-2 h-4 w-4" />
+                        Support
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
                       <LogOut className="mr-2 h-4 w-4" />
@@ -261,6 +267,13 @@ const Navbar = () => {
                       className="block px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:text-primary hover:bg-white/5"
                     >
                       Team Access
+                    </Link>
+                    <Link
+                      to="/support"
+                      onClick={() => setIsOpen(false)}
+                      className="block px-4 py-2 rounded-lg text-sm font-medium text-foreground hover:text-primary hover:bg-white/5"
+                    >
+                      Support
                     </Link>
                     <Link
                       to="/settings"

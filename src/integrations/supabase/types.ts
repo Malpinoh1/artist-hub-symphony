@@ -77,6 +77,39 @@ export type Database = {
         }
         Relationships: []
       }
+      artist_accounts: {
+        Row: {
+          artist_email: string | null
+          artist_name: string
+          bio: string | null
+          created_at: string
+          genre: string | null
+          id: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          artist_email?: string | null
+          artist_name: string
+          bio?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          artist_email?: string | null
+          artist_name?: string
+          bio?: string | null
+          created_at?: string
+          genre?: string | null
+          id?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       artists: {
         Row: {
           available_balance: number | null
@@ -799,6 +832,77 @@ export type Database = {
           subscription_tier?: string | null
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      support_ticket_messages: {
+        Row: {
+          created_at: string
+          id: string
+          is_admin_reply: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          message: string
+          ticket_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_admin_reply?: boolean
+          message?: string
+          ticket_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string
+          id: string
+          priority: string
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          priority?: string
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          priority?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

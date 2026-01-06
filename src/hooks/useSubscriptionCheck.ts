@@ -8,6 +8,7 @@ interface SubscriptionStatus {
   subscription_end: string | null;
   loading: boolean;
   isAdmin: boolean;
+  isExpired: boolean;
 }
 
 export const useSubscriptionCheck = () => {
@@ -17,7 +18,8 @@ export const useSubscriptionCheck = () => {
     subscription_tier: null,
     subscription_end: null,
     loading: true,
-    isAdmin: false
+    isAdmin: false,
+    isExpired: false
   });
 
   useEffect(() => {
@@ -44,12 +46,33 @@ export const useSubscriptionCheck = () => {
         .eq('user_id', userId)
         .maybeSingle();
 
+      // Check if subscription has expired
+      let isExpired = false;
+      let isStillSubscribed = subData?.subscribed || false;
+
+      if (subData?.subscription_end) {
+        const endDate = new Date(subData.subscription_end);
+        const now = new Date();
+        
+        if (endDate < now && subData.subscribed) {
+          isExpired = true;
+          isStillSubscribed = false;
+          
+          // Auto-expire the subscription in the database
+          await supabase
+            .from('subscribers')
+            .update({ subscribed: false, updated_at: new Date().toISOString() })
+            .eq('user_id', userId);
+        }
+      }
+
       setStatus({
-        subscribed: subData?.subscribed || false,
+        subscribed: isStillSubscribed,
         subscription_tier: subData?.subscription_tier || null,
         subscription_end: subData?.subscription_end || null,
         loading: false,
-        isAdmin: adminCheck || false
+        isAdmin: adminCheck || false,
+        isExpired
       });
     } catch (error) {
       console.error('Error checking subscription status:', error);
