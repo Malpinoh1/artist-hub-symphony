@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { sendSupportReplyNotificationEmail } from '@/utils/email';
 
 interface Ticket {
   id: string;
@@ -178,6 +179,23 @@ const SupportTicketsTab = () => {
         });
 
       if (error) throw error;
+      
+      // Send email notification to the user
+      if (selectedTicket.user_email) {
+        try {
+          await sendSupportReplyNotificationEmail({
+            to: selectedTicket.user_email,
+            ticketSubject: selectedTicket.subject,
+            ticketId: selectedTicket.id,
+            replyPreview: newMessage.trim()
+          });
+          console.log('Support reply notification sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send support reply notification:', emailError);
+          // Don't fail the message send if email fails
+        }
+      }
+      
       setNewMessage('');
     } catch (error) {
       console.error('Error sending message:', error);

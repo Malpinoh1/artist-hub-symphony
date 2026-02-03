@@ -184,7 +184,8 @@ export async function submitRelease(
   coverArt: File | null, 
   audioFiles: File[], 
   tracksData: any[] = [],
-  onProgress?: (progress: UploadProgress) => void
+  onProgress?: (progress: UploadProgress) => void,
+  artistNameOverride?: string
 ) {
   try {
     console.log('Starting release submission for user:', userId);
@@ -211,7 +212,8 @@ export async function submitRelease(
       .eq('id', userId)
       .maybeSingle();
     
-    const artistName = profileData?.full_name || userEmail.split('@')[0];
+    // Use the artist name override if provided, otherwise use profile name
+    const artistName = artistNameOverride || profileData?.full_name || userEmail.split('@')[0];
     
     // Check if artist record exists, create if not
     let { data: artistData, error: artistError } = await supabase
@@ -245,6 +247,9 @@ export async function submitRelease(
       
       artistData = newArtistData;
     }
+
+    // Use the provided artist name for this release (can be different from account artist name)
+    const releaseArtistName = artistNameOverride || artistData.name;
 
     // Upload cover art if provided
     let coverArtUrl = null;
@@ -384,7 +389,7 @@ export async function submitRelease(
     // Send confirmation email
     try {
       console.log('Sending confirmation email...');
-      await sendReleaseSubmissionEmail(userEmail, releaseFormData.title, artistData.name);
+      await sendReleaseSubmissionEmail(userEmail, releaseFormData.title, releaseArtistName);
       console.log('Confirmation email sent successfully');
     } catch (emailError) {
       console.error('Error sending confirmation email:', emailError);

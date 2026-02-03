@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-subscription-email]
 verify_jwt = false
+
+[functions.send-support-reply-notification]
+verify_jwt = false

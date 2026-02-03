@@ -81,10 +81,21 @@ const distributionPlatforms = [
   { id: 'amazon', name: 'Amazon Music' }
 ];
 
+interface ArtistAccount {
+  id: string;
+  artist_name: string;
+  artist_email: string | null;
+}
+
 const ReleaseForm = () => {
   const navigate = useNavigate();
   const coverArtInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
+
+  // Artist accounts state
+  const [artistAccounts, setArtistAccounts] = useState<ArtistAccount[]>([]);
+  const [selectedArtistAccount, setSelectedArtistAccount] = useState<string>('self');
+  const [loadingArtists, setLoadingArtists] = useState(true);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -126,6 +137,35 @@ const ReleaseForm = () => {
     currentIndex?: number;
     totalFiles?: number;
   }>({ step: 'idle' });
+
+  // Fetch artist accounts
+  useEffect(() => {
+    const fetchArtistAccounts = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+
+        const { data, error } = await supabase
+          .from('artist_accounts')
+          .select('id, artist_name, artist_email')
+          .eq('owner_id', session.user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('Error fetching artist accounts:', error);
+          return;
+        }
+
+        setArtistAccounts(data || []);
+      } catch (error) {
+        console.error('Error fetching artist accounts:', error);
+      } finally {
+        setLoadingArtists(false);
+      }
+    };
+
+    fetchArtistAccounts();
+  }, []);
 
   // Check authentication
   useEffect(() => {
@@ -224,8 +264,18 @@ const ReleaseForm = () => {
       // Prepare form data with proper structure
       const releaseFormData = {
         ...formData,
-        platforms: selectedPlatforms
+        platforms: selectedPlatforms,
+        artistAccountId: selectedArtistAccount !== 'self' ? selectedArtistAccount : null
       };
+
+      // Get the artist name for the selected account
+      let artistNameOverride: string | undefined;
+      if (selectedArtistAccount !== 'self') {
+        const selectedArtist = artistAccounts.find(a => a.id === selectedArtistAccount);
+        if (selectedArtist) {
+          artistNameOverride = selectedArtist.artist_name;
+        }
+      }
 
       // Import the submitRelease function dynamically to use the updated version
       const { submitRelease } = await import('../services/releaseService');
@@ -237,7 +287,8 @@ const ReleaseForm = () => {
         coverArt,
         audioFiles,
         tracks,
-        (progress) => setUploadProgress(progress)
+        (progress) => setUploadProgress(progress),
+        artistNameOverride
       );
 
       if (!result.success) {
@@ -284,6 +335,32 @@ const ReleaseForm = () => {
             <div>
               <h2 className="text-2xl font-semibold mb-4">Release Type & Basic Info</h2>
               
+              {/* Artist Account Selection */}
+              {artistAccounts.length > 0 && (
+                <div className="mb-6">
+                  <Label className="text-base font-medium mb-3 block">Release As *</Label>
+                  <Select 
+                    value={selectedArtistAccount} 
+                    onValueChange={setSelectedArtistAccount}
+                  >
+                    <SelectTrigger className="w-full md:w-[300px]">
+                      <SelectValue placeholder="Select artist" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="self">Myself (Primary Account)</SelectItem>
+                      {artistAccounts.map((artist) => (
+                        <SelectItem key={artist.id} value={artist.id}>
+                          {artist.artist_name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Choose which artist profile to release this music under
+                  </p>
+                </div>
+              )}
+
               {/* Release Type Selection */}
               <div className="mb-6">
                 <Label className="text-base font-medium mb-3 block">Release Type *</Label>
