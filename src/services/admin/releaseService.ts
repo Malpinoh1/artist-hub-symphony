@@ -10,6 +10,7 @@ export interface Release {
   id: string;
   title: string;
   cover_art_url: string;
+  audio_file_url?: string;
   status: string;
   release_date: string;
   upc?: string;
@@ -39,11 +40,13 @@ export async function fetchAdminReleases() {
         id,
         title,
         cover_art_url,
+        audio_file_url,
         status,
         release_date,
         upc,
         isrc,
         artist_id,
+        artist_name,
         artists(id, name, email)
       `)
       .order('release_date', { ascending: false });
@@ -53,6 +56,56 @@ export async function fetchAdminReleases() {
   } catch (error) {
     console.error('Error fetching admin releases:', error);
     return [];
+  }
+}
+
+// Update release artist name (admin only)
+export async function updateReleaseArtistName(releaseId: string, artistName: string) {
+  console.log(`Updating artist name for release ${releaseId}: ${artistName}`);
+  
+  try {
+    const { error: updateError } = await supabase
+      .from('releases')
+      .update({ 
+        artist_name: artistName,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', releaseId);
+      
+    if (updateError) {
+      console.error('Error updating release artist name:', updateError);
+      return { success: false, error: updateError };
+    }
+
+    // Fetch the updated release
+    const { data: updatedRelease, error: fetchError } = await supabase
+      .from('releases')
+      .select(`
+        id,
+        title,
+        cover_art_url,
+        audio_file_url,
+        status,
+        release_date,
+        upc,
+        isrc,
+        artist_id,
+        artist_name,
+        artists(id, name, email)
+      `)
+      .eq('id', releaseId)
+      .single();
+      
+    if (fetchError) {
+      console.error('Error fetching updated release:', fetchError);
+      return { success: false, error: fetchError };
+    }
+    
+    console.log('Release artist name updated successfully:', updatedRelease);
+    return { success: true, data: updatedRelease };
+  } catch (error) {
+    console.error('Error in updateReleaseArtistName:', error);
+    return { success: false, error };
   }
 }
 

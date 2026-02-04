@@ -8,10 +8,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { MoreVertical, Pencil, Barcode, BarChart, Link, Trash2, Plus } from 'lucide-react';
+import { MoreVertical, Pencil, Barcode, BarChart, Link, Trash2, Plus, Download, User } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
-import { Release, updateReleaseStatus, updateReleaseIdentifiers, deleteRelease } from '@/services/adminService';
+import { Release, updateReleaseStatus, updateReleaseIdentifiers, updateReleaseArtistName, deleteRelease } from '@/services/adminService';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -47,6 +47,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { downloadReleaseAssets } from '@/services/assetsService';
 
 interface ReleasesTabProps {
   releases: Release[];
@@ -73,6 +74,9 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [releaseToDelete, setReleaseToDelete] = useState<Release | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [artistNameDialogOpen, setArtistNameDialogOpen] = useState(false);
+  const [artistNameInput, setArtistNameInput] = useState('');
+  const [downloading, setDownloading] = useState(false);
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -290,6 +294,82 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     onRefreshData?.();
   };
 
+  // Artist Name Dialog Functions
+  const openArtistNameDialog = (release: Release) => {
+    setSelectedRelease(release);
+    setArtistNameInput(release.artist_name || release.artists?.[0]?.name || '');
+    setArtistNameDialogOpen(true);
+  };
+
+  const handleArtistNameUpdate = async () => {
+    if (!selectedRelease || updating || !artistNameInput.trim()) {
+      return;
+    }
+    
+    setUpdating(true);
+    try {
+      const result = await updateReleaseArtistName(selectedRelease.id, artistNameInput.trim());
+      
+      if (result.success && result.data) {
+        onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
+        toast.success('Artist name updated successfully');
+        setArtistNameDialogOpen(false);
+        setSelectedRelease(null);
+        setArtistNameInput('');
+      } else {
+        toast.error(`Failed to update artist name: ${result.error?.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error updating artist name:', error);
+      toast.error('An error occurred while updating artist name');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  // Download Assets Function
+  const handleDownloadAssets = async (release: Release) => {
+    setDownloading(true);
+    try {
+      const artistName = release.artist_name || release.artists?.[0]?.name || 'Unknown';
+      
+      // Download audio file if available
+      if (release.audio_file_url) {
+        const audioLink = document.createElement('a');
+        audioLink.href = release.audio_file_url;
+        audioLink.download = `${release.title} - ${artistName}.mp3`;
+        audioLink.target = '_blank';
+        document.body.appendChild(audioLink);
+        audioLink.click();
+        document.body.removeChild(audioLink);
+      }
+      
+      // Download cover art if available
+      if (release.cover_art_url) {
+        // Small delay to allow first download to start
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const coverLink = document.createElement('a');
+        coverLink.href = release.cover_art_url;
+        coverLink.download = `${release.title} - ${artistName} - Cover.jpg`;
+        coverLink.target = '_blank';
+        document.body.appendChild(coverLink);
+        coverLink.click();
+        document.body.removeChild(coverLink);
+      }
+      
+      if (!release.audio_file_url && !release.cover_art_url) {
+        toast.error('No assets available for download');
+      } else {
+        toast.success('Download started');
+      }
+    } catch (error) {
+      console.error('Error downloading assets:', error);
+      toast.error('Failed to download assets');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div>
       {loading ? (
@@ -328,7 +408,9 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                   <TableRow key={release.id}>
                     <TableCell className="font-medium">{release.id.substring(0, 8)}...</TableCell>
                     <TableCell>{release.title}</TableCell>
-                    <TableCell>{release.artists?.[0]?.name || 'Unknown'}</TableCell>
+                    <TableCell>
+                      {release.artist_name || release.artists?.[0]?.name || 'Unknown'}
+                    </TableCell>
                     <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
                     <TableCell>{release.upc || 'Not assigned'}</TableCell>
                     <TableCell>{release.isrc || 'Not assigned'}</TableCell>
@@ -374,6 +456,19 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                           >
                             <Link className="mr-2 h-4 w-4" />
                             Update Streaming Links
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => openArtistNameDialog(release)}
+                          >
+                            <User className="mr-2 h-4 w-4" />
+                            Edit Artist Name
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDownloadAssets(release)}
+                            disabled={downloading}
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            {downloading ? 'Downloading...' : 'Download Assets'}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -577,6 +672,53 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
             onOpenChange={setUploadDialogOpen}
             onSuccess={handleUploadSuccess}
           />
+
+          {/* Artist Name Edit Dialog */}
+          <Dialog open={artistNameDialogOpen} onOpenChange={setArtistNameDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Edit Artist Name</DialogTitle>
+                <DialogDescription>
+                  Update the display artist name for "{selectedRelease?.title}"
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="artistName" className="text-right">
+                    Artist Name
+                  </Label>
+                  <Input
+                    id="artistName"
+                    value={artistNameInput}
+                    onChange={(e) => setArtistNameInput(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Enter artist name"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => {
+                    setArtistNameDialogOpen(false);
+                    setSelectedRelease(null);
+                    setArtistNameInput('');
+                  }} 
+                  disabled={updating}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  onClick={handleArtistNameUpdate} 
+                  disabled={updating || !artistNameInput.trim()}
+                >
+                  {updating ? 'Updating...' : 'Save changes'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       )}
     </div>
