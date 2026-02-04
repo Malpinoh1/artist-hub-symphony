@@ -17,6 +17,7 @@ export interface Release {
   id: string;
   title: string;
   cover_art_url: string;
+  audio_file_url?: string;
   status: string;
   release_date: string;
   upc?: string;
@@ -58,6 +59,7 @@ export {
   fetchAdminReleases, 
   updateReleaseStatus, 
   updateReleaseIdentifiers, 
+  updateReleaseArtistName,
   deleteRelease, 
   adminCreateRelease,
   fetchAllArtists 

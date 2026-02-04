@@ -584,6 +584,7 @@ export type Database = {
         Row: {
           admin_notes: string | null
           artist_id: string
+          artist_name: string | null
           artwork_credits: string | null
           audio_file_url: string | null
           copyright_info: string | null
@@ -609,6 +610,7 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           artist_id: string
+          artist_name?: string | null
           artwork_credits?: string | null
           audio_file_url?: string | null
           copyright_info?: string | null
@@ -634,6 +636,7 @@ export type Database = {
         Update: {
           admin_notes?: string | null
           artist_id?: string
+          artist_name?: string | null
           artwork_credits?: string | null
           audio_file_url?: string | null
           copyright_info?: string | null

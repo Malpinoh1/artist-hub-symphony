@@ -90,10 +90,13 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
           url: link.url
         }));
       
+      // Use the stored artist_name on the release, fallback to account artist name
+      const displayArtistName = (release as any).artist_name || artistData.name;
+      
       return {
         id: release.id,
         title: release.title,
-        artist: artistData.name,
+        artist: displayArtistName,
         coverArt: release.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
         status: mapReleaseStatus(release.status),
         releaseDate: release.release_date,
@@ -331,6 +334,7 @@ export async function submitRelease(
       .insert({
         title: releaseFormData.title,
         artist_id: userId,
+        artist_name: releaseArtistName, // Store the display artist name on the release
         release_date: releaseFormData.release_date,
         release_type: releaseFormData.release_type,
         genre: releaseFormData.genre,
@@ -440,7 +444,7 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
       throw releaseError;
     }
 
-    // Get artist information
+    // Get artist information (as fallback if artist_name not set)
     const { data: artistData, error: artistError } = await supabase
       .from('artists')
       .select('name')
@@ -473,10 +477,13 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
 
     const tracks = tracksError || !trackData ? [] : trackData;
     
+    // Use the stored artist_name on the release, fallback to account artist name
+    const displayArtistName = releaseData.artist_name || artistData.name;
+    
     return {
       id: releaseData.id,
       title: releaseData.title,
-      artist: artistData.name,
+      artist: displayArtistName,
       coverArt: releaseData.cover_art_url || 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=500&h=500&q=80',
       status: mapReleaseStatus(releaseData.status),
       releaseDate: releaseData.release_date,
