@@ -1016,11 +1016,14 @@ export type Database = {
           account_name: string
           account_number: string
           amount: number
+          approved_at: string | null
           artist_id: string
           bank_name: string | null
           created_at: string
           id: string
+          naira_amount: number | null
           processed_at: string | null
+          rejection_reason: string | null
           status: string
           user_id: string
         }
@@ -1028,11 +1031,14 @@ export type Database = {
           account_name: string
           account_number: string
           amount: number
+          approved_at?: string | null
           artist_id: string
           bank_name?: string | null
           created_at?: string
           id?: string
+          naira_amount?: number | null
           processed_at?: string | null
+          rejection_reason?: string | null
           status?: string
           user_id: string
         }
@@ -1040,11 +1046,14 @@ export type Database = {
           account_name?: string
           account_number?: string
           amount?: number
+          approved_at?: string | null
           artist_id?: string
           bank_name?: string | null
           created_at?: string
           id?: string
+          naira_amount?: number | null
           processed_at?: string | null
+          rejection_reason?: string | null
           status?: string
           user_id?: string
         }

@@ -1,8 +1,14 @@
 
-import React, { useState } from 'react';
-import { RefreshCw } from 'lucide-react';
+ import React, { useState, useEffect, useMemo } from 'react';
+ import { RefreshCw, AlertCircle, Info } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+ import { Alert, AlertDescription } from './ui/alert';
+ import { sendWithdrawalNotificationEmail } from '@/utils/email';
+ 
+ const EXCHANGE_RATE = 1250; // $1 = ₦1,250
+ const MIN_WITHDRAWAL = 50;
+ const MAX_WITHDRAWAL = 10000;
 
 interface WithdrawalFormProps {
   availableBalance: number;
@@ -14,12 +20,57 @@ interface WithdrawalFormProps {
 const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userId, artistId, onSuccess }) => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+   const [hasPendingWithdrawal, setHasPendingWithdrawal] = useState(false);
+   const [checkingPending, setCheckingPending] = useState(true);
   const [formData, setFormData] = useState({
     amount: '',
     accountName: '',
     accountNumber: '',
     bankName: ''
   });
+ 
+   // Check for pending withdrawals
+   useEffect(() => {
+     const checkPendingWithdrawals = async () => {
+       try {
+         const { data, error } = await supabase
+           .from('withdrawals')
+           .select('id')
+           .eq('artist_id', artistId)
+           .in('status', ['PENDING', 'APPROVED', 'PROCESSING'])
+           .limit(1);
+ 
+         if (error) throw error;
+         setHasPendingWithdrawal(data && data.length > 0);
+       } catch (error) {
+         console.error('Error checking pending withdrawals:', error);
+       } finally {
+         setCheckingPending(false);
+       }
+     };
+ 
+     if (artistId) {
+       checkPendingWithdrawals();
+     }
+   }, [artistId]);
+ 
+   // Calculate Naira amount
+   const nairaAmount = useMemo(() => {
+     const amount = parseFloat(formData.amount);
+     if (isNaN(amount) || amount <= 0) return 0;
+     return amount * EXCHANGE_RATE;
+   }, [formData.amount]);
+ 
+   // Validation
+   const amountError = useMemo(() => {
+     const amount = parseFloat(formData.amount);
+     if (!formData.amount) return null;
+     if (isNaN(amount)) return 'Please enter a valid amount';
+     if (amount < MIN_WITHDRAWAL) return `Minimum withdrawal is $${MIN_WITHDRAWAL}`;
+     if (amount > MAX_WITHDRAWAL) return `Maximum withdrawal is $${MAX_WITHDRAWAL.toLocaleString()}`;
+     if (amount > availableBalance) return `Insufficient balance. Available: $${availableBalance.toLocaleString()}`;
+     return null;
+   }, [formData.amount, availableBalance]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -29,6 +80,15 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+     if (hasPendingWithdrawal) {
+       toast({
+         title: 'Pending withdrawal exists',
+         description: 'You cannot request a new withdrawal while one is pending',
+         variant: 'destructive'
+       });
+       return;
+     }
+ 
     // Basic validation
     if (!formData.amount || !formData.accountName || !formData.accountNumber || !formData.bankName) {
       toast({
@@ -41,13 +101,11 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
     
     const amount = parseFloat(formData.amount);
     
-    // Check if amount is valid, meets minimum requirement, and within available balance
-    if (isNaN(amount) || amount < 50 || amount > availableBalance) {
+     // Check if amount is valid and within limits
+     if (isNaN(amount) || amount < MIN_WITHDRAWAL || amount > MAX_WITHDRAWAL || amount > availableBalance) {
       toast({
         title: 'Invalid amount',
-        description: amount < 50 ? 
-          'Minimum withdrawal amount is $50' : 
-          `Amount must be between $50 and $${availableBalance}`,
+         description: amountError || 'Please enter a valid amount',
         variant: 'destructive'
       });
       return;
@@ -55,6 +113,8 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
 
     try {
       setLoading(true);
+       
+       const calculatedNairaAmount = amount * EXCHANGE_RATE;
       
       // Insert withdrawal request
       const { error } = await supabase
@@ -63,6 +123,7 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
           user_id: userId,
           artist_id: artistId,
           amount: amount,
+           naira_amount: calculatedNairaAmount,
           status: 'PENDING',
           account_name: formData.accountName,
           account_number: formData.accountNumber,
@@ -70,6 +131,17 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
         });
         
       if (error) throw error;
+       
+       // Get user email for notification
+       const { data: userData } = await supabase.auth.getUser();
+       if (userData?.user?.email) {
+         await sendWithdrawalNotificationEmail(
+           userData.user.email,
+           'requested',
+           amount,
+           calculatedNairaAmount
+         );
+       }
       
       // Reset form
       setFormData({
@@ -78,6 +150,8 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
         accountNumber: '',
         bankName: ''
       });
+       
+       setHasPendingWithdrawal(true);
       
       toast({
         title: 'Request submitted',
@@ -98,67 +172,114 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
       setLoading(false);
     }
   };
+ 
+   if (checkingPending) {
+     return (
+       <div className="glass-panel p-6">
+         <div className="flex items-center justify-center py-8">
+           <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+         </div>
+       </div>
+     );
+   }
+ 
+   if (hasPendingWithdrawal) {
+     return (
+       <div className="glass-panel p-6">
+         <h3 className="text-xl font-semibold mb-2">Request Withdrawal</h3>
+         <Alert className="mt-4">
+           <AlertCircle className="h-4 w-4" />
+           <AlertDescription>
+             You have a pending withdrawal request. You cannot submit a new request until the current one is completed or rejected.
+           </AlertDescription>
+         </Alert>
+       </div>
+     );
+   }
 
   return (
     <div className="glass-panel p-6">
       <h3 className="text-xl font-semibold mb-2">Request Withdrawal</h3>
-      <p className="text-slate-500 mb-6">Available Balance: ${availableBalance.toLocaleString()}</p>
+       <p className="text-muted-foreground mb-4">Available Balance: ${availableBalance.toLocaleString()}</p>
+       
+       {/* Exchange Rate Info */}
+       <div className="bg-muted/50 rounded-lg p-3 mb-6">
+         <div className="flex items-center gap-2 text-sm text-muted-foreground">
+           <Info className="h-4 w-4" />
+           <span>Exchange Rate: $1 = ₦{EXCHANGE_RATE.toLocaleString()}</span>
+         </div>
+         <div className="text-xs text-muted-foreground mt-1">
+           Min: ${MIN_WITHDRAWAL} | Max: ${MAX_WITHDRAWAL.toLocaleString()}
+         </div>
+       </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Amount ($)</label>
+           <label className="block text-sm font-medium mb-1">Amount (USD)</label>
           <input
             type="number"
             name="amount"
             value={formData.amount}
             onChange={handleChange}
-            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             className={`w-full p-2 border rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-background ${amountError ? 'border-destructive' : 'border-input'}`}
             placeholder="Enter amount to withdraw"
-            min="50"
-            max={availableBalance}
+             min={MIN_WITHDRAWAL}
+             max={Math.min(MAX_WITHDRAWAL, availableBalance)}
+             step="0.01"
           />
+           {amountError && (
+             <p className="text-sm text-destructive mt-1">{amountError}</p>
+           )}
+           {/* Naira Conversion Display */}
+           {nairaAmount > 0 && !amountError && (
+             <div className="mt-2 p-2 bg-primary/10 rounded-md">
+               <p className="text-sm font-medium text-primary">
+                 You will receive: ₦{nairaAmount.toLocaleString()}
+               </p>
+             </div>
+           )}
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Account Name</label>
+           <label className="block text-sm font-medium mb-1">Account Name</label>
           <input
             type="text"
             name="accountName"
             value={formData.accountName}
             onChange={handleChange}
-            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-background"
             placeholder="Enter account name"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Account Number</label>
+           <label className="block text-sm font-medium mb-1">Account Number</label>
           <input
             type="text"
             name="accountNumber"
             value={formData.accountNumber}
             onChange={handleChange}
-            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-background"
             placeholder="Enter account number"
           />
         </div>
         
         <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">Bank Name</label>
+           <label className="block text-sm font-medium mb-1">Bank Name</label>
           <input
             type="text"
             name="bankName"
             value={formData.bankName}
             onChange={handleChange}
-            className="w-full p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+             className="w-full p-2 border border-input rounded-md focus:ring-2 focus:ring-primary focus:border-primary bg-background"
             placeholder="Enter bank name"
           />
         </div>
         
         <button
           type="submit"
-          disabled={loading}
-          className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center justify-center"
+           disabled={loading || !!amountError}
+           className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {loading ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" /> : 'Submit Withdrawal Request'}
         </button>
