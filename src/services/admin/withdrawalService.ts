@@ -11,6 +11,9 @@ export interface Withdrawal {
   account_number: string;
   bank_name: string;
   artist_id: string;
+   rejection_reason?: string | null;
+   approved_at?: string | null;
+   naira_amount?: number | null;
   artists?: {
     id: string;
     name: string;
@@ -32,6 +35,9 @@ export async function fetchAdminWithdrawals() {
         account_name,
         account_number,
         bank_name,
+         rejection_reason,
+         approved_at,
+         naira_amount,
         artists(id, name, email)
       `)
       .order('created_at', { ascending: false });
@@ -47,12 +53,17 @@ export async function fetchAdminWithdrawals() {
 // Update withdrawal status
 export async function updateWithdrawalStatus(id: string, status: string) {
   try {
+     const updateData: Record<string, unknown> = { status };
+     
+     if (status === 'APPROVED') {
+       updateData.approved_at = new Date().toISOString();
+     } else if (status === 'COMPLETED' || status === 'REJECTED') {
+       updateData.processed_at = new Date().toISOString();
+     }
+ 
     const { data: updatedWithdrawal, error: updateError } = await supabase
       .from('withdrawals')
-      .update({ 
-        status,
-        processed_at: status === 'COMPLETED' ? new Date().toISOString() : null
-      })
+       .update(updateData)
       .eq('id', id)
       .select(`
         id,
@@ -63,6 +74,9 @@ export async function updateWithdrawalStatus(id: string, status: string) {
         account_name,
         account_number,
         bank_name,
+         rejection_reason,
+         approved_at,
+         naira_amount,
         artists(id, name, email)
       `)
       .single();

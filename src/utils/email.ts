@@ -285,3 +285,105 @@ export async function sendSupportReplyNotificationEmail(params: SupportReplyNoti
     return { success: false, error: error.message };
   }
 }
+ 
+ // ============================================
+ // WITHDRAWAL NOTIFICATION EMAIL
+ // ============================================
+ 
+ export async function sendWithdrawalNotificationEmail(
+   userEmail: string,
+   status: 'requested' | 'approved' | 'rejected' | 'completed',
+   amountUSD: number,
+   amountNGN: number,
+   rejectionReason?: string
+ ): Promise<EmailResult> {
+   try {
+     let subject = '';
+     let message = '';
+     
+     switch (status) {
+       case 'requested':
+         subject = 'Withdrawal Request Received';
+         message = `
+           <p>Your withdrawal request has been received and is being reviewed.</p>
+           <p><strong>Amount:</strong> $${amountUSD.toLocaleString()} (₦${amountNGN.toLocaleString()})</p>
+           <p>We will notify you once your request has been processed.</p>
+         `;
+         break;
+       case 'approved':
+         subject = 'Withdrawal Request Approved';
+         message = `
+           <p>Great news! Your withdrawal request has been approved.</p>
+           <p><strong>Amount:</strong> $${amountUSD.toLocaleString()} (₦${amountNGN.toLocaleString()})</p>
+           <p>Your withdrawal is now being processed and will be completed within 7 business days.</p>
+         `;
+         break;
+       case 'rejected':
+         subject = 'Withdrawal Request Rejected';
+         message = `
+           <p>Unfortunately, your withdrawal request has been rejected.</p>
+           <p><strong>Amount:</strong> $${amountUSD.toLocaleString()} (₦${amountNGN.toLocaleString()})</p>
+           <p><strong>Reason:</strong> ${rejectionReason || 'No reason provided'}</p>
+           <p>If you have any questions, please contact our support team.</p>
+         `;
+         break;
+       case 'completed':
+         subject = 'Withdrawal Completed';
+         message = `
+           <p>Your withdrawal has been completed successfully!</p>
+           <p><strong>Amount:</strong> $${amountUSD.toLocaleString()} (₦${amountNGN.toLocaleString()})</p>
+           <p>The funds have been transferred to your bank account. Please allow 1-2 business days for the transfer to reflect in your account.</p>
+         `;
+         break;
+     }
+ 
+     const htmlContent = `
+       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+         <div style="background-color: #1a1a2e; padding: 20px; text-align: center;">
+           <h1 style="color: #ffffff; margin: 0;">MALPINOHdistro</h1>
+         </div>
+         <div style="padding: 30px; background-color: #ffffff;">
+           <h2 style="color: #1a1a2e;">${subject}</h2>
+           ${message}
+           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+           <p style="color: #666; font-size: 12px;">
+             This is an automated message from MALPINOHdistro. Please do not reply to this email.
+           </p>
+         </div>
+         <div style="background-color: #f5f5f5; padding: 15px; text-align: center;">
+           <p style="color: #666; font-size: 12px; margin: 0;">
+             © ${new Date().getFullYear()} MALPINOHdistro. All rights reserved.
+           </p>
+         </div>
+       </div>
+     `;
+ 
+     console.log('Sending withdrawal notification email:', { userEmail, status });
+ 
+     const response = await fetch(EDGE_FUNCTION_URL, {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhld3lmZmhkeWtpZXR4aW1wZmJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMzMjk1ODYsImV4cCI6MjA1ODkwNTU4Nn0.UqxDgfYqm3yhC8nDYdfcb8UDm9rz9qFKq-pIh6xEB-Y',
+       },
+       body: JSON.stringify({
+         to: userEmail,
+         subject: `MALPINOHdistro - ${subject}`,
+         html: htmlContent,
+       }),
+     });
+ 
+     const result = await response.json();
+ 
+     if (!response.ok) {
+       console.error('Withdrawal notification email error:', result);
+       return { success: false, error: result.error || 'Failed to send notification email' };
+     }
+ 
+     console.log('Withdrawal notification email sent successfully:', result);
+     return { success: true, messageId: result.messageId };
+   } catch (error: any) {
+     console.error('Withdrawal notification email error:', error.message);
+     return { success: false, error: error.message };
+   }
+ }
