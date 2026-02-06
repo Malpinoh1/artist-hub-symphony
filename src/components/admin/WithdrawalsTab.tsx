@@ -154,159 +154,263 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
      setDetailsDialogOpen(true);
    };
  
-   const handleCompleteWithdrawal = async (withdrawal: ExtendedWithdrawal) => {
-     setProcessing(true);
-     try {
-       // Update withdrawal status
-       const { error: withdrawalError } = await supabase
-         .from('withdrawals')
-         .update({ 
-           status: 'COMPLETED',
-           processed_at: new Date().toISOString()
-         })
-         .eq('id', withdrawal.id);
- 
-       if (withdrawalError) throw withdrawalError;
- 
-       // Deduct from artist's available balance
-       const { data: artistData, error: fetchError } = await supabase
-         .from('artists')
-         .select('available_balance')
-         .eq('id', withdrawal.artist_id)
-         .single();
- 
-       if (fetchError) throw fetchError;
- 
-       const newBalance = (artistData?.available_balance || 0) - withdrawal.amount;
-       
-       const { error: updateError } = await supabase
-         .from('artists')
-         .update({ available_balance: Math.max(0, newBalance) })
-         .eq('id', withdrawal.artist_id);
- 
-       if (updateError) throw updateError;
- 
-       // Send email notification
-       if (withdrawal.artists?.email) {
-         await sendWithdrawalNotificationEmail(
-           withdrawal.artists.email,
-           'completed',
-           withdrawal.amount,
-           withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE
-         );
-       }
- 
-       toast.success('Withdrawal completed and balance deducted');
-       onWithdrawalUpdate(withdrawal.id, 'COMPLETED');
-     } catch (error) {
-       console.error('Error completing withdrawal:', error);
-       toast.error('An error occurred while completing withdrawal');
-     } finally {
-       setProcessing(false);
-     }
-   };
+  const handleMarkAsProcessing = async (withdrawal: ExtendedWithdrawal) => {
+    setProcessing(true);
+    try {
+      const { error } = await supabase
+        .from('withdrawals')
+        .update({ 
+          status: 'PROCESSING'
+        })
+        .eq('id', withdrawal.id);
+
+      if (error) throw error;
+
+      toast.success('Withdrawal marked as processing');
+      onWithdrawalUpdate(withdrawal.id, 'PROCESSING');
+    } catch (error) {
+      console.error('Error updating withdrawal status:', error);
+      toast.error('An error occurred while updating status');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleCompleteWithdrawal = async (withdrawal: ExtendedWithdrawal) => {
+    setProcessing(true);
+    try {
+      // Update withdrawal status
+      const { error: withdrawalError } = await supabase
+        .from('withdrawals')
+        .update({ 
+          status: 'COMPLETED',
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', withdrawal.id);
+
+      if (withdrawalError) throw withdrawalError;
+
+      // Deduct from artist's available balance
+      const { data: artistData, error: fetchError } = await supabase
+        .from('artists')
+        .select('available_balance')
+        .eq('id', withdrawal.artist_id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const newBalance = (artistData?.available_balance || 0) - withdrawal.amount;
+      
+      const { error: updateError } = await supabase
+        .from('artists')
+        .update({ available_balance: Math.max(0, newBalance) })
+        .eq('id', withdrawal.artist_id);
+
+      if (updateError) throw updateError;
+
+      // Log activity
+      await supabase.from('activity_logs').insert({
+        artist_id: withdrawal.artist_id,
+        user_id: withdrawal.artist_id,
+        activity_type: 'withdrawal_completed',
+        title: 'Withdrawal Completed',
+        description: `$${withdrawal.amount.toLocaleString()} withdrawal has been completed`,
+        metadata: { withdrawal_id: withdrawal.id, amount: withdrawal.amount }
+      });
+
+      // Send email notification
+      if (withdrawal.artists?.email) {
+        await sendWithdrawalNotificationEmail(
+          withdrawal.artists.email,
+          'completed',
+          withdrawal.amount,
+          withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE
+        );
+      }
+
+      toast.success('Withdrawal completed and balance deducted');
+      onWithdrawalUpdate(withdrawal.id, 'COMPLETED');
+    } catch (error) {
+      console.error('Error completing withdrawal:', error);
+      toast.error('An error occurred while completing withdrawal');
+    } finally {
+      setProcessing(false);
+    }
+  };
 
   return (
     <div>
-      <h2 className="text-2xl font-semibold mb-4 dark:text-white">Withdrawals</h2>
+      <h2 className="text-xl sm:text-2xl font-semibold mb-4 dark:text-white">Withdrawals</h2>
       
       {loading ? (
         <div className="flex items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 dark:border-blue-400"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">ID</TableHead>
-                <TableHead>Artist</TableHead>
-                 <TableHead>Amount (USD)</TableHead>
-                 <TableHead>Amount (NGN)</TableHead>
-                 <TableHead>Bank Details</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Requested At</TableHead>
-                <TableHead>Processed At</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {withdrawals.map((withdrawal) => (
-                <TableRow key={withdrawal.id}>
-                   <TableCell className="font-medium font-mono text-xs">
-                     {withdrawal.id.slice(0, 8)}...
-                   </TableCell>
-                  <TableCell>{withdrawal.artists?.name || withdrawal.artist_id}</TableCell>
-                  <TableCell>${withdrawal.amount}</TableCell>
-                   <TableCell>₦{(withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE).toLocaleString()}</TableCell>
-                   <TableCell className="text-xs">
-                     <div>{withdrawal.account_name}</div>
-                     <div className="text-muted-foreground">{withdrawal.bank_name} - {withdrawal.account_number}</div>
-                   </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(withdrawal.status)}>
-                      {withdrawal.status}
-                    </Badge>
-                     {withdrawal.status === 'REJECTED' && withdrawal.rejection_reason && (
-                       <p className="text-xs text-destructive mt-1 max-w-[150px] truncate" title={withdrawal.rejection_reason}>
-                         {withdrawal.rejection_reason}
-                       </p>
-                     )}
-                  </TableCell>
-                  <TableCell>{new Date(withdrawal.created_at).toLocaleDateString()}</TableCell>
-                  <TableCell>
-                    {withdrawal.processed_at ? new Date(withdrawal.processed_at).toLocaleDateString() : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                         <Button variant="ghost" className="h-8 w-8 p-0" disabled={processing}>
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                         {withdrawal.status === 'PENDING' && (
-                           <>
-                             <DropdownMenuItem onClick={() => handleApprove(withdrawal)}>
-                               <Check className="h-4 w-4 mr-2" />
-                               Approve
-                             </DropdownMenuItem>
-                             <DropdownMenuItem 
-                               onClick={() => handleRejectClick(withdrawal)}
-                               className="text-destructive"
-                             >
-                               <X className="h-4 w-4 mr-2" />
-                               Reject
-                             </DropdownMenuItem>
-                           </>
-                         )}
-                         {withdrawal.status === 'APPROVED' && (
-                           <DropdownMenuItem onClick={() => handleCompleteWithdrawal(withdrawal)}>
-                             <Check className="h-4 w-4 mr-2" />
-                             Mark as Processing
-                           </DropdownMenuItem>
-                         )}
-                         {withdrawal.status === 'PROCESSING' && (
-                           <DropdownMenuItem onClick={() => handleCompleteWithdrawal(withdrawal)}>
-                             <Check className="h-4 w-4 mr-2" />
-                             Mark as Completed
-                           </DropdownMenuItem>
-                         )}
-                        <DropdownMenuSeparator />
-                         <DropdownMenuItem onClick={() => handleViewDetails(withdrawal)}>
-                           <Eye className="h-4 w-4 mr-2" />
-                           View Details
-                         </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+        <>
+          {/* Mobile Card View */}
+          <div className="block lg:hidden space-y-3">
+            {withdrawals.map((withdrawal) => (
+              <div key={withdrawal.id} className="border rounded-lg p-4 bg-card space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="font-medium">{withdrawal.artists?.name || 'Unknown'}</p>
+                    <p className="text-xs text-muted-foreground">{withdrawal.artists?.email}</p>
+                  </div>
+                  <Badge className={getStatusColor(withdrawal.status)}>
+                    {withdrawal.status}
+                  </Badge>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <p className="text-muted-foreground text-xs">USD</p>
+                    <p className="font-semibold">${withdrawal.amount.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs">NGN</p>
+                    <p className="font-semibold">₦{(withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE).toLocaleString()}</p>
+                  </div>
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
+                  <p>{withdrawal.account_name}</p>
+                  <p>{withdrawal.bank_name} - {withdrawal.account_number}</p>
+                </div>
+                
+                <div className="text-xs text-muted-foreground">
+                  Requested: {new Date(withdrawal.created_at).toLocaleDateString()}
+                </div>
+                
+                {withdrawal.status === 'REJECTED' && withdrawal.rejection_reason && (
+                  <p className="text-xs text-destructive bg-destructive/10 p-2 rounded">
+                    {withdrawal.rejection_reason}
+                  </p>
+                )}
+                
+                <div className="flex gap-2 pt-2 border-t">
+                  {withdrawal.status === 'PENDING' && (
+                    <>
+                      <Button size="sm" className="flex-1" onClick={() => handleApprove(withdrawal)} disabled={processing}>
+                        <Check className="h-3 w-3 mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="destructive" className="flex-1" onClick={() => handleRejectClick(withdrawal)} disabled={processing}>
+                        <X className="h-3 w-3 mr-1" /> Reject
+                      </Button>
+                    </>
+                  )}
+                  {withdrawal.status === 'APPROVED' && (
+                    <Button size="sm" className="flex-1" onClick={() => handleMarkAsProcessing(withdrawal)} disabled={processing}>
+                      <Check className="h-3 w-3 mr-1" /> Mark Processing
+                    </Button>
+                  )}
+                  {withdrawal.status === 'PROCESSING' && (
+                    <Button size="sm" className="flex-1" onClick={() => handleCompleteWithdrawal(withdrawal)} disabled={processing}>
+                      <Check className="h-3 w-3 mr-1" /> Mark Completed
+                    </Button>
+                  )}
+                  <Button size="sm" variant="outline" onClick={() => handleViewDetails(withdrawal)}>
+                    <Eye className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden lg:block rounded-md border overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[100px]">ID</TableHead>
+                  <TableHead>Artist</TableHead>
+                  <TableHead>Amount (USD)</TableHead>
+                  <TableHead>Amount (NGN)</TableHead>
+                  <TableHead>Bank Details</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Requested At</TableHead>
+                  <TableHead>Processed At</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {withdrawals.map((withdrawal) => (
+                  <TableRow key={withdrawal.id}>
+                    <TableCell className="font-medium font-mono text-xs">
+                      {withdrawal.id.slice(0, 8)}...
+                    </TableCell>
+                    <TableCell>{withdrawal.artists?.name || withdrawal.artist_id}</TableCell>
+                    <TableCell>${withdrawal.amount}</TableCell>
+                    <TableCell>₦{(withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE).toLocaleString()}</TableCell>
+                    <TableCell className="text-xs">
+                      <div>{withdrawal.account_name}</div>
+                      <div className="text-muted-foreground">{withdrawal.bank_name} - {withdrawal.account_number}</div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(withdrawal.status)}>
+                        {withdrawal.status}
+                      </Badge>
+                      {withdrawal.status === 'REJECTED' && withdrawal.rejection_reason && (
+                        <p className="text-xs text-destructive mt-1 max-w-[150px] truncate" title={withdrawal.rejection_reason}>
+                          {withdrawal.rejection_reason}
+                        </p>
+                      )}
+                    </TableCell>
+                    <TableCell>{new Date(withdrawal.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      {withdrawal.processed_at ? new Date(withdrawal.processed_at).toLocaleDateString() : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" className="h-8 w-8 p-0" disabled={processing}>
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          {withdrawal.status === 'PENDING' && (
+                            <>
+                              <DropdownMenuItem onClick={() => handleApprove(withdrawal)}>
+                                <Check className="h-4 w-4 mr-2" />
+                                Approve
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleRejectClick(withdrawal)}
+                                className="text-destructive"
+                              >
+                                <X className="h-4 w-4 mr-2" />
+                                Reject
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          {withdrawal.status === 'APPROVED' && (
+                            <DropdownMenuItem onClick={() => handleMarkAsProcessing(withdrawal)}>
+                              <Check className="h-4 w-4 mr-2" />
+                              Mark as Processing
+                            </DropdownMenuItem>
+                          )}
+                          {withdrawal.status === 'PROCESSING' && (
+                            <DropdownMenuItem onClick={() => handleCompleteWithdrawal(withdrawal)}>
+                              <Check className="h-4 w-4 mr-2" />
+                              Mark as Completed
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem onClick={() => handleViewDetails(withdrawal)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </>
       )}
  
        {/* Reject Dialog */}

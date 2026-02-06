@@ -158,11 +158,11 @@ const EarningsContent = () => {
     <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       <Navbar />
       
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container p-4 mx-auto max-w-7xl">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold dark:text-white">Earnings & Payments</h1>
-            <p className="text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
+      <main className="flex-grow pt-20 sm:pt-24 pb-12 sm:pb-16">
+        <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
+          <div className="mb-4 sm:mb-6">
+            <h1 className="text-xl sm:text-2xl font-semibold dark:text-white">Earnings & Payments</h1>
+            <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
           </div>
 
           <StatsCards 
@@ -175,49 +175,54 @@ const EarningsContent = () => {
 
           <div className="mt-8">
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="mb-8">
-                <TabsTrigger value="overview" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Overview
+              <TabsList className="mb-6 sm:mb-8 flex-wrap h-auto gap-1">
+                <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="hidden xs:inline">Overview</span>
+                  <span className="xs:hidden">Stats</span>
                 </TabsTrigger>
-                <TabsTrigger value="activity" className="flex items-center gap-2">
-                  <Calendar className="w-4 h-4" />
+                <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                   Activity
                 </TabsTrigger>
-                <TabsTrigger value="statements" className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
+                <TabsTrigger value="statements" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                   Statements
                 </TabsTrigger>
-                <TabsTrigger value="withdraw" className="flex items-center gap-2">
-                  <Bookmark className="w-4 h-4" />
+                <TabsTrigger value="withdraw" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <Bookmark className="w-3 h-3 sm:w-4 sm:h-4" />
                   Withdraw
                 </TabsTrigger>
               </TabsList>
 
               <TabsContent value="overview">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <Card className="p-6">
-                    <h2 className="text-lg font-medium mb-4 dark:text-white">Recent Earnings</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                  <Card className="p-4 sm:p-6">
+                    <h2 className="text-base sm:text-lg font-medium mb-4 dark:text-white">Recent Earnings</h2>
                     <ActivityPanel 
                       earnings={earningsSummary.recentEarnings} 
                       withdrawals={[]}
+                      artistId={artistData?.id}
                     />
                   </Card>
-                  <Card className="p-6">
-                    <h2 className="text-lg font-medium mb-4 dark:text-white">Recent Withdrawals</h2>
+                  <Card className="p-4 sm:p-6">
+                    <h2 className="text-base sm:text-lg font-medium mb-4 dark:text-white">Recent Withdrawals</h2>
                     <ActivityPanel 
                       earnings={[]}
                       withdrawals={earningsSummary.withdrawals} 
+                      artistId={artistData?.id}
                     />
                   </Card>
                 </div>
               </TabsContent>
 
               <TabsContent value="activity">
-                <Card>
+                <Card className="p-4 sm:p-6">
                   <ActivityPanel 
                     earnings={earningsSummary.recentEarnings}
                     withdrawals={earningsSummary.withdrawals}
+                    artistId={artistData?.id}
+                    showActivityLog={true}
                   />
                 </Card>
               </TabsContent>
