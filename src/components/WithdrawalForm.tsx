@@ -132,6 +132,16 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, userI
         
       if (error) throw error;
        
+       // Log activity
+       await supabase.from('activity_logs').insert({
+         artist_id: artistId,
+         user_id: userId,
+         activity_type: 'withdrawal_requested',
+         title: 'Withdrawal Requested',
+         description: `Requested withdrawal of $${amount.toLocaleString()} (₦${calculatedNairaAmount.toLocaleString()})`,
+         metadata: { amount, naira_amount: calculatedNairaAmount }
+       });
+       
        // Get user email for notification
        const { data: userData } = await supabase.auth.getUser();
        if (userData?.user?.email) {
