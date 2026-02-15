@@ -35,9 +35,11 @@ export async function fetchAdminWithdrawals() {
         account_name,
         account_number,
         bank_name,
-         rejection_reason,
-         approved_at,
-         naira_amount,
+        rejection_reason,
+        approved_at,
+        naira_amount,
+        credit_deduction,
+        final_amount,
         artists(id, name, email)
       `)
       .order('created_at', { ascending: false });

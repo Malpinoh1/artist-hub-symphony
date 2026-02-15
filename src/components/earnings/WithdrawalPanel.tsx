@@ -6,6 +6,7 @@ import PaymentInfo from './PaymentInfo';
 
 interface WithdrawalPanelProps {
   availableBalance: number;
+  creditBalance?: number;
   userId: string;
   artistId: string;
   onSuccess: () => void;
@@ -13,6 +14,7 @@ interface WithdrawalPanelProps {
 
 const WithdrawalPanel: React.FC<WithdrawalPanelProps> = ({ 
   availableBalance, 
+  creditBalance = 0,
   userId, 
   artistId, 
   onSuccess 
@@ -21,6 +23,7 @@ const WithdrawalPanel: React.FC<WithdrawalPanelProps> = ({
     <AnimatedCard className="lg:col-span-1">
       <WithdrawalForm 
         availableBalance={availableBalance}
+        creditBalance={creditBalance}
         userId={userId}
         artistId={artistId} 
         onSuccess={onSuccess}

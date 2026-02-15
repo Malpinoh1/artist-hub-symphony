@@ -20,6 +20,7 @@ export interface EarningsSummary {
   totalEarnings: number;
   availableBalance: number;
   pendingEarnings: number;
+  creditBalance: number;
   recentEarnings: any[];
   withdrawals: any[];
 }
@@ -32,12 +33,13 @@ const EarningsContent = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [artistData, setArtistData] = useState<any>(null);
   const [earningsSummary, setEarningsSummary] = useState<EarningsSummary>({
-    totalEarnings: 0,
-    availableBalance: 0,
-    pendingEarnings: 0,
-    recentEarnings: [],
-    withdrawals: []
-  });
+     totalEarnings: 0,
+     availableBalance: 0,
+     pendingEarnings: 0,
+     creditBalance: 0,
+     recentEarnings: [],
+     withdrawals: []
+   });
 
   useEffect(() => {
     fetchEarningsData();
@@ -97,21 +99,23 @@ const EarningsContent = () => {
         // Calculate earnings summary
         const totalEarnings = artistInfo.total_earnings || 0;
         const availableBalance = artistInfo.available_balance || 0;
+        const creditBalance = (artistInfo as any).credit_balance || 0;
         const pendingEarnings = earningsData?.filter(e => e.status === 'Pending')?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
 
         setEarningsSummary({
           totalEarnings,
           availableBalance,
           pendingEarnings,
+          creditBalance,
           recentEarnings: earningsData || [],
           withdrawals: withdrawalsData || []
         });
       } else {
-        // Use default values if no artist data found
         setEarningsSummary({
           totalEarnings: 0,
           availableBalance: 0,
           pendingEarnings: 0,
+          creditBalance: 0,
           recentEarnings: [],
           withdrawals: []
         });
@@ -169,7 +173,8 @@ const EarningsContent = () => {
             stats={{
               totalEarnings: earningsSummary.totalEarnings,
               availableBalance: earningsSummary.availableBalance,
-              pendingEarnings: earningsSummary.pendingEarnings
+              pendingEarnings: earningsSummary.pendingEarnings,
+              creditBalance: earningsSummary.creditBalance
             }}
           />
 
@@ -244,6 +249,7 @@ const EarningsContent = () => {
               <TabsContent value="withdraw">
                 <WithdrawalPanel 
                   availableBalance={earningsSummary.availableBalance}
+                  creditBalance={earningsSummary.creditBalance}
                   userId={userProfile?.id || ""}
                   artistId={artistData?.id || ""}
                   onSuccess={handleWithdrawalSuccess}
