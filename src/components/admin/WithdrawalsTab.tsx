@@ -36,11 +36,13 @@ import {
  
  const EXCHANGE_RATE = 1250;
  
- interface ExtendedWithdrawal extends Withdrawal {
-   rejection_reason?: string | null;
-   approved_at?: string | null;
-   naira_amount?: number | null;
- }
+interface ExtendedWithdrawal extends Withdrawal {
+  rejection_reason?: string | null;
+  approved_at?: string | null;
+  naira_amount?: number | null;
+  credit_deduction?: number | null;
+  final_amount?: number | null;
+}
 
 interface WithdrawalsTabProps {
    withdrawals: ExtendedWithdrawal[];
@@ -101,53 +103,11 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
     }
   };
  
-   const handleRejectClick = (withdrawal: ExtendedWithdrawal) => {
-     setSelectedWithdrawal(withdrawal);
-     setRejectionReason('');
-     setRejectDialogOpen(true);
-   };
- 
-   const handleRejectConfirm = async () => {
-     if (!selectedWithdrawal || !rejectionReason.trim()) {
-       toast.error('Please provide a rejection reason');
-       return;
-     }
- 
-     setProcessing(true);
-     try {
-       // Update with rejection reason
-       const { error } = await supabase
-         .from('withdrawals')
-         .update({ 
-           status: 'REJECTED',
-           rejection_reason: rejectionReason.trim(),
-           processed_at: new Date().toISOString()
-         })
-         .eq('id', selectedWithdrawal.id);
- 
-       if (error) throw error;
- 
-       // Send email notification
-       if (selectedWithdrawal.artists?.email) {
-         await sendWithdrawalNotificationEmail(
-           selectedWithdrawal.artists.email,
-           'rejected',
-           selectedWithdrawal.amount,
-           selectedWithdrawal.naira_amount || selectedWithdrawal.amount * EXCHANGE_RATE,
-           rejectionReason.trim()
-         );
-       }
- 
-       toast.success('Withdrawal rejected successfully');
-       onWithdrawalUpdate(selectedWithdrawal.id, 'REJECTED');
-       setRejectDialogOpen(false);
-     } catch (error) {
-       console.error('Error rejecting withdrawal:', error);
-       toast.error('An error occurred while rejecting withdrawal');
-     } finally {
-       setProcessing(false);
-     }
-   };
+  const handleRejectClick = (withdrawal: ExtendedWithdrawal) => {
+    setSelectedWithdrawal(withdrawal);
+    setRejectionReason('');
+    setRejectDialogOpen(true);
+  };
  
    const handleViewDetails = (withdrawal: ExtendedWithdrawal) => {
      setSelectedWithdrawal(withdrawal);
@@ -179,7 +139,7 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
   const handleCompleteWithdrawal = async (withdrawal: ExtendedWithdrawal) => {
     setProcessing(true);
     try {
-      // Update withdrawal status
+      // Update withdrawal status (balance already deducted on request)
       const { error: withdrawalError } = await supabase
         .from('withdrawals')
         .update({ 
@@ -190,32 +150,14 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
 
       if (withdrawalError) throw withdrawalError;
 
-      // Deduct from artist's available balance
-      const { data: artistData, error: fetchError } = await supabase
-        .from('artists')
-        .select('available_balance')
-        .eq('id', withdrawal.artist_id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      const newBalance = (artistData?.available_balance || 0) - withdrawal.amount;
-      
-      const { error: updateError } = await supabase
-        .from('artists')
-        .update({ available_balance: Math.max(0, newBalance) })
-        .eq('id', withdrawal.artist_id);
-
-      if (updateError) throw updateError;
-
       // Log activity
       await supabase.from('activity_logs').insert({
         artist_id: withdrawal.artist_id,
         user_id: withdrawal.artist_id,
         activity_type: 'withdrawal_completed',
         title: 'Withdrawal Completed',
-        description: `$${withdrawal.amount.toLocaleString()} withdrawal has been completed`,
-        metadata: { withdrawal_id: withdrawal.id, amount: withdrawal.amount }
+        description: `$${withdrawal.amount.toLocaleString()} withdrawal completed. Payout: $${(withdrawal.final_amount ?? withdrawal.amount).toLocaleString()}`,
+        metadata: { withdrawal_id: withdrawal.id, amount: withdrawal.amount, credit_deduction: withdrawal.credit_deduction, final_amount: withdrawal.final_amount }
       });
 
       // Send email notification
@@ -223,16 +165,88 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
         await sendWithdrawalNotificationEmail(
           withdrawal.artists.email,
           'completed',
-          withdrawal.amount,
-          withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE
+          withdrawal.final_amount ?? withdrawal.amount,
+          (withdrawal.final_amount ?? withdrawal.amount) * EXCHANGE_RATE
         );
       }
 
-      toast.success('Withdrawal completed and balance deducted');
+      toast.success('Withdrawal completed');
       onWithdrawalUpdate(withdrawal.id, 'COMPLETED');
     } catch (error) {
       console.error('Error completing withdrawal:', error);
       toast.error('An error occurred while completing withdrawal');
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const handleRejectWithRefund = async () => {
+    if (!selectedWithdrawal || !rejectionReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
+
+    setProcessing(true);
+    try {
+      // Refund the balance back since it was deducted on request
+      const { data: artistData, error: fetchError } = await supabase
+        .from('artists')
+        .select('available_balance, credit_balance')
+        .eq('id', selectedWithdrawal.artist_id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      const refundAmount = selectedWithdrawal.amount;
+      const creditRefund = selectedWithdrawal.credit_deduction || 0;
+
+      await supabase
+        .from('artists')
+        .update({ 
+          available_balance: (artistData?.available_balance || 0) + refundAmount,
+          credit_balance: (artistData?.credit_balance || 0) + creditRefund
+        })
+        .eq('id', selectedWithdrawal.artist_id);
+
+      // Update withdrawal status
+      const { error } = await supabase
+        .from('withdrawals')
+        .update({ 
+          status: 'REJECTED',
+          rejection_reason: rejectionReason.trim(),
+          processed_at: new Date().toISOString()
+        })
+        .eq('id', selectedWithdrawal.id);
+
+      if (error) throw error;
+
+      // Log refund activity
+      await supabase.from('activity_logs').insert({
+        artist_id: selectedWithdrawal.artist_id,
+        user_id: selectedWithdrawal.artist_id,
+        activity_type: 'withdrawal_rejected',
+        title: 'Withdrawal Rejected — Balance Refunded',
+        description: `$${refundAmount.toLocaleString()} refunded to available balance. Reason: ${rejectionReason.trim()}`,
+        metadata: { withdrawal_id: selectedWithdrawal.id, refund_amount: refundAmount }
+      });
+
+      // Send email notification
+      if (selectedWithdrawal.artists?.email) {
+        await sendWithdrawalNotificationEmail(
+          selectedWithdrawal.artists.email,
+          'rejected',
+          selectedWithdrawal.amount,
+          selectedWithdrawal.naira_amount || selectedWithdrawal.amount * EXCHANGE_RATE,
+          rejectionReason.trim()
+        );
+      }
+
+      toast.success('Withdrawal rejected and balance refunded');
+      onWithdrawalUpdate(selectedWithdrawal.id, 'REJECTED');
+      setRejectDialogOpen(false);
+    } catch (error) {
+      console.error('Error rejecting withdrawal:', error);
+      toast.error('An error occurred while rejecting withdrawal');
     } finally {
       setProcessing(false);
     }
@@ -442,7 +456,7 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
              <Button variant="outline" onClick={() => setRejectDialogOpen(false)} disabled={processing}>
                Cancel
              </Button>
-             <Button variant="destructive" onClick={handleRejectConfirm} disabled={processing || !rejectionReason.trim()}>
+             <Button variant="destructive" onClick={handleRejectWithRefund} disabled={processing || !rejectionReason.trim()}>
                {processing ? 'Rejecting...' : 'Reject Withdrawal'}
              </Button>
            </DialogFooter>
@@ -470,10 +484,20 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
                    <p className="text-sm text-muted-foreground">Amount (USD)</p>
                    <p className="font-medium">${selectedWithdrawal.amount.toLocaleString()}</p>
                  </div>
-                 <div>
-                   <p className="text-sm text-muted-foreground">Amount (NGN)</p>
-                   <p className="font-medium">₦{(selectedWithdrawal.naira_amount || selectedWithdrawal.amount * EXCHANGE_RATE).toLocaleString()}</p>
-                 </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Amount (NGN)</p>
+                    <p className="font-medium">₦{(selectedWithdrawal.naira_amount || selectedWithdrawal.amount * EXCHANGE_RATE).toLocaleString()}</p>
+                  </div>
+                  {(selectedWithdrawal.credit_deduction || 0) > 0 && (
+                    <div>
+                      <p className="text-sm text-muted-foreground">Credit Deduction</p>
+                      <p className="font-medium text-amber-600">-${(selectedWithdrawal.credit_deduction || 0).toLocaleString()}</p>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm text-muted-foreground">Final Payout</p>
+                    <p className="font-medium text-green-600">${(selectedWithdrawal.final_amount ?? selectedWithdrawal.amount).toLocaleString()}</p>
+                  </div>
                  <div>
                    <p className="text-sm text-muted-foreground">Bank Name</p>
                    <p className="font-medium">{selectedWithdrawal.bank_name}</p>

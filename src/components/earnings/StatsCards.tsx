@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { DollarSign, Clock, ArrowUpRight } from 'lucide-react';
+import { DollarSign, Clock, ArrowUpRight, CreditCard } from 'lucide-react';
 import StatCard from './StatCard';
 
 export interface StatsData {
   totalEarnings: number;
   pendingEarnings: number;
   availableBalance: number;
+  creditBalance?: number;
 }
 
 interface StatsCardsProps {
@@ -15,7 +16,7 @@ interface StatsCardsProps {
 
 const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
       <StatCard
         icon={<DollarSign />}
         title="Total Earnings"
@@ -47,6 +48,19 @@ const StatsCards: React.FC<StatsCardsProps> = ({ stats }) => {
         delay={200}
         currencySymbol="$"
       />
+
+      {(stats.creditBalance || 0) > 0 && (
+        <StatCard
+          icon={<CreditCard />}
+          title="Credit Balance"
+          value={stats.creditBalance || 0}
+          description="Outstanding subscription/credit owed"
+          iconBgColor="bg-red-100"
+          iconTextColor="text-red-600"
+          delay={300}
+          currencySymbol="$"
+        />
+      )}
     </div>
   );
 };

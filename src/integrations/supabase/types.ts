@@ -156,6 +156,7 @@ export type Database = {
           available_balance: number | null
           ban_reason: string | null
           created_at: string | null
+          credit_balance: number | null
           email: string
           id: string
           name: string
@@ -169,6 +170,7 @@ export type Database = {
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
+          credit_balance?: number | null
           email: string
           id: string
           name: string
@@ -182,6 +184,7 @@ export type Database = {
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
+          credit_balance?: number | null
           email?: string
           id?: string
           name?: string
@@ -279,6 +282,54 @@ export type Database = {
           name?: string
         }
         Relationships: []
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          artist_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          type: string
+          withdrawal_id: string | null
+        }
+        Insert: {
+          amount: number
+          artist_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          type: string
+          withdrawal_id?: string | null
+        }
+        Update: {
+          amount?: number
+          artist_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          type?: string
+          withdrawal_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_withdrawal_id_fkey"
+            columns: ["withdrawal_id"]
+            isOneToOne: false
+            referencedRelation: "withdrawals"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       earnings: {
         Row: {
@@ -1061,6 +1112,8 @@ export type Database = {
           artist_id: string
           bank_name: string | null
           created_at: string
+          credit_deduction: number | null
+          final_amount: number | null
           id: string
           naira_amount: number | null
           processed_at: string | null
@@ -1076,6 +1129,8 @@ export type Database = {
           artist_id: string
           bank_name?: string | null
           created_at?: string
+          credit_deduction?: number | null
+          final_amount?: number | null
           id?: string
           naira_amount?: number | null
           processed_at?: string | null
@@ -1091,6 +1146,8 @@ export type Database = {
           artist_id?: string
           bank_name?: string | null
           created_at?: string
+          credit_deduction?: number | null
+          final_amount?: number | null
           id?: string
           naira_amount?: number | null
           processed_at?: string | null
