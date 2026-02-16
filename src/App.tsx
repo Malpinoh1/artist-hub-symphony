@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccountProvider } from "./contexts/AccountContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import FloatingTeamSwitcher from "./components/FloatingTeamSwitcher";
+import MobileBottomNav from "./components/MobileBottomNav";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
@@ -85,6 +86,7 @@ const AppContent = () => {
       </Routes>
       
       {user && <FloatingTeamSwitcher currentUserId={user.id} />}
+      <MobileBottomNav />
     </>
   );
 };
