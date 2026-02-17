@@ -78,9 +78,59 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
    const handleApprove = async (withdrawal: ExtendedWithdrawal) => {
      setProcessing(true);
     try {
+       // 1. Fetch current artist balance
+       const { data: artistData, error: fetchError } = await supabase
+         .from('artists')
+         .select('available_balance, credit_balance')
+         .eq('id', withdrawal.artist_id)
+         .single();
+
+       if (fetchError) throw fetchError;
+
+       const currentBalance = artistData?.available_balance || 0;
+       if (currentBalance < withdrawal.amount) {
+         toast.error(`Insufficient balance. Artist has $${currentBalance.toLocaleString()} but withdrawal is $${withdrawal.amount.toLocaleString()}`);
+         setProcessing(false);
+         return;
+       }
+
+       // 2. Deduct balance on approval
+       const deduction = withdrawal.credit_deduction || 0;
+       const { error: balanceError } = await supabase
+         .from('artists')
+         .update({
+           available_balance: Math.max(0, currentBalance - withdrawal.amount),
+           credit_balance: Math.max(0, (artistData?.credit_balance || 0) - deduction)
+         })
+         .eq('id', withdrawal.artist_id);
+
+       if (balanceError) throw balanceError;
+
+       // 3. Log credit deduction transaction if applicable
+       if (deduction > 0) {
+         await supabase.from('credit_transactions').insert({
+           artist_id: withdrawal.artist_id,
+           amount: deduction,
+           type: 'withdrawal_deduction',
+           description: `Credit deduction of $${deduction.toLocaleString()} from approved withdrawal of $${withdrawal.amount.toLocaleString()}`,
+           created_by: withdrawal.artist_id
+         });
+       }
+
+       // 4. Update withdrawal status
        const result = await updateWithdrawalStatus(withdrawal.id, 'APPROVED');
       
       if (result.success) {
+         // Log activity
+         await supabase.from('activity_logs').insert({
+           artist_id: withdrawal.artist_id,
+           user_id: withdrawal.artist_id,
+           activity_type: 'withdrawal_approved',
+           title: 'Withdrawal Approved — Balance Deducted',
+           description: `$${withdrawal.amount.toLocaleString()} deducted from balance upon approval.${deduction > 0 ? ` Credit deduction: $${deduction.toLocaleString()}` : ''}`,
+           metadata: { withdrawal_id: withdrawal.id, amount: withdrawal.amount, credit_deduction: deduction }
+         });
+
          // Send email notification
          if (withdrawal.artists?.email) {
            await sendWithdrawalNotificationEmail(
@@ -90,14 +140,22 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
              withdrawal.naira_amount || withdrawal.amount * EXCHANGE_RATE
            );
          }
-        toast.success('Withdrawal status updated successfully');
+        toast.success('Withdrawal approved and balance deducted');
          onWithdrawalUpdate(withdrawal.id, 'APPROVED');
       } else {
-        toast.error('Failed to update withdrawal status');
+        // Rollback balance if status update failed
+        await supabase
+          .from('artists')
+          .update({
+            available_balance: currentBalance,
+            credit_balance: (artistData?.credit_balance || 0)
+          })
+          .eq('id', withdrawal.artist_id);
+        toast.error('Failed to update withdrawal status — balance restored');
       }
     } catch (error) {
-      console.error('Error updating withdrawal status:', error);
-      toast.error('An error occurred while updating status');
+      console.error('Error approving withdrawal:', error);
+      toast.error('An error occurred while approving withdrawal');
      } finally {
        setProcessing(false);
     }
@@ -188,25 +246,29 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
 
     setProcessing(true);
     try {
-      // Refund the balance back since it was deducted on request
-      const { data: artistData, error: fetchError } = await supabase
-        .from('artists')
-        .select('available_balance, credit_balance')
-        .eq('id', selectedWithdrawal.artist_id)
-        .single();
+      const wasApproved = selectedWithdrawal.status === 'APPROVED' || selectedWithdrawal.status === 'PROCESSING';
 
-      if (fetchError) throw fetchError;
+      // Only refund if balance was already deducted (i.e. withdrawal was approved)
+      if (wasApproved) {
+        const { data: artistData, error: fetchError } = await supabase
+          .from('artists')
+          .select('available_balance, credit_balance')
+          .eq('id', selectedWithdrawal.artist_id)
+          .single();
 
-      const refundAmount = selectedWithdrawal.amount;
-      const creditRefund = selectedWithdrawal.credit_deduction || 0;
+        if (fetchError) throw fetchError;
 
-      await supabase
-        .from('artists')
-        .update({ 
-          available_balance: (artistData?.available_balance || 0) + refundAmount,
-          credit_balance: (artistData?.credit_balance || 0) + creditRefund
-        })
-        .eq('id', selectedWithdrawal.artist_id);
+        const refundAmount = selectedWithdrawal.amount;
+        const creditRefund = selectedWithdrawal.credit_deduction || 0;
+
+        await supabase
+          .from('artists')
+          .update({ 
+            available_balance: (artistData?.available_balance || 0) + refundAmount,
+            credit_balance: (artistData?.credit_balance || 0) + creditRefund
+          })
+          .eq('id', selectedWithdrawal.artist_id);
+      }
 
       // Update withdrawal status
       const { error } = await supabase
@@ -220,14 +282,16 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
 
       if (error) throw error;
 
-      // Log refund activity
+      // Log activity
       await supabase.from('activity_logs').insert({
         artist_id: selectedWithdrawal.artist_id,
         user_id: selectedWithdrawal.artist_id,
         activity_type: 'withdrawal_rejected',
-        title: 'Withdrawal Rejected — Balance Refunded',
-        description: `$${refundAmount.toLocaleString()} refunded to available balance. Reason: ${rejectionReason.trim()}`,
-        metadata: { withdrawal_id: selectedWithdrawal.id, refund_amount: refundAmount }
+        title: wasApproved ? 'Withdrawal Rejected — Balance Refunded' : 'Withdrawal Rejected',
+        description: wasApproved
+          ? `$${selectedWithdrawal.amount.toLocaleString()} refunded to available balance. Reason: ${rejectionReason.trim()}`
+          : `Withdrawal of $${selectedWithdrawal.amount.toLocaleString()} rejected. Reason: ${rejectionReason.trim()}`,
+        metadata: { withdrawal_id: selectedWithdrawal.id, refund_amount: wasApproved ? selectedWithdrawal.amount : 0 }
       });
 
       // Send email notification
@@ -241,7 +305,7 @@ const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, o
         );
       }
 
-      toast.success('Withdrawal rejected and balance refunded');
+      toast.success(wasApproved ? 'Withdrawal rejected and balance refunded' : 'Withdrawal rejected');
       onWithdrawalUpdate(selectedWithdrawal.id, 'REJECTED');
       setRejectDialogOpen(false);
     } catch (error) {
