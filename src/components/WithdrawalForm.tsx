@@ -111,7 +111,7 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, credi
       const deduction = Math.min(creditBalance, amount);
       const payout = amount - deduction;
 
-      // 1. Deduct from available_balance immediately
+      // 1. Verify sufficient balance (but don't deduct yet — deduction happens on admin approval)
       const { data: artistData, error: fetchError } = await supabase
         .from('artists')
         .select('available_balance, credit_balance')
@@ -127,20 +127,7 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, credi
         return;
       }
 
-      const newBalance = currentBalance - amount;
-
-      const { error: balanceError } = await supabase
-        .from('artists')
-        .update({ 
-          available_balance: Math.max(0, newBalance),
-          // Also deduct credit balance if applicable
-          credit_balance: Math.max(0, (artistData?.credit_balance || 0) - deduction)
-        })
-        .eq('id', artistId);
-
-      if (balanceError) throw balanceError;
-
-      // 2. Insert withdrawal request
+      // 2. Insert withdrawal request (balance will be deducted when admin approves)
       const { error } = await supabase
         .from('withdrawals')
         .insert({
@@ -158,16 +145,7 @@ const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, credi
 
       if (error) throw error;
 
-      // 3. Log credit deduction transaction if applicable
-      if (deduction > 0) {
-        await supabase.from('credit_transactions').insert({
-          artist_id: artistId,
-          amount: deduction,
-          type: 'withdrawal_deduction',
-          description: `Credit deduction of $${deduction.toLocaleString()} from withdrawal of $${amount.toLocaleString()}`,
-          created_by: userId
-        });
-      }
+      // 3. Credit deduction will happen when admin approves
 
       // 4. Log activity
       await supabase.from('activity_logs').insert({
