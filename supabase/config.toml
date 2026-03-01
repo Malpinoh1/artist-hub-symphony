@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.send-support-reply-notification]
 verify_jwt = false
+
+[functions.check-artist-email]
+verify_jwt = false
