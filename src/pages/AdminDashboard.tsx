@@ -239,12 +239,12 @@ const AdminDashboard = () => {
             />
             
             <div className="border-b border-gray-200 mb-6">
-              <div className="flex overflow-x-auto space-x-1">
+              <div className="flex overflow-x-auto space-x-1 pb-1 -mb-px scrollbar-thin">
                 {tabs.map((tab) => (
                   <button 
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`px-4 py-2 border-b-2 whitespace-nowrap flex items-center ${
+                    className={`px-3 py-2 border-b-2 whitespace-nowrap flex items-center text-sm ${
                       activeTab === tab.id
                         ? 'border-blue-500 text-blue-600 font-medium'
                         : 'border-transparent hover:text-blue-500'
@@ -252,7 +252,7 @@ const AdminDashboard = () => {
                   >
                     <span>{tab.label}</span>
                     {tab.badge && (
-                      <span className="ml-2 px-2 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
                         {tab.badge}
                       </span>
                     )}
@@ -261,7 +261,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="glass-panel p-6">
+            <div className="glass-panel p-3 sm:p-6">
               {renderActiveTabContent()}
             </div>
           </AnimatedCard>

@@ -122,10 +122,11 @@ const Settings = () => {
         // Create profile with proper defaults
         const newProfileData = {
           id: session.user.id,
+          user_id: session.user.id,
           username: session.user.email || '',
           full_name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || '',
           email_notifications: true,
-          marketing_emails: true, // Default to opted-in
+          marketing_emails: true,
           bio: '',
           website: '',
           avatar_url: null
@@ -133,7 +134,7 @@ const Settings = () => {
 
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .upsert(newProfileData, { 
+          .upsert([newProfileData], { 
             onConflict: 'id',
             ignoreDuplicates: false 
           })
@@ -254,6 +255,7 @@ const Settings = () => {
 
       const profileData = {
         id: currentUser.id,
+        user_id: currentUser.id,
         full_name: formData.full_name.trim() || currentUser.email?.split('@')[0] || '',
         username: formData.username.trim() || currentUser.email || '',
         bio: formData.bio.trim(),
@@ -264,7 +266,7 @@ const Settings = () => {
 
       const { data: updatedProfile, error } = await supabase
         .from('profiles')
-        .upsert(profileData, { 
+        .upsert([profileData], { 
           onConflict: 'id',
           ignoreDuplicates: false 
         })

@@ -24,10 +24,32 @@ export interface Release {
   isrc?: string;
   artist_name?: string;
   artist_id?: string;
+  release_type?: string;
+  genre?: string;
+  description?: string;
+  producer_credits?: string;
+  songwriter_credits?: string;
+  artwork_credits?: string;
+  copyright_info?: string;
+  primary_language?: string;
+  total_tracks?: number;
+  explicit_content?: boolean;
+  submission_notes?: string;
+  admin_notes?: string;
+  platforms?: string[];
   artists?: {
     id: string;
     name: string;
     email: string;
+  }[];
+  release_tracks?: {
+    id: string;
+    track_number: number;
+    title: string;
+    duration?: number | null;
+    isrc?: string | null;
+    explicit_content?: boolean;
+    featured_artists?: string[];
   }[];
 }
 
