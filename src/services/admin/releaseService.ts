@@ -17,10 +17,32 @@ export interface Release {
   isrc?: string;
   artist_name?: string;
   artist_id?: string;
+  release_type?: string;
+  genre?: string;
+  description?: string;
+  producer_credits?: string;
+  songwriter_credits?: string;
+  artwork_credits?: string;
+  copyright_info?: string;
+  primary_language?: string;
+  total_tracks?: number;
+  explicit_content?: boolean;
+  submission_notes?: string;
+  admin_notes?: string;
+  platforms?: string[];
   artists?: {
     id: string;
     name: string;
     email: string;
+  }[];
+  release_tracks?: {
+    id: string;
+    track_number: number;
+    title: string;
+    duration?: number | null;
+    isrc?: string | null;
+    explicit_content?: boolean;
+    featured_artists?: string[];
   }[];
 }
 
@@ -47,7 +69,21 @@ export async function fetchAdminReleases() {
         isrc,
         artist_id,
         artist_name,
-        artists(id, name, email)
+        release_type,
+        genre,
+        description,
+        producer_credits,
+        songwriter_credits,
+        artwork_credits,
+        copyright_info,
+        primary_language,
+        total_tracks,
+        explicit_content,
+        submission_notes,
+        admin_notes,
+        platforms,
+        artists(id, name, email),
+        release_tracks(id, track_number, title, duration, isrc, explicit_content, featured_artists)
       `)
       .order('release_date', { ascending: false });
       

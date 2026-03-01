@@ -47,15 +47,16 @@ const MarketingOptInBanner: React.FC = () => {
         // Create profile with marketing_emails = true by default
         const newProfileData = {
           id: session.user.id,
+          user_id: session.user.id,
           username: session.user.email || '',
           full_name: session.user.user_metadata?.full_name || session.user.email || '',
-          marketing_emails: true, // Default to opted-in
+          marketing_emails: true,
           email_notifications: true
         };
 
         const { data: newProfile, error: createError } = await supabase
           .from('profiles')
-          .upsert(newProfileData, { 
+          .upsert([newProfileData], { 
             onConflict: 'id',
             ignoreDuplicates: false 
           })
@@ -85,12 +86,13 @@ const MarketingOptInBanner: React.FC = () => {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({ 
+        .upsert([{ 
           id: session.user.id,
+          user_id: session.user.id,
           marketing_emails: true,
           username: session.user.email || '',
           full_name: session.user.user_metadata?.full_name || session.user.email || ''
-        }, { 
+        }], {
           onConflict: 'id',
           ignoreDuplicates: false 
         });
@@ -129,12 +131,13 @@ const MarketingOptInBanner: React.FC = () => {
 
       const { error } = await supabase
         .from('profiles')
-        .upsert({ 
+        .upsert([{ 
           id: session.user.id,
+          user_id: session.user.id,
           marketing_emails: false,
           username: session.user.email || '',
           full_name: session.user.user_metadata?.full_name || session.user.email || ''
-        }, { 
+        }], {
           onConflict: 'id',
           ignoreDuplicates: false 
         });
