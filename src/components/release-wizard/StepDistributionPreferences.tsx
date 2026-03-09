@@ -60,12 +60,8 @@ function initStores(): Record<string, StoreItem> {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const colors: Record<string, string> = {
-    pending: 'bg-amber-500/10 text-amber-600 border-amber-500/20',
-    incomplete: 'bg-red-500/10 text-red-600 border-red-500/20',
-    delivered: 'bg-green-500/10 text-green-600 border-green-500/20',
-  };
-  return <Badge variant="outline" className={`text-[10px] ${colors[status] || ''}`}>{status}</Badge>;
+  const variant = status === 'delivered' ? 'default' : status === 'incomplete' ? 'destructive' : 'secondary';
+  return <Badge variant={variant} className="text-[10px]">{status}</Badge>;
 }
 
 export function StepDistributionPreferences({
