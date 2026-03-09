@@ -54,8 +54,11 @@ const ReleaseForm = () => {
     artist_name: '',
   });
 
-  const [tracks, setTracks] = useState([{
-    track_number: 1, title: '', explicit_content: false, featured_artists: [] as string[]
+  const [tracks, setTracks] = useState<Array<{
+    track_number: number; title: string; explicit_content: boolean; featured_artists: string[];
+    duration?: number; isrc?: string;
+  }>>([{
+    track_number: 1, title: '', explicit_content: false, featured_artists: []
   }]);
 
   const [coverArt, setCoverArt] = useState<File | null>(null);
