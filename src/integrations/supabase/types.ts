@@ -1004,6 +1004,51 @@ export type Database = {
         }
         Relationships: []
       }
+      release_audio_clips: {
+        Row: {
+          clip_end: number
+          clip_start: number
+          clip_type: string
+          created_at: string
+          id: string
+          release_id: string
+          track_id: string
+        }
+        Insert: {
+          clip_end?: number
+          clip_start?: number
+          clip_type?: string
+          created_at?: string
+          id?: string
+          release_id: string
+          track_id: string
+        }
+        Update: {
+          clip_end?: number
+          clip_start?: number
+          clip_type?: string
+          created_at?: string
+          id?: string
+          release_id?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_audio_clips_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_audio_clips_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "release_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       release_edit_requests: {
         Row: {
           admin_response: string | null
@@ -1050,6 +1095,83 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "release_edit_requests_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      release_free_tracks: {
+        Row: {
+          created_at: string
+          id: string
+          release_id: string
+          track_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          release_id: string
+          track_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          release_id?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_free_tracks_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_free_tracks_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "release_tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      release_store_selections: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          id: string
+          release_id: string
+          status: string
+          store_category: string
+          store_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          release_id: string
+          status?: string
+          store_category?: string
+          store_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          release_id?: string
+          status?: string
+          store_category?: string
+          store_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_store_selections_release_id_fkey"
             columns: ["release_id"]
             isOneToOne: false
             referencedRelation: "releases"
@@ -1116,17 +1238,24 @@ export type Database = {
           id: string
           isrc: string | null
           platforms: string[]
+          pre_order_enabled: boolean | null
+          pre_order_previews: boolean | null
+          pricing: string | null
           primary_language: string | null
           producer_credits: string | null
           release_date: string
+          release_time: string | null
+          release_timezone: string | null
           release_type: string | null
           songwriter_credits: string | null
           status: Database["public"]["Enums"]["release_status"]
           submission_notes: string | null
+          territory: string | null
           title: string
           total_tracks: number | null
           upc: string | null
           updated_at: string | null
+          wizard_step: number | null
         }
         Insert: {
           admin_notes?: string | null
@@ -1142,17 +1271,24 @@ export type Database = {
           id?: string
           isrc?: string | null
           platforms: string[]
+          pre_order_enabled?: boolean | null
+          pre_order_previews?: boolean | null
+          pricing?: string | null
           primary_language?: string | null
           producer_credits?: string | null
           release_date: string
+          release_time?: string | null
+          release_timezone?: string | null
           release_type?: string | null
           songwriter_credits?: string | null
           status?: Database["public"]["Enums"]["release_status"]
           submission_notes?: string | null
+          territory?: string | null
           title: string
           total_tracks?: number | null
           upc?: string | null
           updated_at?: string | null
+          wizard_step?: number | null
         }
         Update: {
           admin_notes?: string | null
@@ -1168,17 +1304,24 @@ export type Database = {
           id?: string
           isrc?: string | null
           platforms?: string[]
+          pre_order_enabled?: boolean | null
+          pre_order_previews?: boolean | null
+          pricing?: string | null
           primary_language?: string | null
           producer_credits?: string | null
           release_date?: string
+          release_time?: string | null
+          release_timezone?: string | null
           release_type?: string | null
           songwriter_credits?: string | null
           status?: Database["public"]["Enums"]["release_status"]
           submission_notes?: string | null
+          territory?: string | null
           title?: string
           total_tracks?: number | null
           upc?: string | null
           updated_at?: string | null
+          wizard_step?: number | null
         }
         Relationships: [
           {
