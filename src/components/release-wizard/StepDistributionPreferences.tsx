@@ -10,10 +10,12 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Slider } from '@/components/ui/slider';
 import { ChevronRight, ChevronLeft, Globe, Clock, ShoppingCart, Music, Scissors, Download, Store, AlertCircle, Info } from 'lucide-react';
 
+type StoreStatus = 'pending' | 'incomplete' | 'delivered';
+
 interface StoreItem {
   name: string;
   enabled: boolean;
-  status: 'pending' | 'incomplete' | 'delivered';
+  status: StoreStatus;
 }
 
 interface StepDistributionPreferencesProps {

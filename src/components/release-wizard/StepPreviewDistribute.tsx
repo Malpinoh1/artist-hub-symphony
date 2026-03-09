@@ -10,7 +10,7 @@ interface StepPreviewDistributeProps {
   formData: any;
   tracks: any[];
   coverArtPreview: string | null;
-  storeSelections: Record<string, { name: string; enabled: boolean; status: string }>;
+  storeSelections: Record<string, { name: string; enabled: boolean; status: 'pending' | 'incomplete' | 'delivered' }>;
   termsAccepted: boolean;
   onTermsAcceptedChange: (v: boolean) => void;
   isSubmitting: boolean;
