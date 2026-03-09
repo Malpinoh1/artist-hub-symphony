@@ -70,7 +70,7 @@ const ReleaseForm = () => {
   const [uploadProgress, setUploadProgress] = useState<any>({ step: 'idle' });
 
   // Distribution preferences state
-  const [storeSelections, setStoreSelections] = useState<Record<string, { name: string; enabled: boolean; status: string }>>({});
+  const [storeSelections, setStoreSelections] = useState<Record<string, { name: string; enabled: boolean; status: 'pending' | 'incomplete' | 'delivered' }>>({});
   const [freeTrackIds, setFreeTrackIds] = useState<string[]>([]);
   const [audioClips, setAudioClips] = useState<Record<string, { clip_start: number; clip_end: number }>>({});
 
