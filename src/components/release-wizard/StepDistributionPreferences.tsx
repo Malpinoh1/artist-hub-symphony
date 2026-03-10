@@ -7,8 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Slider } from '@/components/ui/slider';
 import { ChevronRight, ChevronLeft, Globe, Clock, ShoppingCart, Music, Scissors, Download, Store, AlertCircle, Info } from 'lucide-react';
+import { getStoreIcon, StoreStatusBadge } from '@/components/release/StoreIcons';
 
 type StoreStatus = 'pending' | 'incomplete' | 'delivered';
 
@@ -59,11 +59,6 @@ function initStores(): Record<string, StoreItem> {
   return stores;
 }
 
-function StatusBadge({ status }: { status: string }) {
-  const variant = status === 'delivered' ? 'default' : status === 'incomplete' ? 'destructive' : 'secondary';
-  return <Badge variant={variant} className="text-[10px]">{status}</Badge>;
-}
-
 export function StepDistributionPreferences({
   formData, onInputChange, tracks, coverArtPreview,
   storeSelections, onStoreSelectionsChange,
@@ -100,25 +95,25 @@ export function StepDistributionPreferences({
     onAudioClipsChange({ ...audioClips, [key]: { ...existing, [field]: value } });
   };
 
-  // Release date validation
   const releaseDateObj = formData.release_date ? new Date(formData.release_date) : null;
   const minDate = new Date();
   minDate.setDate(minDate.getDate() + 21);
   const isDateValid = releaseDateObj ? releaseDateObj >= minDate : false;
 
   const renderStoreGroup = (title: string, stores: string[], icon: React.ReactNode) => (
-    <Card>
+    <Card className="border-border">
       <CardHeader className="pb-3">
         <CardTitle className="text-sm flex items-center gap-2">{icon}{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
+      <CardContent className="space-y-1">
         {stores.map(name => {
           const store = storeSelections[name] || { name, enabled: true, status: 'pending' };
           return (
-            <div key={name} className="flex items-center justify-between py-1.5 px-2 rounded-md hover:bg-muted/50">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="text-sm truncate">{name}</span>
-                <StatusBadge status={store.status} />
+            <div key={name} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-3 min-w-0">
+                {getStoreIcon(name)}
+                <span className="text-sm font-medium truncate">{name}</span>
+                <StoreStatusBadge status={store.status} />
               </div>
               <Switch checked={store.enabled} onCheckedChange={() => toggleStore(name)} />
             </div>
@@ -131,13 +126,14 @@ export function StepDistributionPreferences({
   return (
     <div className="space-y-6">
       {/* Header with release info */}
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-4 p-4 rounded-xl bg-muted/30 border border-border">
         {coverArtPreview && (
           <img src={coverArtPreview} alt="Cover" className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg border object-cover shrink-0" />
         )}
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl font-semibold truncate">{formData.title || 'Untitled Release'}</h2>
-          <p className="text-sm text-muted-foreground">Distribution Preferences</p>
+          <p className="text-sm text-muted-foreground">{formData.artist_name || 'Artist'}</p>
+          <p className="text-xs text-muted-foreground mt-1">Distribution Preferences</p>
         </div>
       </div>
 
@@ -183,17 +179,17 @@ export function StepDistributionPreferences({
           </div>
 
           {!isDateValid && formData.release_date && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
-              <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-              <p className="text-xs text-amber-700 dark:text-amber-400">
+            <div className="flex items-start gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0 mt-0.5" />
+              <p className="text-xs text-destructive">
                 You should set the release date at least 21 days in the future to allow time for promotion, pre-save campaigns and playlist pitching.
               </p>
             </div>
           )}
 
-          <div className="flex items-start gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <Info className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-            <p className="text-xs text-blue-700 dark:text-blue-400">
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/10">
+            <Info className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <p className="text-xs text-muted-foreground">
               Apple Music and iTunes do not allow timed releases. Your release will go live at 12AM in each territory.
             </p>
           </div>
@@ -294,7 +290,7 @@ export function StepDistributionPreferences({
         </CardHeader>
         <CardContent className="space-y-2">
           {tracks.map((track, i) => (
-            <div key={i} className="flex items-center gap-3 py-1.5">
+            <div key={i} className="flex items-center gap-3 py-2 px-2 rounded-md hover:bg-muted/50">
               <Checkbox
                 checked={freeTrackIds.includes(String(i))}
                 onCheckedChange={() => toggleFreeTrack(i)}

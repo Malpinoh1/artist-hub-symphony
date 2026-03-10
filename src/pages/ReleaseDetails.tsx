@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Globe, Clock, Music, Disc, DollarSign, Store, ExternalLink, Shield, Scissors, Download } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -10,14 +9,15 @@ import { Release, fetchReleaseDetails } from '../services/releaseService';
 import AnimatedCard from '../components/AnimatedCard';
 import PerformanceStatisticsForm from '../components/PerformanceStatisticsForm';
 import StreamingLinksForm from '../components/StreamingLinksForm';
-import ReleaseHeader from '../components/release/ReleaseHeader';
-import ReleaseIdentifiers from '../components/release/ReleaseIdentifiers';
 import StreamingLinksSection from '../components/release/StreamingLinksSection';
 import PerformanceStatsSection from '../components/release/PerformanceStatsSection';
 import TakeDownSection from '../components/release/TakeDownSection';
 import TakeDownRequestStatus from '../components/release/TakeDownRequestStatus';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { getStoreIcon, StoreStatusBadge } from '@/components/release/StoreIcons';
 
 const ReleaseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -34,14 +34,9 @@ const ReleaseDetails = () => {
   useEffect(() => {
     const fetchReleaseData = async () => {
       if (!id) return;
-      
       try {
         setLoading(true);
-        
-        // Get user session
         const { data: { session } } = await supabase.auth.getSession();
-        
-        // Check if user is admin
         if (session?.user) {
           const { data: roleData } = await supabase
             .from('user_roles')
@@ -49,20 +44,13 @@ const ReleaseDetails = () => {
             .eq('user_id', session.user.id)
             .eq('role', 'admin')
             .maybeSingle();
-            
           setIsAdmin(!!roleData);
         }
         
-        // Get release details
         const releaseData = await fetchReleaseDetails(id);
-        
-        if (!releaseData) {
-          throw new Error("Failed to load release details");
-        }
-
+        if (!releaseData) throw new Error("Failed to load release details");
         setRelease(releaseData);
         
-        // Check if the current user is the artist
         const { data: releaseArtistData } = await supabase
           .from('releases')
           .select('artist_id')
@@ -71,8 +59,6 @@ const ReleaseDetails = () => {
           
         if (session?.user?.id === releaseArtistData?.artist_id) {
           setArtistId(releaseArtistData.artist_id);
-          
-          // Check if there's an existing take down request
           const { data: takeDownData, error: takeDownError } = await supabase
             .from('take_down_requests')
             .select('*')
@@ -80,10 +66,7 @@ const ReleaseDetails = () => {
             .eq('artist_id', releaseArtistData.artist_id)
             .order('created_at', { ascending: false })
             .maybeSingle();
-            
-          if (!takeDownError && takeDownData) {
-            setTakeDownRequest(takeDownData);
-          }
+          if (!takeDownError && takeDownData) setTakeDownRequest(takeDownData);
         }
       } catch (error) {
         console.error('Error fetching release details:', error);
@@ -92,306 +75,399 @@ const ReleaseDetails = () => {
         setLoading(false);
       }
     };
-
     fetchReleaseData();
   }, [id]);
 
-  // Helper function to get status color
-  const getStatusColor = () => {
-    if (!release) return '';
-    
+  const getStatusVariant = () => {
+    if (!release) return 'secondary' as const;
     switch (release.status) {
-      case 'approved':
-        return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
+      case 'approved': return 'default' as const;
       case 'rejected':
-      case 'takedown':
-        return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-      case 'processing':
-        return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-      case 'takedownrequested':
-        return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
-      default:
-        return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+      case 'takedown': return 'destructive' as const;
+      default: return 'secondary' as const;
     }
   };
 
-  // Helper function to get status label
   const getStatusLabel = () => {
     if (!release) return '';
-    
     switch (release.status) {
-      case 'approved':
-        return 'Approved';
+      case 'approved': return 'Approved';
+      case 'rejected': return 'Rejected';
+      case 'processing': return 'Processing';
+      case 'takedown': return 'Removed';
+      case 'takedownrequested': return 'Removal Requested';
+      default: return 'Pending';
+    }
+  };
+
+  const getStatusColor = () => {
+    if (!release) return '';
+    switch (release.status) {
+      case 'approved': return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400';
       case 'rejected':
-        return 'Rejected';
-      case 'processing':
-        return 'Processing';
-      case 'takedown':
-        return 'Removed';
-      case 'takedownrequested':
-        return 'Removal Requested';
-      default:
-        return 'Pending';
+      case 'takedown': return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+      case 'processing': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'takedownrequested': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+      default: return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
     }
   };
   
-  const handleTakeDownRequestSubmitted = () => {
-    window.location.reload();
-  };
-  
-  const handleStatisticsSubmitted = () => {
-    setShowStatsForm(false);
-    window.location.reload();
-  };
-  
-  const handleLinksSubmitted = () => {
-    setShowLinksForm(false);
-    window.location.reload();
+  const handleTakeDownRequestSubmitted = () => window.location.reload();
+  const handleStatisticsSubmitted = () => { setShowStatsForm(false); window.location.reload(); };
+  const handleLinksSubmitted = () => { setShowLinksForm(false); window.location.reload(); };
+
+  // Group stores by category
+  const groupedStores = release?.storeSelections?.reduce((acc, store) => {
+    const cat = store.store_category || 'other';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(store);
+    return acc;
+  }, {} as Record<string, typeof release.storeSelections>) || {};
+
+  const categoryLabels: Record<string, string> = {
+    essential: 'Essential Stores',
+    other: 'Other Stores',
+    neighbouring_rights: 'Neighbouring Rights',
+    ringtone: 'Ringtone Stores',
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      
       <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <AnimatedCard>
-            <div className="mb-6">
-              <Link to="/dashboard" className="inline-flex items-center text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-medium">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </div>
-          </AnimatedCard>
+        <div className="container mx-auto px-4 max-w-5xl">
+          {/* Back button */}
+          <div className="mb-6">
+            <Link to="/releases" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Releases
+            </Link>
+          </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 dark:border-blue-400"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : release ? (
-            <>
+            <div className="space-y-6">
+              {/* Hero Card */}
               <AnimatedCard>
-                <div className="glass-panel p-6 md:p-8 mb-8">
-                  <div className="flex flex-col md:flex-row gap-8">
-                    {/* Left Column (Cover Art & Identifiers) */}
-                    <div className="w-full md:w-1/3">
-                      <div className="aspect-square rounded-lg overflow-hidden shadow-lg">
-                        <img 
-                          src={release.coverArt} 
-                          alt={release.title} 
-                          className="w-full h-full object-cover"
-                        />
+                <Card className="overflow-hidden">
+                  <div className="bg-muted/30 p-4 sm:p-6 lg:p-8">
+                    <div className="flex flex-col sm:flex-row gap-6">
+                      <div className="w-full sm:w-48 lg:w-56 shrink-0">
+                        <div className="aspect-square rounded-xl overflow-hidden shadow-lg border">
+                          <img src={release.coverArt} alt={release.title} className="w-full h-full object-cover" />
+                        </div>
                       </div>
                       
-                      {/* Release Identifiers */}
-                      <ReleaseIdentifiers 
-                        release={release}
-                        getStatusColor={getStatusColor}
-                        getStatusLabel={getStatusLabel}
-                      />
-                    </div>
-                    
-                     {/* Right Column (Release Info & Actions) */}
-                    <div className="w-full md:w-2/3">
-                      <div className="space-y-6">
+                      <div className="flex-1 min-w-0 space-y-4">
                         <div>
-                          <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">{release.title}</h1>
-                          <p className="text-lg text-slate-600 dark:text-slate-400 mb-4">by {release.artist}</p>
-                          
-                          {/* Release Type & Genre */}
-                          <div className="flex flex-wrap gap-2 mb-4">
-                            <Badge variant="secondary" className="capitalize">
-                              {release.release_type || 'Single'}
-                            </Badge>
-                            {release.genre && (
-                              <Badge variant="outline">{release.genre}</Badge>
-                            )}
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <Badge className={getStatusColor()}>{getStatusLabel()}</Badge>
+                            <Badge variant="outline" className="capitalize">{release.release_type || 'Single'}</Badge>
+                            {release.genre && <Badge variant="outline">{release.genre}</Badge>}
+                            {release.explicit_content && <Badge variant="destructive">Explicit</Badge>}
                           </div>
+                          <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{release.title}</h1>
+                          <p className="text-lg text-muted-foreground">by {release.artist}</p>
+                        </div>
 
-                          {/* Release Information Grid */}
-                          <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700 mb-6">
-                            <h3 className="text-lg font-semibold mb-4 dark:text-slate-200">Release Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Release Date:</span>
-                                <p className="text-slate-900 dark:text-slate-200">
-                                  {new Date(release.releaseDate).toLocaleDateString()}
-                                </p>
-                              </div>
-                              
-                              {release.producer_credits && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Producer(s):</span>
-                                  <p className="text-slate-900 dark:text-slate-200">{release.producer_credits}</p>
-                                </div>
-                              )}
-                              
-                              {release.songwriter_credits && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Songwriter(s):</span>
-                                  <p className="text-slate-900 dark:text-slate-200">{release.songwriter_credits}</p>
-                                </div>
-                              )}
-                              
-                              {release.artwork_credits && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Artwork Credits:</span>
-                                  <p className="text-slate-900 dark:text-slate-200">{release.artwork_credits}</p>
-                                </div>
-                              )}
-                              
-                              {release.copyright_info && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Copyright:</span>
-                                  <p className="text-slate-900 dark:text-slate-200">{release.copyright_info}</p>
-                                </div>
-                              )}
-                              
-                              <div>
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Language:</span>
-                                <p className="text-slate-900 dark:text-slate-200">{release.primary_language || 'English'}</p>
-                              </div>
-                              
-                              <div>
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Total Tracks:</span>
-                                <p className="text-slate-900 dark:text-slate-200">{release.total_tracks || 1}</p>
-                              </div>
-
-                              {release.platforms && release.platforms.length > 0 && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Platforms:</span>
-                                  <p className="text-slate-900 dark:text-slate-200">{release.platforms.join(', ')}</p>
-                                </div>
-                              )}
-                              
-                              {release.explicit_content && (
-                                <div>
-                                  <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Content:</span>
-                                  <Badge variant="destructive" className="ml-2">Explicit</Badge>
-                                </div>
-                              )}
-                            </div>
-                            
-                            {release.description && (
-                              <div className="mt-4">
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Description:</span>
-                                <p className="text-slate-900 dark:text-slate-200 mt-1">{release.description}</p>
-                              </div>
-                            )}
-
-                            {release.submission_notes && (
-                              <div className="mt-4">
-                                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Submission Notes:</span>
-                                <p className="text-slate-900 dark:text-slate-200 mt-1">{release.submission_notes}</p>
-                              </div>
-                            )}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="w-4 h-4 shrink-0" />
+                            <span>{release.releaseDate ? new Date(release.releaseDate).toLocaleDateString() : 'Not set'}</span>
                           </div>
-
-                          {/* Tracklist */}
-                          {release.tracks && release.tracks.length > 0 && (
-                            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700 mt-6">
-                              <h3 className="text-lg font-semibold mb-4 dark:text-slate-200">Tracklist</h3>
-                              <ol className="space-y-2 list-decimal list-inside">
-                                {release.tracks.map((track) => (
-                                  <li key={track.track_number} className="text-slate-900 dark:text-slate-200">
-                                    <span className="font-medium mr-2">{track.title}</span>
-                                    {track.featured_artists && track.featured_artists.length > 0 && (
-                                      <span className="text-sm text-slate-600 dark:text-slate-400">feat. {track.featured_artists.join(', ')}</span>
-                                    )}
-                                    {track.explicit_content && (
-                                      <Badge variant="destructive" className="ml-2">Explicit</Badge>
-                                    )}
-                                  </li>
-                                ))}
-                              </ol>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <MapPin className="w-4 h-4 shrink-0" />
+                            <span>{release.territory || 'World'}</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Disc className="w-4 h-4 shrink-0" />
+                            <span>{release.total_tracks || 1} track{(release.total_tracks || 1) !== 1 ? 's' : ''}</span>
+                          </div>
+                          {release.release_time && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Clock className="w-4 h-4 shrink-0" />
+                              <span>{release.release_time} {release.release_timezone || ''}</span>
                             </div>
                           )}
-                        </div>
-                        
-                        {/* Edit Request Button for Artists */}
-                        {!!artistId && (release.status === 'approved' || release.status === 'processing') && (
-                          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Need to make changes?</h4>
-                            <p className="text-sm text-blue-700 dark:text-blue-300 mb-3">
-                              You can request edits to your release information. Our team will review your request.
-                            </p>
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              onClick={() => navigate(`/releases/${release.id}/edit-request`)}
-                            >
-                              Request Edit
-                            </Button>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <DollarSign className="w-4 h-4 shrink-0" />
+                            <span className="capitalize">{release.pricing || 'Standard'}</span>
                           </div>
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Globe className="w-4 h-4 shrink-0" />
+                            <span>{release.primary_language || 'English'}</span>
+                          </div>
+                        </div>
+
+                        {/* Identifiers */}
+                        <div className="flex flex-wrap gap-4 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">UPC: </span>
+                            <span className="font-mono text-foreground">{release.upc}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">ISRC: </span>
+                            <span className="font-mono text-foreground">{release.isrc}</span>
+                          </div>
+                        </div>
+
+                        {/* Actions */}
+                        {!!artistId && (release.status === 'approved' || release.status === 'processing') && (
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/releases/${release.id}/edit-request`)}>
+                            Request Edit
+                          </Button>
                         )}
                       </div>
-                      
-                      {release.status === 'approved' ? (
-                        <div className="space-y-6">
-                          <StreamingLinksSection 
-                            streamingLinks={release.streamingLinks || []}
-                            isAdmin={isAdmin}
-                            onShowLinksForm={() => setShowLinksForm(true)}
-                          />
-                        </div>
-                      ) : (
-                        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg border border-slate-200 dark:border-slate-700">
-                          <h3 className="font-medium mb-2 dark:text-slate-200">Release Status</h3>
-                          {release.status === 'pending' && (
-                            <p className="text-slate-600 dark:text-slate-400">
-                              Your release is currently under review. We'll notify you once it's processed.
-                            </p>
-                          )}
-                          {release.status === 'rejected' && (
-                            <p className="text-slate-600 dark:text-slate-400">
-                              Your release was rejected. Please contact support for more information.
-                            </p>
-                          )}
-                          {release.status === 'processing' && (
-                            <p className="text-slate-600 dark:text-slate-400">
-                              Your release is being processed and will be distributed to platforms soon.
-                            </p>
-                          )}
-                          {release.status === 'takedownrequested' && (
-                            <p className="text-slate-600 dark:text-slate-400">
-                              A take down request has been submitted for this release.
-                            </p>
-                          )}
-                          {release.status === 'takedown' && (
-                            <p className="text-slate-600 dark:text-slate-400">
-                              This release has been removed from all platforms.
-                            </p>
-                          )}
-                        </div>
-                      )}
-                      
-                      {/* Take Down Request Section */}
-                      <TakeDownSection 
-                        artistId={artistId}
-                        releaseId={release.id}
-                        releaseStatus={release.status}
-                        takeDownRequest={takeDownRequest}
-                        showTakeDownForm={showTakeDownForm}
-                        onShowTakeDownForm={() => setShowTakeDownForm(true)}
-                        onRequestSubmitted={handleTakeDownRequestSubmitted}
-                      />
-                      
-                      {/* Show take down request status */}
-                      <TakeDownRequestStatus takeDownRequest={takeDownRequest} />
                     </div>
                   </div>
-                </div>
+                </Card>
               </AnimatedCard>
-              
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Left column */}
+                <div className="lg:col-span-2 space-y-6">
+                  {/* Album Information */}
+                  <AnimatedCard delay={50}>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2"><Music className="w-4 h-4" /> Album Information</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                          {release.producer_credits && (
+                            <div>
+                              <span className="text-muted-foreground text-xs font-medium">Producer(s)</span>
+                              <p className="text-foreground">{release.producer_credits}</p>
+                            </div>
+                          )}
+                          {release.songwriter_credits && (
+                            <div>
+                              <span className="text-muted-foreground text-xs font-medium">Songwriter(s)</span>
+                              <p className="text-foreground">{release.songwriter_credits}</p>
+                            </div>
+                          )}
+                          {release.artwork_credits && (
+                            <div>
+                              <span className="text-muted-foreground text-xs font-medium">Artwork Credits</span>
+                              <p className="text-foreground">{release.artwork_credits}</p>
+                            </div>
+                          )}
+                          {release.copyright_info && (
+                            <div>
+                              <span className="text-muted-foreground text-xs font-medium">Copyright</span>
+                              <p className="text-foreground">{release.copyright_info}</p>
+                            </div>
+                          )}
+                          {release.pre_order_enabled && (
+                            <div>
+                              <span className="text-muted-foreground text-xs font-medium">Pre-order</span>
+                              <p className="text-foreground">Enabled {release.pre_order_previews ? '(with previews)' : '(no previews)'}</p>
+                            </div>
+                          )}
+                        </div>
+                        {release.description && (
+                          <div>
+                            <span className="text-muted-foreground text-xs font-medium">Description</span>
+                            <p className="text-sm text-foreground mt-1">{release.description}</p>
+                          </div>
+                        )}
+                        {release.submission_notes && (
+                          <div>
+                            <span className="text-muted-foreground text-xs font-medium">Notes</span>
+                            <p className="text-sm text-foreground mt-1">{release.submission_notes}</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </AnimatedCard>
+
+                  {/* Tracklist */}
+                  {release.tracks && release.tracks.length > 0 && (
+                    <AnimatedCard delay={100}>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Disc className="w-4 h-4" /> Tracklist ({release.tracks.length})
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="divide-y divide-border">
+                            {release.tracks.map((track) => {
+                              const isFree = release.freeTracks?.some(f => f.track_id === track.id);
+                              const hasClip = release.audioClips?.some(c => c.track_id === track.id);
+                              return (
+                                <div key={track.track_number} className="flex items-center gap-3 py-3 group">
+                                  <span className="text-xs text-muted-foreground w-6 text-right font-mono">{track.track_number}</span>
+                                  <Music className="w-4 h-4 text-muted-foreground shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium truncate">{track.title}</p>
+                                    {track.featured_artists && track.featured_artists.length > 0 && (
+                                      <p className="text-xs text-muted-foreground">feat. {track.featured_artists.join(', ')}</p>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {isFree && (
+                                      <Badge variant="outline" className="text-[10px]">
+                                        <Download className="w-2.5 h-2.5 mr-1" /> Free
+                                      </Badge>
+                                    )}
+                                    {hasClip && (
+                                      <Badge variant="outline" className="text-[10px]">
+                                        <Scissors className="w-2.5 h-2.5 mr-1" /> Clip
+                                      </Badge>
+                                    )}
+                                    {track.explicit_content && <Badge variant="destructive" className="text-[10px]">E</Badge>}
+                                    {track.isrc && <span className="text-[10px] text-muted-foreground font-mono hidden sm:inline">{track.isrc}</span>}
+                                    {track.duration && (
+                                      <span className="text-xs text-muted-foreground font-mono">
+                                        {Math.floor(track.duration / 60)}:{(track.duration % 60).toString().padStart(2, '0')}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </AnimatedCard>
+                  )}
+
+                  {/* Store Distribution */}
+                  {release.storeSelections && release.storeSelections.length > 0 && (
+                    <AnimatedCard delay={150}>
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base flex items-center gap-2">
+                            <Store className="w-4 h-4" /> Store Distribution ({release.storeSelections.filter(s => s.enabled).length} active)
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {Object.entries(groupedStores).map(([category, stores]) => (
+                            <div key={category}>
+                              <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                                {categoryLabels[category] || category}
+                              </h4>
+                              <div className="space-y-1">
+                                {stores!.map(store => (
+                                  <div key={store.id} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors">
+                                    <div className="flex items-center gap-3 min-w-0">
+                                      {getStoreIcon(store.store_name)}
+                                      <span className="text-sm font-medium truncate">{store.store_name}</span>
+                                      <StoreStatusBadge status={store.status} />
+                                    </div>
+                                    <Switch checked={store.enabled} disabled />
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ))}
+                        </CardContent>
+                      </Card>
+                    </AnimatedCard>
+                  )}
+
+                  {/* Streaming Links */}
+                  {release.status === 'approved' && (
+                    <AnimatedCard delay={200}>
+                      <StreamingLinksSection 
+                        streamingLinks={release.streamingLinks || []}
+                        isAdmin={isAdmin}
+                        onShowLinksForm={() => setShowLinksForm(true)}
+                      />
+                    </AnimatedCard>
+                  )}
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-6">
+                  {/* Release Status */}
+                  <AnimatedCard delay={100}>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base flex items-center gap-2"><Shield className="w-4 h-4" /> Release Status</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <Badge className={`${getStatusColor()} text-sm px-3 py-1`}>{getStatusLabel()}</Badge>
+                        <p className="text-sm text-muted-foreground mt-3">
+                          {release.status === 'pending' && 'Your release is currently under review. We\'ll notify you once it\'s processed.'}
+                          {release.status === 'approved' && 'Your release is live and distributed to all selected platforms.'}
+                          {release.status === 'rejected' && 'Your release was rejected. Please contact support for more information.'}
+                          {release.status === 'processing' && 'Your release is being processed and will be distributed to platforms soon.'}
+                          {release.status === 'takedownrequested' && 'A take down request has been submitted for this release.'}
+                          {release.status === 'takedown' && 'This release has been removed from all platforms.'}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </AnimatedCard>
+
+                  {/* Release Settings */}
+                  <AnimatedCard delay={150}>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Release Settings</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Territory</span>
+                          <span className="font-medium">{release.territory || 'World'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pricing</span>
+                          <span className="font-medium capitalize">{release.pricing || 'Standard'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pre-order</span>
+                          <span className="font-medium">{release.pre_order_enabled ? 'Enabled' : 'Disabled'}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Language</span>
+                          <span className="font-medium">{release.primary_language || 'English'}</span>
+                        </div>
+                        {release.platforms && release.platforms.length > 0 && (
+                          <div>
+                            <span className="text-muted-foreground text-xs">Platforms</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {release.platforms.slice(0, 5).map(p => (
+                                <Badge key={p} variant="secondary" className="text-[10px]">{p}</Badge>
+                              ))}
+                              {release.platforms.length > 5 && (
+                                <Badge variant="secondary" className="text-[10px]">+{release.platforms.length - 5}</Badge>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </AnimatedCard>
+
+                  {/* Take Down Section */}
+                  <TakeDownSection 
+                    artistId={artistId}
+                    releaseId={release.id}
+                    releaseStatus={release.status}
+                    takeDownRequest={takeDownRequest}
+                    showTakeDownForm={showTakeDownForm}
+                    onShowTakeDownForm={() => setShowTakeDownForm(true)}
+                    onRequestSubmitted={handleTakeDownRequestSubmitted}
+                  />
+                  
+                  <TakeDownRequestStatus takeDownRequest={takeDownRequest} />
+                </div>
+              </div>
+
+              {/* Performance Stats */}
               {release.status === 'approved' && (
-                <AnimatedCard delay={100}>
+                <AnimatedCard delay={250}>
                   <PerformanceStatsSection 
                     statistics={release.statistics}
                     isAdmin={isAdmin}
                     onShowStatsForm={() => setShowStatsForm(true)}
                   />
                   
-                  {/* Stats Form modal */}
                   {showStatsForm && (
                     <PerformanceStatisticsForm 
                       releaseId={release.id} 
@@ -401,7 +477,6 @@ const ReleaseDetails = () => {
                     />
                   )}
                   
-                  {/* Streaming links form modal */}
                   {showLinksForm && (
                     <StreamingLinksForm 
                       releaseId={release.id}
@@ -412,25 +487,23 @@ const ReleaseDetails = () => {
                   )}
                 </AnimatedCard>
               )}
-            </>
+            </div>
           ) : (
-            <div className="glass-panel p-6 md:p-8 text-center">
-              <h2 className="text-xl font-semibold mb-4 dark:text-slate-200">Release Not Found</h2>
-              <p className="mb-6 text-slate-600 dark:text-slate-400">
+            <Card className="p-6 sm:p-8 text-center">
+              <h2 className="text-xl font-semibold mb-4">Release Not Found</h2>
+              <p className="mb-6 text-muted-foreground">
                 The release you're looking for doesn't exist or you don't have permission to view it.
               </p>
-              <Link 
-                to="/dashboard" 
-                className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
-              </Link>
-            </div>
+              <Button asChild>
+                <Link to="/releases">
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to Releases
+                </Link>
+              </Button>
+            </Card>
           )}
         </div>
       </main>
-      
       <Footer />
     </div>
   );

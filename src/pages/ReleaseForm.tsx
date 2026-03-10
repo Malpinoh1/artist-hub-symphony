@@ -21,7 +21,7 @@ interface ArtistAccount {
   artist_email: string | null;
 }
 
-const STEP_LABELS = ['Album Info', 'Tracks', 'Artwork', 'Distribution', 'Preview'];
+const STEP_LABELS = ['Album Info', 'Track Upload', 'Artwork', 'Distribution', 'Preview & Submit'];
 
 const ReleaseForm = () => {
   const navigate = useNavigate();
@@ -306,7 +306,6 @@ const ReleaseForm = () => {
           <div className="text-center space-y-6 py-8">
             <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-primary/10">
               <Check className="w-8 h-8 text-primary" />
-              <Check className="w-8 h-8 text-green-600" />
             </div>
             <div>
               <h2 className="text-2xl font-semibold mb-2">Release Submitted Successfully!</h2>
