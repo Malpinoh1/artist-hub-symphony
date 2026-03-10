@@ -28,7 +28,14 @@ export type Release = {
   explicit_content?: boolean;
   submission_notes?: string;
   platforms?: string[];
+  territory?: string;
+  release_time?: string;
+  release_timezone?: string;
+  pre_order_enabled?: boolean;
+  pre_order_previews?: boolean;
+  pricing?: string;
   tracks?: Array<{
+    id?: string;
     track_number: number;
     title: string;
     duration?: number | null;
@@ -36,11 +43,28 @@ export type Release = {
     explicit_content?: boolean;
     featured_artists?: string[];
   }>;
+  storeSelections?: Array<{
+    id: string;
+    store_name: string;
+    store_category: string;
+    enabled: boolean;
+    status: string;
+  }>;
+  audioClips?: Array<{
+    id: string;
+    track_id: string;
+    clip_start: number;
+    clip_end: number;
+    clip_type: string;
+  }>;
+  freeTracks?: Array<{
+    id: string;
+    track_id: string;
+  }>;
 };
 
 export async function fetchUserReleases(userId: string): Promise<Release[]> {
   try {
-    // Get the artist record for this user
     const { data: artistData, error: artistError } = await supabase
       .from('artists')
       .select('*')
@@ -52,7 +76,6 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
       return [];
     }
 
-    // If no artist record, return empty array
     if (!artistData) return [];
 
     const { data: releases, error } = await supabase
@@ -66,9 +89,8 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
       return [];
     }
 
-    // Get all streaming links for these releases
     const releaseIds = releases.map(release => release.id);
-    let streamingLinks = [];
+    let streamingLinks: any[] = [];
     
     if (releaseIds.length > 0) {
       const { data: linksData, error: linksError } = await (supabase as any)
@@ -82,7 +104,6 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
     }
     
     return releases.map(release => {
-      // Filter streaming links for this release
       const releaseLinks = streamingLinks
         .filter((link: any) => link.release_id === release.id)
         .map((link: any) => ({
@@ -90,7 +111,6 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
           url: link.url
         }));
       
-      // Use the stored artist_name on the release, fallback to account artist name
       const displayArtistName = (release as any).artist_name || artistData.name;
       
       return {
@@ -120,7 +140,6 @@ export async function fetchUserStats(userId: string) {
   };
 
   try {
-    // Get artist data first, which includes total earnings
     const { data: artistData, error: artistError } = await supabase
       .from('artists')
       .select('total_earnings')
@@ -132,21 +151,15 @@ export async function fetchUserStats(userId: string) {
       return defaultStats;
     }
 
-    // Get all releases count
     const { count: totalReleases, error: releasesError } = await supabase
       .from('releases')
       .select('*', { count: 'exact', head: true })
       .eq('artist_id', userId);
 
     if (releasesError) {
-      console.error("Error fetching release counts:", releasesError);
-      return { 
-        ...defaultStats, 
-        totalEarnings: artistData?.total_earnings || 0
-      };
+      return { ...defaultStats, totalEarnings: artistData?.total_earnings || 0 };
     }
 
-    // Get approved releases count
     const { count: activeReleases, error: activeError } = await supabase
       .from('releases')
       .select('*', { count: 'exact', head: true })
@@ -154,18 +167,13 @@ export async function fetchUserStats(userId: string) {
       .eq('status', 'Approved');
 
     if (activeError) {
-      console.error("Error fetching active release counts:", activeError);
-      return { 
-        ...defaultStats, 
-        totalReleases: totalReleases || 0,
-        totalEarnings: artistData?.total_earnings || 0
-      };
+      return { ...defaultStats, totalReleases: totalReleases || 0, totalEarnings: artistData?.total_earnings || 0 };
     }
 
     return {
       totalReleases: totalReleases || 0,
       activeReleases: activeReleases || 0,
-      totalPlays: 0, // We don't have plays data yet
+      totalPlays: 0,
       totalEarnings: artistData?.total_earnings || 0
     };
   } catch (error) {
@@ -191,142 +199,68 @@ export async function submitRelease(
   artistNameOverride?: string
 ) {
   try {
-    console.log('Starting release submission for user:', userId);
-    console.log('Release form data:', releaseFormData);
-    
-    // Get user email for notification
     const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError) {
-      console.error("Error fetching user data:", userError);
-      throw new Error("Authentication failed. Please log in again.");
-    }
-    
-    if (!userData.user?.email) {
-      throw new Error("User email not found. Please log in again.");
-    }
+    if (userError) throw new Error("Authentication failed.");
+    if (!userData.user?.email) throw new Error("User email not found.");
     
     const userEmail = userData.user.email;
-    console.log('User email found:', userEmail);
 
-    // Get user profile to get the name
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('full_name')
       .eq('id', userId)
       .maybeSingle();
     
-    // Use the artist name override if provided, otherwise use profile name
     const artistName = artistNameOverride || profileData?.full_name || userEmail.split('@')[0];
     
-    // Check if artist record exists, create if not
     let { data: artistData, error: artistError } = await supabase
       .from('artists')
       .select('name')
       .eq('id', userId)
       .maybeSingle();
       
-    if (artistError) {
-      console.error("Error checking artist data:", artistError);
-      throw new Error("Failed to verify artist information.");
-    }
+    if (artistError) throw new Error("Failed to verify artist information.");
     
-    // Create artist record if it doesn't exist
     if (!artistData) {
-      console.log('Creating new artist record for user:', userId);
       const { data: newArtistData, error: createArtistError } = await supabase
         .from('artists')
-        .insert({
-          id: userId,
-          name: artistName,
-          email: userEmail
-        })
+        .insert({ id: userId, name: artistName, email: userEmail })
         .select('name')
         .single();
         
-      if (createArtistError) {
-        console.error("Error creating artist record:", createArtistError);
-        throw new Error("Failed to create artist profile.");
-      }
-      
+      if (createArtistError) throw new Error("Failed to create artist profile.");
       artistData = newArtistData;
     }
 
-    // Use the provided artist name for this release (can be different from account artist name)
     const releaseArtistName = artistNameOverride || artistData.name;
 
-    // Upload cover art if provided
     let coverArtUrl = null;
     if (coverArt) {
-      console.log('Uploading cover art...');
       onProgress?.({ step: 'cover', currentFile: coverArt.name });
-      
-      const folderPath = `${userId}`;
-      const coverArtFileName = `${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
-      const coverArtPath = `${folderPath}/${coverArtFileName}`;
-      
-      const { data: coverUploadData, error: coverUploadError } = await supabase.storage
+      const coverArtPath = `${userId}/${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
+      const { error: coverUploadError } = await supabase.storage
         .from('release_artwork')
-        .upload(coverArtPath, coverArt, {
-          cacheControl: '3600',
-          upsert: false
-        });
-        
-      if (coverUploadError) {
-        console.error("Error uploading cover art:", coverUploadError);
-        throw new Error(`Failed to upload cover art "${coverArt.name}": ${coverUploadError.message}`);
-      }
-      
-      // Get public URL for the uploaded cover art
-      const { data: publicUrlData } = supabase.storage
-        .from('release_artwork')
-        .getPublicUrl(coverArtPath);
-      
+        .upload(coverArtPath, coverArt, { cacheControl: '3600', upsert: false });
+      if (coverUploadError) throw new Error(`Failed to upload cover art: ${coverUploadError.message}`);
+      const { data: publicUrlData } = supabase.storage.from('release_artwork').getPublicUrl(coverArtPath);
       coverArtUrl = publicUrlData?.publicUrl;
-      console.log('Cover art uploaded successfully');
     }
     
-    // Upload audio files and store their URLs
-    let audioFilesUrls = [];
+    let audioFilesUrls: string[] = [];
     if (audioFiles && audioFiles.length > 0) {
-      console.log('Uploading audio files...');
       for (let i = 0; i < audioFiles.length; i++) {
         const audioFile = audioFiles[i];
-        onProgress?.({ 
-          step: 'audio', 
-          currentFile: audioFile.name,
-          currentIndex: i + 1,
-          totalFiles: audioFiles.length 
-        });
-        
-        const folderPath = `${userId}`;
-        // Use index and original filename to ensure uniqueness
-        const audioFileName = `${Date.now()}_${i}_${audioFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-        const audioPath = `${folderPath}/${audioFileName}`;
-        
-        const { data: audioUploadData, error: audioUploadError } = await supabase.storage
+        onProgress?.({ step: 'audio', currentFile: audioFile.name, currentIndex: i + 1, totalFiles: audioFiles.length });
+        const audioPath = `${userId}/${Date.now()}_${i}_${audioFile.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const { error: audioUploadError } = await supabase.storage
           .from('audio_files')
-          .upload(audioPath, audioFile, {
-            cacheControl: '3600',
-            upsert: false
-          });
-          
-        if (audioUploadError) {
-          console.error("Error uploading audio file:", audioUploadError);
-          throw new Error(`Failed to upload audio file "${audioFile.name}" (${i + 1}/${audioFiles.length}): ${audioUploadError.message}`);
-        }
-        
-        // Get public URL for the uploaded audio file
-        const { data: audioUrlData } = supabase.storage
-          .from('audio_files')
-          .getPublicUrl(audioPath);
-        
-        audioFilesUrls.push(audioUrlData?.publicUrl);
+          .upload(audioPath, audioFile, { cacheControl: '3600', upsert: false });
+        if (audioUploadError) throw new Error(`Failed to upload audio file "${audioFile.name}": ${audioUploadError.message}`);
+        const { data: audioUrlData } = supabase.storage.from('audio_files').getPublicUrl(audioPath);
+        audioFilesUrls.push(audioUrlData?.publicUrl || '');
       }
-      console.log('Audio files uploaded successfully');
     }
     
-    // Insert release record with all the collected data
-    console.log('Inserting release record...');
     onProgress?.({ step: 'saving' });
     
     const { data: insertedRelease, error: releaseError } = await supabase
@@ -334,7 +268,7 @@ export async function submitRelease(
       .insert({
         title: releaseFormData.title,
         artist_id: userId,
-        artist_name: releaseArtistName, // Store the display artist name on the release
+        artist_name: releaseArtistName,
         release_date: releaseFormData.release_date,
         release_type: releaseFormData.release_type,
         genre: releaseFormData.genre,
@@ -357,16 +291,9 @@ export async function submitRelease(
       .select()
       .single();
       
-    if (releaseError) {
-      console.error("Error inserting release:", releaseError);
-      throw new Error("Failed to submit release. Please try again.");
-    }
-    
-    console.log('Release inserted successfully:', insertedRelease.id);
+    if (releaseError) throw new Error("Failed to submit release.");
 
-    // Insert track records if provided
     if (tracksData && tracksData.length > 0) {
-      console.log('Inserting track records...');
       const trackRecords = tracksData.map((track, index) => ({
         release_id: insertedRelease.id,
         track_number: track.track_number || (index + 1),
@@ -377,27 +304,13 @@ export async function submitRelease(
         featured_artists: track.featured_artists || []
       }));
 
-      const { error: tracksError } = await supabase
-        .from('release_tracks')
-        .insert(trackRecords);
-
-      if (tracksError) {
-        console.error("Error inserting tracks:", tracksError);
-        // Don't fail the entire submission for track insertion issues
-        console.warn("Tracks insertion failed, continuing with release submission");
-      } else {
-        console.log('Tracks inserted successfully');
-      }
+      await supabase.from('release_tracks').insert(trackRecords);
     }
     
-    // Send confirmation email
     try {
-      console.log('Sending confirmation email...');
       await sendReleaseSubmissionEmail(userEmail, releaseFormData.title, releaseArtistName);
-      console.log('Confirmation email sent successfully');
     } catch (emailError) {
       console.error('Error sending confirmation email:', emailError);
-      // Don't fail the entire submission if email fails
     }
     
     toast.success("Release submitted successfully!");
@@ -411,54 +324,38 @@ export async function submitRelease(
   }
 }
 
-// Helper function to map database release status to UI status
 export function mapReleaseStatus(status: Database["public"]["Enums"]["release_status"] | string): 'pending' | 'approved' | 'rejected' | 'processing' | 'takedown' | 'takedownrequested' {
   switch(status) {
-    case 'Approved':
-      return 'approved';
-    case 'Rejected':
-      return 'rejected';
-    case 'Processing':
-      return 'processing';
-    case 'TakeDown':
-      return 'takedown';
-    case 'TakeDownRequested':
-      return 'takedownrequested';
+    case 'Approved': return 'approved';
+    case 'Rejected': return 'rejected';
+    case 'Processing': return 'processing';
+    case 'TakeDown': return 'takedown';
+    case 'TakeDownRequested': return 'takedownrequested';
     case 'Pending':
-    default:
-      return 'pending';
+    default: return 'pending';
   }
 }
 
-// Function to fetch a single release with streaming links and stats
 export async function fetchReleaseDetails(releaseId: string): Promise<Release | null> {
   try {
-    // Get release information
     const { data: releaseData, error: releaseError } = await supabase
       .from('releases')
       .select('*')
       .eq('id', releaseId)
       .single();
 
-    if (releaseError) {
-      throw releaseError;
-    }
+    if (releaseError) throw releaseError;
 
-    // Get artist information (as fallback if artist_name not set)
     const { data: artistData, error: artistError } = await supabase
       .from('artists')
       .select('name')
       .eq('id', releaseData.artist_id)
       .single();
 
-    if (artistError) {
-      throw artistError;
-    }
+    if (artistError) throw artistError;
 
-    // Get streaming links for this release
     const streamingLinks = await fetchStreamingLinks(releaseId);
     
-    // Get performance statistics for this release
     const { data: statsData, error: statsError } = await (supabase as any)
       .from('performance_statistics')
       .select('*')
@@ -468,16 +365,32 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
     
     const statistics = !statsError && statsData ? statsData : null;
 
-    // Get tracklist for this release
     const { data: trackData, error: tracksError } = await supabase
       .from('release_tracks')
-      .select('track_number, title, duration, isrc, explicit_content, featured_artists')
+      .select('id, track_number, title, duration, isrc, explicit_content, featured_artists')
       .eq('release_id', releaseId)
       .order('track_number', { ascending: true });
 
     const tracks = tracksError || !trackData ? [] : trackData;
+
+    // Fetch store selections
+    const { data: storeData } = await supabase
+      .from('release_store_selections')
+      .select('id, store_name, store_category, enabled, status')
+      .eq('release_id', releaseId);
+
+    // Fetch audio clips
+    const { data: clipData } = await supabase
+      .from('release_audio_clips')
+      .select('id, track_id, clip_start, clip_end, clip_type')
+      .eq('release_id', releaseId);
+
+    // Fetch free tracks
+    const { data: freeTrackData } = await supabase
+      .from('release_free_tracks')
+      .select('id, track_id')
+      .eq('release_id', releaseId);
     
-    // Use the stored artist_name on the release, fallback to account artist name
     const displayArtistName = releaseData.artist_name || artistData.name;
     
     return {
@@ -503,7 +416,16 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
       explicit_content: releaseData.explicit_content,
       submission_notes: releaseData.submission_notes,
       platforms: releaseData.platforms || [],
-      tracks: tracks
+      territory: releaseData.territory,
+      release_time: releaseData.release_time,
+      release_timezone: releaseData.release_timezone,
+      pre_order_enabled: releaseData.pre_order_enabled,
+      pre_order_previews: releaseData.pre_order_previews,
+      pricing: releaseData.pricing,
+      tracks: tracks,
+      storeSelections: storeData || [],
+      audioClips: clipData || [],
+      freeTracks: freeTrackData || [],
     };
   } catch (error) {
     console.error('Error fetching release details:', error);
