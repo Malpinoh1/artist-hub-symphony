@@ -21,7 +21,7 @@ interface ArtistAccount {
   artist_email: string | null;
 }
 
-const STEP_LABELS = ['Album Info', 'Tracks', 'Artwork', 'Distribution', 'Preview'];
+const STEP_LABELS = ['Album Info', 'Track Upload', 'Artwork', 'Distribution', 'Preview & Submit'];
 
 const ReleaseForm = () => {
   const navigate = useNavigate();
