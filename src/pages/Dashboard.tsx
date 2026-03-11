@@ -139,20 +139,13 @@ const DashboardContent = () => {
                   <Link to="/contact">Contact Support</Link>
                 </Button>
               </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
+    <div>
+      <section className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
