@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Globe, Clock, Music, Disc, DollarSign, Store, ExternalLink, Shield, Scissors, Download } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { toast } from 'sonner';
 import { Release, fetchReleaseDetails } from '../services/releaseService';
 import AnimatedCard from '../components/AnimatedCard';
