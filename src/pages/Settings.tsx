@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key, CreditCard, Calendar, CheckCircle, XCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import InviteNotifications from '../components/InviteNotifications';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
