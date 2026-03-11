@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet, Lock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
