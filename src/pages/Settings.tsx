@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { User, Settings as SettingsIcon, Shield, Bell, Palette, Key, CreditCard, Calendar, CheckCircle, XCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import InviteNotifications from '../components/InviteNotifications';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
@@ -356,27 +354,16 @@ const Settings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-600 dark:text-slate-400">Loading settings...</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="text-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading settings...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
+    <div>
+      <section className="container mx-auto px-4 py-8">
           <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-white mb-2">Settings</h1>
           <p className="text-slate-600 dark:text-slate-400 mb-8">Manage your account preferences and settings.</p>
 
@@ -633,7 +620,7 @@ const Settings = () => {
             <AdminTwoFactorReset />
           </section>
         )}
-      </main>
+      
       
       <TwoFactorSetup
         isOpen={show2FASetup}
@@ -642,7 +629,6 @@ const Settings = () => {
         onStatusChange={handle2FAStatusChange}
       />
       
-      <Footer />
     </div>
   );
 };

@@ -1,8 +1,6 @@
 
 import React from 'react';
 import { ArrowLeft, Users, Shield, Mail, CheckCircle, AlertCircle, UserPlus, Settings, Eye, Database, BarChart3, DollarSign } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,10 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const TeamGuide = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
+    <div>
         <section className="container mx-auto px-4 py-8 max-w-4xl">
           <div className="mb-8">
             <Button variant="ghost" className="mb-4" asChild>
@@ -345,9 +340,6 @@ const TeamGuide = () => {
             </Card>
           </AnimatedCard>
         </section>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

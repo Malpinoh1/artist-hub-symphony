@@ -8,8 +8,6 @@ import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
@@ -147,23 +145,11 @@ const EarningsContent = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <LoadingState />
-        </main>
-        <Footer />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Navbar />
-      
-      <main className="flex-grow pt-20 sm:pt-24 pb-12 sm:pb-16">
-        <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
+    <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
           <div className="mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl font-semibold dark:text-white">Earnings & Payments</h1>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
@@ -257,10 +243,6 @@ const EarningsContent = () => {
               </TabsContent>
             </Tabs>
           </div>
-        </div>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

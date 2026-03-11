@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Check } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -323,31 +321,25 @@ const ReleaseForm = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <AnimatedCard>
-            <div className="max-w-4xl mx-auto">
-              {currentStep <= 5 && (
-                <>
-                  <div className="mb-6">
-                    <h1 className="text-2xl sm:text-3xl font-bold mb-1">Submit New Release</h1>
-                    <p className="text-sm text-muted-foreground">Complete the steps below to submit your music for distribution.</p>
-                  </div>
-                  <WizardStepIndicator currentStep={currentStep} totalSteps={5} stepLabels={STEP_LABELS} />
-                </>
-              )}
-              <Card>
-                <CardContent className="p-4 sm:p-6 lg:p-8">
-                  {renderStep()}
-                </CardContent>
-              </Card>
-            </div>
-          </AnimatedCard>
+    <div className="container mx-auto px-4">
+      <AnimatedCard>
+        <div className="max-w-4xl mx-auto">
+          {currentStep <= 5 && (
+            <>
+              <div className="mb-6">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-1">Submit New Release</h1>
+                <p className="text-sm text-muted-foreground">Complete the steps below to submit your music for distribution.</p>
+              </div>
+              <WizardStepIndicator currentStep={currentStep} totalSteps={5} stepLabels={STEP_LABELS} />
+            </>
+          )}
+          <Card>
+            <CardContent className="p-4 sm:p-6 lg:p-8">
+              {renderStep()}
+            </CardContent>
+          </Card>
         </div>
-      </main>
-      <Footer />
+      </AnimatedCard>
     </div>
   );
 };

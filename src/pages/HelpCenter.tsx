@@ -1,17 +1,11 @@
 
 import React from 'react';
 import { Phone, Instagram, Mail, FileText, HelpCircle, MessageSquare } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 
 const HelpCenter = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="text-center mb-12">
               <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-4">Help Center</h1>
@@ -130,10 +124,6 @@ const HelpCenter = () => {
               </div>
             </AnimatedCard>
           </div>
-        </div>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

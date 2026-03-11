@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Plus, MessageSquare, Clock, CheckCircle, AlertCircle, Send, ArrowLeft } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -275,12 +273,9 @@ const Support = () => {
 
   if (selectedTicket) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4">
-            <AnimatedCard>
-              <div className="glass-panel p-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+      <div className="container mx-auto px-4">
+        <AnimatedCard>
+          <div className="glass-panel p-6 bg-card rounded-lg shadow-sm">
                 <Button
                   variant="ghost"
                   onClick={() => setSelectedTicket(null)}
@@ -348,20 +343,14 @@ const Support = () => {
                     </Button>
                   </div>
                 )}
-              </div>
-            </AnimatedCard>
           </div>
-        </main>
-        <Footer />
+        </AnimatedCard>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Navbar />
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -506,10 +495,7 @@ const Support = () => {
                 ))}
               </div>
             )}
-          </AnimatedCard>
-        </div>
-      </main>
-      <Footer />
+      </AnimatedCard>
     </div>
   );
 };

@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet, Lock } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
@@ -42,10 +40,7 @@ const DashboardContent = () => {
   useEffect(() => {
     if (authLoading || permissionsLoading) return;
     
-    if (!user) {
-      window.location.href = '/auth';
-      return;
-    }
+    if (!user) return;
     
     // Use effective account ID (respects team context)
     const effectiveAccountId = getEffectiveAccountId() || user.id;
@@ -111,31 +106,19 @@ const DashboardContent = () => {
 
   if (loading || permissionsLoading || authLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading your dashboard...</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="text-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading your dashboard...</p>
       </div>
     );
   }
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-10 h-10 text-muted-foreground" />
-              </div>
+      <div className="text-center py-20">
+        <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+          <Lock className="w-10 h-10 text-muted-foreground" />
+        </div>
               <h1 className="text-2xl font-bold text-foreground mb-4">
                 {!hasSubscription ? 'Subscription Required' : 'Access Denied'}
               </h1>
@@ -153,20 +136,13 @@ const DashboardContent = () => {
                   <Link to="/contact">Contact Support</Link>
                 </Button>
               </div>
-            </div>
-          </div>
-        </main>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
+    <div>
+      <section className="container mx-auto px-4 py-8 max-w-6xl">
           <div className="mb-8">
             <div className="flex items-center justify-between">
               <div>
@@ -360,9 +336,6 @@ const DashboardContent = () => {
             </AnimatedCard>
           </div>
         </section>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

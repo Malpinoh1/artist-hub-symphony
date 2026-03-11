@@ -2,8 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, MapPin, Globe, Clock, Music, Disc, DollarSign, Store, ExternalLink, Shield, Scissors, Download } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { toast } from 'sonner';
 import { Release, fetchReleaseDetails } from '../services/releaseService';
 import AnimatedCard from '../components/AnimatedCard';
@@ -132,10 +130,7 @@ const ReleaseDetails = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4 max-w-5xl">
+    <div className="container mx-auto px-4 max-w-5xl">
           {/* Back button */}
           <div className="mb-6">
             <Link to="/releases" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
@@ -502,9 +497,6 @@ const ReleaseDetails = () => {
               </Button>
             </Card>
           )}
-        </div>
-      </main>
-      <Footer />
     </div>
   );
 };
