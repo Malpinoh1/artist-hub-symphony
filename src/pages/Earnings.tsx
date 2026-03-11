@@ -149,11 +149,7 @@ const EarningsContent = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Navbar />
-      
-      <main className="flex-grow pt-20 sm:pt-24 pb-12 sm:pb-16">
-        <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
+    <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
           <div className="mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl font-semibold dark:text-white">Earnings & Payments</h1>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
