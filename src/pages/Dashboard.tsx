@@ -40,10 +40,7 @@ const DashboardContent = () => {
   useEffect(() => {
     if (authLoading || permissionsLoading) return;
     
-    if (!user) {
-      window.location.href = '/auth';
-      return;
-    }
+    if (!user) return;
     
     // Use effective account ID (respects team context)
     const effectiveAccountId = getEffectiveAccountId() || user.id;
