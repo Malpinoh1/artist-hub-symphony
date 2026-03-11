@@ -109,17 +109,9 @@ const DashboardContent = () => {
 
   if (loading || permissionsLoading || authLoading) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading your dashboard...</p>
-            </div>
-          </div>
-        </main>
-        <Footer />
+      <div className="text-center py-20">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading your dashboard...</p>
       </div>
     );
   }
