@@ -1,8 +1,6 @@
 
 import React from 'react';
 import { ArrowLeft, Users, Shield, Mail, CheckCircle, AlertCircle, UserPlus, Settings, Eye, Database, BarChart3, DollarSign } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
