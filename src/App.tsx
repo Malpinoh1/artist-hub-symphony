@@ -7,6 +7,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccountProvider } from "./contexts/AccountContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PublicRoute from "./components/PublicRoute";
+import DashboardLayout from "./components/DashboardLayout";
 import FloatingTeamSwitcher from "./components/FloatingTeamSwitcher";
 import MobileBottomNav from "./components/MobileBottomNav";
 import Index from "./pages/Index";
@@ -44,28 +47,25 @@ import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
-// Inner component that uses auth context
+// Wrapper for dashboard pages
+const DashboardPage = ({ children }: { children: React.ReactNode }) => (
+  <ProtectedRoute>
+    <DashboardLayout>{children}</DashboardLayout>
+  </ProtectedRoute>
+);
+
 const AppContent = () => {
   const { user } = useAuth();
 
   return (
     <>
       <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/auth" element={<Auth />} />
+        {/* Public routes — redirect to dashboard if logged in */}
+        <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
+        <Route path="/auth" element={<PublicRoute><Auth /></PublicRoute>} />
+
+        {/* Public marketing pages — always accessible */}
         <Route path="/pricing" element={<Pricing />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/releases" element={<Releases />} />
-        <Route path="/releases/:id" element={<ReleaseDetails />} />
-        <Route path="/release-form" element={<ReleaseForm />} />
-        <Route path="/analytics" element={<Analytics />} />
-        <Route path="/earnings" element={<Earnings />} />
-        <Route path="/settings" element={<Settings />} />
-        <Route path="/help" element={<HelpCenter />} />
-        <Route path="/team" element={<Team />} />
-        <Route path="/team/guide" element={<TeamGuide />} />
-        <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
-        <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/about" element={<About />} />
         <Route path="/services" element={<Services />} />
         <Route path="/resources" element={<Resources />} />
@@ -81,11 +81,26 @@ const AppContent = () => {
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
-        <Route path="/support" element={<Support />} />
+
+        {/* Protected dashboard routes — wrapped in DashboardLayout */}
+        <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />
+        <Route path="/releases" element={<DashboardPage><Releases /></DashboardPage>} />
+        <Route path="/releases/:id" element={<DashboardPage><ReleaseDetails /></DashboardPage>} />
+        <Route path="/release-form" element={<DashboardPage><ReleaseForm /></DashboardPage>} />
+        <Route path="/analytics" element={<DashboardPage><Analytics /></DashboardPage>} />
+        <Route path="/earnings" element={<DashboardPage><Earnings /></DashboardPage>} />
+        <Route path="/settings" element={<DashboardPage><Settings /></DashboardPage>} />
+        <Route path="/help" element={<DashboardPage><HelpCenter /></DashboardPage>} />
+        <Route path="/team" element={<DashboardPage><Team /></DashboardPage>} />
+        <Route path="/team/guide" element={<DashboardPage><TeamGuide /></DashboardPage>} />
+        <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
+        <Route path="/support" element={<DashboardPage><Support /></DashboardPage>} />
+        <Route path="/admin" element={<DashboardPage><AdminDashboard /></DashboardPage>} />
+
         <Route path="*" element={<NotFound />} />
       </Routes>
-      
-      {user && <FloatingTeamSwitcher currentUserId={user.id} />}
+
+      {/* Bottom nav only for mobile dashboard */}
       <MobileBottomNav />
     </>
   );
