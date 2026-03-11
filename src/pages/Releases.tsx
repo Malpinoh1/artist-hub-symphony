@@ -2,8 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Music } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import ReleaseCard from '../components/ReleaseCard';
 import { Button } from '@/components/ui/button';
