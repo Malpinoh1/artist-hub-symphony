@@ -8,8 +8,6 @@ import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
