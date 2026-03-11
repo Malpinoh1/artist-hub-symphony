@@ -130,10 +130,7 @@ const ReleaseDetails = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <Navbar />
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4 max-w-5xl">
+    <div className="container mx-auto px-4 max-w-5xl">
           {/* Back button */}
           <div className="mb-6">
             <Link to="/releases" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground transition-colors">
