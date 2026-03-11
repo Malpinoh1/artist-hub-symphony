@@ -340,9 +340,6 @@ const TeamGuide = () => {
             </Card>
           </AnimatedCard>
         </section>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

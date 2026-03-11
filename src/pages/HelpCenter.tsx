@@ -124,10 +124,6 @@ const HelpCenter = () => {
               </div>
             </AnimatedCard>
           </div>
-        </div>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

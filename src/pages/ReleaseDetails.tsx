@@ -497,9 +497,6 @@ const ReleaseDetails = () => {
               </Button>
             </Card>
           )}
-        </div>
-      </main>
-      <Footer />
     </div>
   );
 };

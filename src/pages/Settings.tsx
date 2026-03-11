@@ -629,7 +629,6 @@ const Settings = () => {
         onStatusChange={handle2FAStatusChange}
       />
       
-      <Footer />
     </div>
   );
 };

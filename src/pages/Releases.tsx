@@ -114,10 +114,7 @@ const ReleasesContent = () => {
               ))}
             </div>
           )}
-        </section>
-      </main>
-      
-      <Footer />
+      </section>
     </div>
   );
 };

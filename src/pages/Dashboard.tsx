@@ -339,9 +339,6 @@ const DashboardContent = () => {
             </AnimatedCard>
           </div>
         </section>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

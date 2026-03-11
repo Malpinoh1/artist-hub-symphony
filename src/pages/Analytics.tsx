@@ -334,10 +334,7 @@ const AnalyticsContent = () => {
               </AnimatedCard>
             </>
           )}
-        </section>
-      </main>
-      
-      <Footer />
+      </section>
     </div>
   );
 };

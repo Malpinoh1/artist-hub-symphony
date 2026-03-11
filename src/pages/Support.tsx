@@ -495,10 +495,7 @@ const Support = () => {
                 ))}
               </div>
             )}
-          </AnimatedCard>
-        </div>
-      </main>
-      <Footer />
+      </AnimatedCard>
     </div>
   );
 };

@@ -259,10 +259,6 @@ const AdminDashboard = () => {
               {renderActiveTabContent()}
             </div>
           </AnimatedCard>
-        </div>
-      </main>
-      
-      <Footer />
     </div>
   );
 };

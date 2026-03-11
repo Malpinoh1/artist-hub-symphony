@@ -243,10 +243,6 @@ const EarningsContent = () => {
               </TabsContent>
             </Tabs>
           </div>
-        </div>
-      </main>
-      
-      <Footer />
     </div>
   );
 };
