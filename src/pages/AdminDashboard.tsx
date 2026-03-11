@@ -216,11 +216,7 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4">
           <AnimatedCard>
             <div className="mb-6">
               <h1 className="text-3xl font-display font-bold text-black">Admin Dashboard</h1>
