@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, UserPlus, Mail, Shield, MoreHorizontal, Trash2, Edit3, AlertCircle, Copy, ExternalLink, CheckCircle, Link2, Lock, Building2, Loader2, Send } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
