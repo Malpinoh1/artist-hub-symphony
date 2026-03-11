@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 import { toast } from 'sonner';
 import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
