@@ -1,8 +1,6 @@
 
 import React from 'react';
 import { Phone, Instagram, Mail, FileText, HelpCircle, MessageSquare } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
 import AnimatedCard from '../components/AnimatedCard';
 
 const HelpCenter = () => {
