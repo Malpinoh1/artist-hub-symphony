@@ -273,12 +273,9 @@ const Support = () => {
 
   if (selectedTicket) {
     return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4">
-            <AnimatedCard>
-              <div className="glass-panel p-6 bg-white dark:bg-slate-800 rounded-lg shadow-sm">
+      <div className="container mx-auto px-4">
+        <AnimatedCard>
+          <div className="glass-panel p-6 bg-card rounded-lg shadow-sm">
                 <Button
                   variant="ghost"
                   onClick={() => setSelectedTicket(null)}
