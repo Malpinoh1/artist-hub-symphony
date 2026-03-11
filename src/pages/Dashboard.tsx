@@ -118,14 +118,10 @@ const DashboardContent = () => {
 
   if (!hasAccess) {
     return (
-      <div className="min-h-screen flex flex-col bg-gradient-to-br from-background via-muted/20 to-background">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <div className="container mx-auto px-4 py-8">
-            <div className="text-center py-20">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
-                <Lock className="w-10 h-10 text-muted-foreground" />
-              </div>
+      <div className="text-center py-20">
+        <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
+          <Lock className="w-10 h-10 text-muted-foreground" />
+        </div>
               <h1 className="text-2xl font-bold text-foreground mb-4">
                 {!hasSubscription ? 'Subscription Required' : 'Access Denied'}
               </h1>
