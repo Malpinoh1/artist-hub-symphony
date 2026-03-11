@@ -145,15 +145,7 @@ const EarningsContent = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-        <Navbar />
-        <main className="flex-grow pt-24 pb-16">
-          <LoadingState />
-        </main>
-        <Footer />
-      </div>
-    );
+    return <LoadingState />;
   }
 
   return (
