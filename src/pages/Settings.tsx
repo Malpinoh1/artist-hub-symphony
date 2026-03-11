@@ -620,7 +620,7 @@ const Settings = () => {
             <AdminTwoFactorReset />
           </section>
         )}
-      </main>
+      
       
       <TwoFactorSetup
         isOpen={show2FASetup}
