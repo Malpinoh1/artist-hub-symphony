@@ -362,11 +362,8 @@ const Settings = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <section className="container mx-auto px-4 py-8">
+    <div>
+      <section className="container mx-auto px-4 py-8">
           <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-white mb-2">Settings</h1>
           <p className="text-slate-600 dark:text-slate-400 mb-8">Manage your account preferences and settings.</p>
 
