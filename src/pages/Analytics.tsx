@@ -7,6 +7,7 @@ import { fetchPlatformAnalytics } from '../services/statisticsService';
 import { Button } from '@/components/ui/button';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import { useAuth } from '../contexts/AuthContext';
 import SubscriptionGate from '../components/SubscriptionGate';
 
 // Define interface for platform analytics data
@@ -35,6 +36,7 @@ interface TrackData {
 
 const AnalyticsContent = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { getEffectiveAccountId, isWebsiteAdmin } = useTeamPermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -125,23 +127,21 @@ const AnalyticsContent = () => {
     try {
       setLoading(true);
       
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
+      // Use auth context user instead of redundant getSession call
+      if (!user) {
         console.log("No user logged in");
         setLoading(false);
         return;
       }
 
       // Use effective account ID (respects team context)
-      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
+      const effectiveAccountId = getEffectiveAccountId() || user.id;
       
       // Get user's profile information
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', session.user.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (profileData) {
