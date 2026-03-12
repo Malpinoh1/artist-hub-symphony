@@ -7,6 +7,7 @@ import { fetchPlatformAnalytics } from '../services/statisticsService';
 import { Button } from '@/components/ui/button';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import { useAuth } from '../contexts/AuthContext';
 import SubscriptionGate from '../components/SubscriptionGate';
 
 // Define interface for platform analytics data
