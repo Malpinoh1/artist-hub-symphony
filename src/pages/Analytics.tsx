@@ -36,6 +36,7 @@ interface TrackData {
 
 const AnalyticsContent = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { getEffectiveAccountId, isWebsiteAdmin } = useTeamPermissions();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
