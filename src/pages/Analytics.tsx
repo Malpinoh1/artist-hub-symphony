@@ -125,10 +125,8 @@ const AnalyticsContent = () => {
     try {
       setLoading(true);
       
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
+      // Use auth context user instead of redundant getSession call
+      if (!user) {
         console.log("No user logged in");
         setLoading(false);
         return;

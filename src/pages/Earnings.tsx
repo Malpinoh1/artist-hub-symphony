@@ -2,137 +2,36 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bookmark, Calendar, FileText, RefreshCw } from 'lucide-react';
+import { Bookmark, Calendar, FileText } from 'lucide-react';
 import StatsCards from '../components/earnings/StatsCards';
 import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
-import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
+import { useAuth } from '../contexts/AuthContext';
+import { useEarningsData } from '../hooks/useEarningsData';
+import { useUserProfile } from '../hooks/useUserProfile';
 import SubscriptionGate from '../components/SubscriptionGate';
-
-// Define types to avoid circular dependencies
-export interface EarningsSummary {
-  totalEarnings: number;
-  availableBalance: number;
-  pendingEarnings: number;
-  creditBalance: number;
-  recentEarnings: any[];
-  withdrawals: any[];
-}
 
 const EarningsContent = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { getEffectiveAccountId, canManage, isWebsiteAdmin } = useTeamPermissions();
   const [activeTab, setActiveTab] = useState("overview");
-  const [isLoading, setIsLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<any>(null);
-  const [artistData, setArtistData] = useState<any>(null);
-  const [earningsSummary, setEarningsSummary] = useState<EarningsSummary>({
-     totalEarnings: 0,
-     availableBalance: 0,
-     pendingEarnings: 0,
-     creditBalance: 0,
-     recentEarnings: [],
-     withdrawals: []
-   });
 
-  useEffect(() => {
-    fetchEarningsData();
-  }, []);
+  const effectiveAccountId = getEffectiveAccountId() || user?.id;
+  const { data: userProfile } = useUserProfile(user?.id);
+  const { data: earningsSummary, isLoading, refetch } = useEarningsData(effectiveAccountId);
 
-  const fetchEarningsData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Get current user
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session?.user) {
-        console.log("No user logged in");
-        setIsLoading(false);
-        return;
-      }
-
-      // Use effective account ID (respects team context)
-      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
-      
-      // Get user's profile information
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .maybeSingle();
-
-      if (profileData) {
-        setUserProfile(profileData);
-      }
-
-      // Get artist data using effective account ID
-      const { data: artistInfo } = await supabase
-        .from('artists')
-        .select('*')
-        .eq('id', effectiveAccountId)
-        .maybeSingle();
-
-      if (artistInfo) {
-        setArtistData(artistInfo);
-        
-        // Get earnings data
-        const { data: earningsData } = await supabase
-          .from('earnings')
-          .select('*')
-          .eq('artist_id', artistInfo.id)
-          .order('date', { ascending: false });
-
-        // Get withdrawals data
-        const { data: withdrawalsData } = await supabase
-          .from('withdrawals')
-          .select('*')
-          .eq('artist_id', artistInfo.id)
-          .order('created_at', { ascending: false });
-
-        // Calculate earnings summary
-        const totalEarnings = artistInfo.total_earnings || 0;
-        const availableBalance = artistInfo.available_balance || 0;
-        const creditBalance = (artistInfo as any).credit_balance || 0;
-        const pendingEarnings = earningsData?.filter(e => e.status === 'Pending')?.reduce((sum, e) => sum + Number(e.amount), 0) || 0;
-
-        setEarningsSummary({
-          totalEarnings,
-          availableBalance,
-          pendingEarnings,
-          creditBalance,
-          recentEarnings: earningsData || [],
-          withdrawals: withdrawalsData || []
-        });
-      } else {
-        setEarningsSummary({
-          totalEarnings: 0,
-          availableBalance: 0,
-          pendingEarnings: 0,
-          creditBalance: 0,
-          recentEarnings: [],
-          withdrawals: []
-        });
-      }
-
-      setIsLoading(false);
-    } catch (error) {
-      console.error("Error loading earnings data:", error);
-      toast({
-        title: "Failed to load earnings",
-        description: "There was an error fetching earnings data.",
-        variant: "destructive"
-      });
-      setIsLoading(false);
-    }
-  };
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
+  const summary = earningsSummary || {
+    totalEarnings: 0,
+    availableBalance: 0,
+    pendingEarnings: 0,
+    creditBalance: 0,
+    recentEarnings: [],
+    withdrawals: [],
   };
 
   const handleWithdrawalSuccess = () => {
@@ -140,8 +39,7 @@ const EarningsContent = () => {
       title: "Withdrawal requested",
       description: "Your withdrawal request has been submitted successfully."
     });
-    // Refresh earnings data
-    fetchEarningsData();
+    refetch();
   };
 
   if (isLoading) {
@@ -157,15 +55,15 @@ const EarningsContent = () => {
 
           <StatsCards 
             stats={{
-              totalEarnings: earningsSummary.totalEarnings,
-              availableBalance: earningsSummary.availableBalance,
-              pendingEarnings: earningsSummary.pendingEarnings,
-              creditBalance: earningsSummary.creditBalance
+              totalEarnings: summary.totalEarnings,
+              availableBalance: summary.availableBalance,
+              pendingEarnings: summary.pendingEarnings,
+              creditBalance: summary.creditBalance
             }}
           />
 
           <div className="mt-8">
-            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="mb-6 sm:mb-8 flex-wrap h-auto gap-1">
                 <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                   <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -191,17 +89,17 @@ const EarningsContent = () => {
                   <Card className="p-4 sm:p-6">
                     <h2 className="text-base sm:text-lg font-medium mb-4 dark:text-white">Recent Earnings</h2>
                     <ActivityPanel 
-                      earnings={earningsSummary.recentEarnings} 
+                      earnings={summary.recentEarnings} 
                       withdrawals={[]}
-                      artistId={artistData?.id}
+                      artistId={effectiveAccountId}
                     />
                   </Card>
                   <Card className="p-4 sm:p-6">
                     <h2 className="text-base sm:text-lg font-medium mb-4 dark:text-white">Recent Withdrawals</h2>
                     <ActivityPanel 
                       earnings={[]}
-                      withdrawals={earningsSummary.withdrawals} 
-                      artistId={artistData?.id}
+                      withdrawals={summary.withdrawals} 
+                      artistId={effectiveAccountId}
                     />
                   </Card>
                 </div>
@@ -210,17 +108,17 @@ const EarningsContent = () => {
               <TabsContent value="activity">
                 <Card className="p-4 sm:p-6">
                   <ActivityPanel 
-                    earnings={earningsSummary.recentEarnings}
-                    withdrawals={earningsSummary.withdrawals}
-                    artistId={artistData?.id}
+                    earnings={summary.recentEarnings}
+                    withdrawals={summary.withdrawals}
+                    artistId={effectiveAccountId}
                     showActivityLog={true}
                   />
                 </Card>
               </TabsContent>
 
               <TabsContent value="statements">
-                {artistData?.id ? (
-                  <RoyaltyStatementsSection artistId={artistData.id} />
+                {effectiveAccountId ? (
+                  <RoyaltyStatementsSection artistId={effectiveAccountId} />
                 ) : (
                   <Card>
                     <CardContent className="p-8 text-center">
@@ -234,10 +132,10 @@ const EarningsContent = () => {
 
               <TabsContent value="withdraw">
                 <WithdrawalPanel 
-                  availableBalance={earningsSummary.availableBalance}
-                  creditBalance={earningsSummary.creditBalance}
-                  userId={userProfile?.id || ""}
-                  artistId={artistData?.id || ""}
+                  availableBalance={summary.availableBalance}
+                  creditBalance={summary.creditBalance}
+                  userId={user?.id || ""}
+                  artistId={effectiveAccountId || ""}
                   onSuccess={handleWithdrawalSuccess}
                 />
               </TabsContent>
@@ -247,7 +145,6 @@ const EarningsContent = () => {
   );
 };
 
-// Wrap with subscription gate
 const Earnings = () => {
   return (
     <SubscriptionGate fallbackMessage="You need an active subscription to access earnings.">

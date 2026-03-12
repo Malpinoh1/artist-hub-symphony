@@ -50,59 +50,70 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
       const storedAccountId = localStorage.getItem('currentAccountId');
       const accountId = storedAccountId || authUser.id;
       setCurrentAccountId(accountId);
-      fetchTeamAccounts(authUser.id);
+      // Defer to break synchronous chain per auth-rate-limiting-prevention
+      setTimeout(() => fetchTeamAccounts(authUser.id), 0);
     } else {
       setCurrentUser(null);
       setCurrentAccountId(null);
       setTeamAccounts([]);
       localStorage.removeItem('currentAccountId');
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, [authUser, authLoading]);
 
   const fetchTeamAccounts = async (userId: string) => {
     try {
-      // Get all accounts user has access to
       const { data, error } = await supabase
         .from('account_access')
-        .select(`
-          account_owner_id,
-          role
-        `)
+        .select('account_owner_id, role')
         .eq('user_id', userId);
 
       if (error) {
         console.error('Error fetching team accounts:', error);
+        setIsLoading(false);
         return;
       }
 
-      // Get account owner details separately
-      const accounts: TeamAccount[] = [];
-      
-      if (data) {
-        for (const access of data) {
-          const { data: artistData, error: artistError } = await supabase
-            .from('artists')
-            .select('name, email')
-            .eq('id', access.account_owner_id)
-            .maybeSingle();
+      if (!data || data.length === 0) {
+        setTeamAccounts([]);
+        setIsLoading(false);
+        return;
+      }
 
-          if (artistError) {
-            console.error('Error fetching artist data:', artistError);
-          }
+      // Batch fetch all artist data in a single query instead of N+1
+      const ownerIds = data.map(a => a.account_owner_id);
+      const { data: artistsData, error: artistsError } = await supabase
+        .from('artists')
+        .select('id, name, email')
+        .in('id', ownerIds);
 
-          accounts.push({
-            account_owner_id: access.account_owner_id,
-            role: access.role,
-            owner_name: artistData?.name || 'Unknown',
-            owner_email: artistData?.email || 'unknown@example.com'
-          });
+      if (artistsError) {
+        console.error('Error fetching artists batch:', artistsError);
+      }
+
+      // Build a lookup map
+      const artistMap = new Map<string, { name: string; email: string }>();
+      if (artistsData) {
+        for (const a of artistsData) {
+          artistMap.set(a.id, { name: a.name, email: a.email });
         }
       }
+
+      const accounts: TeamAccount[] = data.map(access => {
+        const artist = artistMap.get(access.account_owner_id);
+        return {
+          account_owner_id: access.account_owner_id,
+          role: access.role,
+          owner_name: artist?.name || 'Unknown',
+          owner_email: artist?.email || 'unknown@example.com',
+        };
+      });
 
       setTeamAccounts(accounts);
     } catch (error) {
       console.error('Error fetching team accounts:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -120,7 +131,6 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
       description: `Now viewing ${accountName}`
     });
 
-    // Refresh page to update all data contexts
     window.location.reload();
   };
 
@@ -131,7 +141,6 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
   };
 
   const refreshCurrentAccount = () => {
-    // Force refresh of current account data
     window.location.reload();
   };
 

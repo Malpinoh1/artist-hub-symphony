@@ -10,42 +10,59 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import DashboardLayout from "./components/DashboardLayout";
-import FloatingTeamSwitcher from "./components/FloatingTeamSwitcher";
 import MobileBottomNav from "./components/MobileBottomNav";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Pricing from "./pages/Pricing";
-import Dashboard from "./pages/Dashboard";
-import Releases from "./pages/Releases";
-import Analytics from "./pages/Analytics";
-import HelpCenter from "./pages/HelpCenter";
-import Team from "./pages/Team";
-import TeamGuide from "./pages/TeamGuide";
-import AcceptInvitation from "./pages/AcceptInvitation";
-import ReleaseDetails from "./pages/ReleaseDetails";
-import ReleaseForm from "./pages/ReleaseForm";
-import Earnings from "./pages/Earnings";
-import Settings from "./pages/Settings";
-import AdminDashboard from "./pages/AdminDashboard";
-import About from "./pages/About";
-import Services from "./pages/Services";
-import Resources from "./pages/Resources";
-import Blog from "./pages/Blog";
-import Contact from "./pages/Contact";
-import FAQ from "./pages/FAQ";
-import Partners from "./pages/Partners";
-import TermsOfService from "./pages/TermsOfService";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import Cookies from "./pages/Cookies";
-import Copyright from "./pages/Copyright";
-import NotFound from "./pages/NotFound";
-import ConfirmSubscription from "./pages/ConfirmSubscription";
-import PasswordReset from "./pages/PasswordReset";
-import ResetPassword from "./pages/ResetPassword";
-import MarketingGuide from "./pages/resources/MarketingGuide";
-import Support from "./pages/Support";
+import React, { Suspense } from "react";
 
-const queryClient = new QueryClient();
+// Lazy-loaded pages
+const Index = React.lazy(() => import("./pages/Index"));
+const Auth = React.lazy(() => import("./pages/Auth"));
+const Pricing = React.lazy(() => import("./pages/Pricing"));
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Releases = React.lazy(() => import("./pages/Releases"));
+const Analytics = React.lazy(() => import("./pages/Analytics"));
+const HelpCenter = React.lazy(() => import("./pages/HelpCenter"));
+const Team = React.lazy(() => import("./pages/Team"));
+const TeamGuide = React.lazy(() => import("./pages/TeamGuide"));
+const AcceptInvitation = React.lazy(() => import("./pages/AcceptInvitation"));
+const ReleaseDetails = React.lazy(() => import("./pages/ReleaseDetails"));
+const ReleaseForm = React.lazy(() => import("./pages/ReleaseForm"));
+const Earnings = React.lazy(() => import("./pages/Earnings"));
+const Settings = React.lazy(() => import("./pages/Settings"));
+const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
+const About = React.lazy(() => import("./pages/About"));
+const Services = React.lazy(() => import("./pages/Services"));
+const Resources = React.lazy(() => import("./pages/Resources"));
+const Blog = React.lazy(() => import("./pages/Blog"));
+const Contact = React.lazy(() => import("./pages/Contact"));
+const FAQ = React.lazy(() => import("./pages/FAQ"));
+const Partners = React.lazy(() => import("./pages/Partners"));
+const TermsOfService = React.lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
+const Cookies = React.lazy(() => import("./pages/Cookies"));
+const Copyright = React.lazy(() => import("./pages/Copyright"));
+const NotFound = React.lazy(() => import("./pages/NotFound"));
+const ConfirmSubscription = React.lazy(() => import("./pages/ConfirmSubscription"));
+const PasswordReset = React.lazy(() => import("./pages/PasswordReset"));
+const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
+const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide"));
+const Support = React.lazy(() => import("./pages/Support"));
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-[60vh]">
+    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
+  </div>
+);
 
 // Wrapper for dashboard pages
 const DashboardPage = ({ children }: { children: React.ReactNode }) => (
@@ -58,7 +75,7 @@ const AppContent = () => {
   const { user } = useAuth();
 
   return (
-    <>
+    <Suspense fallback={<PageLoader />}>
       <Routes>
         {/* Public routes — redirect to dashboard if logged in */}
         <Route path="/" element={<PublicRoute><Index /></PublicRoute>} />
@@ -102,7 +119,7 @@ const AppContent = () => {
 
       {/* Bottom nav only for mobile dashboard */}
       <MobileBottomNav />
-    </>
+    </Suspense>
   );
 };
 

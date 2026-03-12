@@ -1,55 +1,25 @@
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Music } from 'lucide-react';
 import AnimatedCard from '../components/AnimatedCard';
 import ReleaseCard from '../components/ReleaseCard';
 import { Button } from '@/components/ui/button';
-import { supabase } from '../integrations/supabase/client';
-import { fetchUserReleases, Release } from '../services/releaseService';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from '../contexts/AuthContext';
+import { useReleasesData } from '../hooks/useReleasesData';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import SubscriptionGate from '../components/SubscriptionGate';
 
 const ReleasesContent = () => {
+  const { user } = useAuth();
   const { getEffectiveAccountId, canManage, isLoading: permissionsLoading } = useTeamPermissions();
-  const [releases, setReleases] = useState<Release[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [user, setUser] = useState<any>(null);
 
-  useEffect(() => {
-    if (permissionsLoading) return;
-    checkAuthAndFetchReleases();
-  }, [permissionsLoading]);
+  const effectiveAccountId = getEffectiveAccountId() || user?.id;
+  const { data: releases = [], isLoading: releasesLoading, refetch } = useReleasesData(effectiveAccountId);
 
-  const checkAuthAndFetchReleases = async () => {
-    try {
-      const { data: { session }, error } = await supabase.auth.getSession();
-      if (error) throw error;
-      
-      if (!session) {
-        window.location.href = '/auth';
-        return;
-      }
-      
-      setUser(session.user);
-      // Use effective account ID (respects team context)
-      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
-      const userReleases = await fetchUserReleases(effectiveAccountId);
-      setReleases(userReleases);
-    } catch (error) {
-      console.error('Error fetching releases:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load releases",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const loading = releasesLoading || permissionsLoading;
 
-  if (loading || permissionsLoading) {
+  if (loading) {
     return (
       <div className="text-center py-20">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
@@ -70,7 +40,6 @@ const ReleasesContent = () => {
                 Manage and track all your music releases
               </p>
             </div>
-            {/* Only show New Release button if user has manager permissions */}
             {canManage && (
               <Button asChild className="gap-2">
                 <Link to="/new-release">  
@@ -108,7 +77,7 @@ const ReleasesContent = () => {
                 <AnimatedCard key={release.id} delay={index * 100}>
                   <ReleaseCard 
                     release={release}
-                    onUpdate={checkAuthAndFetchReleases}
+                    onUpdate={() => refetch()}
                   />
                 </AnimatedCard>
               ))}
@@ -119,7 +88,6 @@ const ReleasesContent = () => {
   );
 };
 
-// Wrap with subscription gate
 const Releases = () => {
   return (
     <SubscriptionGate fallbackMessage="You need an active subscription to view releases.">
