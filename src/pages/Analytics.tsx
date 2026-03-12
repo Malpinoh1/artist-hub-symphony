@@ -135,13 +135,13 @@ const AnalyticsContent = () => {
       }
 
       // Use effective account ID (respects team context)
-      const effectiveAccountId = getEffectiveAccountId() || session.user.id;
+      const effectiveAccountId = getEffectiveAccountId() || user.id;
       
       // Get user's profile information
       const { data: profileData } = await supabase
         .from('profiles')
         .select('full_name')
-        .eq('id', session.user.id)
+        .eq('user_id', user.id)
         .maybeSingle();
 
       if (profileData) {
