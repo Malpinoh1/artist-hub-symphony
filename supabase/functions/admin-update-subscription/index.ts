@@ -47,14 +47,66 @@ serve(async (req) => {
     logStep("Admin access verified");
 
     const body = await req.json();
-    const { target_user_email, subscribed, subscription_tier, subscription_end } = body;
+    const { target_user_email, subscribed, subscription_tier, subscription_end, action } = body;
 
     if (!target_user_email) {
       throw new Error("target_user_email is required");
     }
 
-    logStep("Updating subscription", { target_user_email, subscribed, subscription_tier, subscription_end });
+    logStep("Processing subscription", { target_user_email, action: action || 'upsert' });
 
+    // Handle "remove" action — delete the subscriber record entirely
+    if (action === 'remove') {
+      const { error: deleteError } = await supabaseClient
+        .from("subscribers")
+        .delete()
+        .eq("email", target_user_email);
+
+      if (deleteError) {
+        logStep("Error deleting subscription", { error: deleteError });
+        throw deleteError;
+      }
+
+      logStep("Subscription removed successfully", { target_user_email });
+      return new Response(JSON.stringify({
+        success: true,
+        message: `Subscription removed for ${target_user_email}`
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Handle "deactivate" action — set subscribed=false, clear tier/end
+    if (action === 'deactivate') {
+      const { data: deactivated, error: deactivateError } = await supabaseClient
+        .from("subscribers")
+        .update({
+          subscribed: false,
+          subscription_tier: null,
+          subscription_end: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("email", target_user_email)
+        .select()
+        .single();
+
+      if (deactivateError) {
+        logStep("Error deactivating subscription", { error: deactivateError });
+        throw deactivateError;
+      }
+
+      logStep("Subscription deactivated successfully", { deactivated });
+      return new Response(JSON.stringify({
+        success: true,
+        subscription: deactivated
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
+    // Default: upsert (activate/edit)
     const { data: targetUser } = await supabaseClient.auth.admin.getUserByEmail(target_user_email);
     if (!targetUser.user) {
       throw new Error("Target user not found");
@@ -91,7 +143,6 @@ serve(async (req) => {
     // Send email notification if subscription was just activated or renewed
     if (isNowSubscribed && subscription_end) {
       try {
-        // Get user's profile name
         const { data: profile } = await supabaseClient
           .from('profiles')
           .select('full_name')

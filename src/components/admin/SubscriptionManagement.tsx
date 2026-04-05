@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Edit, Calendar, CheckCircle, XCircle, Users, Plus } from 'lucide-react';
+import { Search, Edit, Calendar, CheckCircle, XCircle, Users, Plus, Trash2, Ban } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '../../integrations/supabase/client';
@@ -48,6 +49,12 @@ const SubscriptionManagement = () => {
     subscription_tier: 'Basic',
     subscription_end: ''
   });
+
+  // Confirmation dialog state
+  const [confirmAction, setConfirmAction] = useState<{
+    type: 'remove' | 'deactivate';
+    subscriber: Subscriber;
+  } | null>(null);
 
   useEffect(() => {
     fetchSubscribers();
@@ -163,6 +170,59 @@ const SubscriptionManagement = () => {
     }
   };
 
+  const handleDeactivateSubscription = async (subscriber: Subscriber) => {
+    try {
+      setSaving(true);
+      const { error } = await supabase.functions.invoke('admin-update-subscription', {
+        body: {
+          target_user_email: subscriber.email,
+          action: 'deactivate'
+        }
+      });
+      if (error) throw error;
+
+      toast({ title: 'Subscription ended', description: `Subscription ended for ${subscriber.email}` });
+      fetchSubscribers();
+    } catch (error) {
+      console.error('Error deactivating subscription:', error);
+      toast({ title: 'Failed to end subscription', description: 'Something went wrong.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+      setConfirmAction(null);
+    }
+  };
+
+  const handleRemoveSubscription = async (subscriber: Subscriber) => {
+    try {
+      setSaving(true);
+      const { error } = await supabase.functions.invoke('admin-update-subscription', {
+        body: {
+          target_user_email: subscriber.email,
+          action: 'remove'
+        }
+      });
+      if (error) throw error;
+
+      toast({ title: 'Subscription removed', description: `Subscription record deleted for ${subscriber.email}` });
+      fetchSubscribers();
+    } catch (error) {
+      console.error('Error removing subscription:', error);
+      toast({ title: 'Failed to remove subscription', description: 'Something went wrong.', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+      setConfirmAction(null);
+    }
+  };
+
+  const handleConfirmAction = () => {
+    if (!confirmAction) return;
+    if (confirmAction.type === 'remove') {
+      handleRemoveSubscription(confirmAction.subscriber);
+    } else {
+      handleDeactivateSubscription(confirmAction.subscriber);
+    }
+  };
+
   const filteredSubscribers = subscribers.filter(subscriber =>
     subscriber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     profiles[subscriber.user_id]?.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -194,7 +254,7 @@ const SubscriptionManagement = () => {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg sm:text-2xl font-semibold text-foreground">Subscription Management</h2>
-          <p className="text-xs sm:text-sm text-muted-foreground">Manage user subscriptions</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Manage user subscriptions directly</p>
         </div>
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground">
@@ -247,9 +307,19 @@ const SubscriptionManagement = () => {
                     </span>
                   )}
                 </div>
-                <Button size="sm" variant="outline" className="w-full" onClick={() => handleEditSubscription(subscriber)}>
-                  <Edit className="w-3 h-3 mr-1" /> Edit Subscription
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" className="flex-1" onClick={() => handleEditSubscription(subscriber)}>
+                    <Edit className="w-3 h-3 mr-1" /> Edit
+                  </Button>
+                  {subscriber.subscribed && (
+                    <Button size="sm" variant="outline" onClick={() => setConfirmAction({ type: 'deactivate', subscriber })}>
+                      <Ban className="w-3 h-3" />
+                    </Button>
+                  )}
+                  <Button size="sm" variant="destructive" onClick={() => setConfirmAction({ type: 'remove', subscriber })}>
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
@@ -264,7 +334,7 @@ const SubscriptionManagement = () => {
                   <TableHead>Plan</TableHead>
                   <TableHead>Next Billing</TableHead>
                   <TableHead>Last Updated</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
+                  <TableHead className="w-[160px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -288,9 +358,19 @@ const SubscriptionManagement = () => {
                       {new Date(subscriber.updated_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm" onClick={() => handleEditSubscription(subscriber)}>
-                        <Edit className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => handleEditSubscription(subscriber)} title="Edit">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        {subscriber.subscribed && (
+                          <Button variant="ghost" size="sm" onClick={() => setConfirmAction({ type: 'deactivate', subscriber })} title="End Subscription">
+                            <Ban className="w-4 h-4 text-orange-500" />
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => setConfirmAction({ type: 'remove', subscriber })} title="Remove">
+                          <Trash2 className="w-4 h-4 text-destructive" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -299,6 +379,33 @@ const SubscriptionManagement = () => {
           </div>
         </>
       )}
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmAction} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction?.type === 'remove' ? 'Remove Subscription Record' : 'End Subscription'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction?.type === 'remove'
+                ? `This will permanently delete the subscription record for ${confirmAction?.subscriber.email}. This action cannot be undone.`
+                : `This will end the subscription for ${confirmAction?.subscriber.email}. Their access to gated features will be revoked immediately.`
+              }
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmAction}
+              disabled={saving}
+              className={confirmAction?.type === 'remove' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+            >
+              {saving ? 'Processing...' : confirmAction?.type === 'remove' ? 'Remove' : 'End Subscription'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
