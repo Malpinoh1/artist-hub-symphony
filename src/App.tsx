@@ -46,6 +46,7 @@ const PasswordReset = React.lazy(() => import("./pages/PasswordReset"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide"));
 const Support = React.lazy(() => import("./pages/Support"));
+const Transactions = React.lazy(() => import("./pages/Transactions"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,6 +113,7 @@ const AppContent = () => {
         <Route path="/team/guide" element={<DashboardPage><TeamGuide /></DashboardPage>} />
         <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/support" element={<DashboardPage><Support /></DashboardPage>} />
+        <Route path="/transactions" element={<DashboardPage><Transactions /></DashboardPage>} />
         <Route path="/admin" element={<DashboardPage><AdminDashboard /></DashboardPage>} />
 
         <Route path="*" element={<NotFound />} />

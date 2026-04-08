@@ -23,6 +23,7 @@ import RoyaltyStatementsTab from '@/components/admin/RoyaltyStatementsTab';
 import { SiteNoticesTab } from '@/components/admin/SiteNoticesTab';
 import SupportTicketsTab from '@/components/admin/SupportTicketsTab';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
+import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
@@ -190,6 +191,8 @@ const AdminDashboard = () => {
         return <SupportTicketsTab />;
       case 'credit-balance':
         return <AdminCreditManager />;
+      case 'income-management':
+        return <IncomeManagementTab />;
       default:
         return null;
     }
@@ -208,6 +211,7 @@ const AdminDashboard = () => {
     { id: 'site-notices', label: 'Site Notices' },
     { id: 'support', label: 'Support Tickets' },
     { id: 'credit-balance', label: 'Credit Balance' },
+    { id: 'income-management', label: 'Income & Royalties' },
     { 
       id: 'takedown', 
       label: 'Take Down Requests',
