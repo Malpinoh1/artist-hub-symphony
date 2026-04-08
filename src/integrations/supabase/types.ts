@@ -623,6 +623,140 @@ export type Database = {
         }
         Relationships: []
       }
+      income_platforms: {
+        Row: {
+          id: string
+          name: string
+        }
+        Insert: {
+          id?: string
+          name: string
+        }
+        Update: {
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      income_transactions: {
+        Row: {
+          amount: number
+          artist_id: string
+          balance_after: number
+          created_at: string
+          description: string | null
+          id: string
+          income_id: string | null
+          platform_id: string | null
+          track_id: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          artist_id: string
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          income_id?: string | null
+          platform_id?: string | null
+          track_id?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          artist_id?: string
+          balance_after?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          income_id?: string | null
+          platform_id?: string | null
+          track_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "income_transactions_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_transactions_income_id_fkey"
+            columns: ["income_id"]
+            isOneToOne: false
+            referencedRelation: "incomes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_transactions_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "income_platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "income_transactions_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      incomes: {
+        Row: {
+          amount: number
+          created_at: string
+          created_by: string
+          date: string
+          description: string | null
+          id: string
+          platform_id: string
+          reference: string | null
+          track_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          created_by: string
+          date?: string
+          description?: string | null
+          id?: string
+          platform_id: string
+          reference?: string | null
+          track_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          created_by?: string
+          date?: string
+          description?: string | null
+          id?: string
+          platform_id?: string
+          reference?: string | null
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "incomes_platform_id_fkey"
+            columns: ["platform_id"]
+            isOneToOne: false
+            referencedRelation: "income_platforms"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "incomes_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_statistics: {
         Row: {
           apple_music_streams: number
@@ -1333,6 +1467,42 @@ export type Database = {
           },
         ]
       }
+      royalty_splits: {
+        Row: {
+          artist_id: string
+          id: string
+          percentage: number
+          track_id: string
+        }
+        Insert: {
+          artist_id: string
+          id?: string
+          percentage: number
+          track_id: string
+        }
+        Update: {
+          artist_id?: string
+          id?: string
+          percentage?: number
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalty_splits_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "royalty_splits_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       royalty_statements: {
         Row: {
           artist_id: string
@@ -1621,6 +1791,35 @@ export type Database = {
           },
         ]
       }
+      tracks: {
+        Row: {
+          created_at: string
+          id: string
+          primary_artist_id: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          primary_artist_id: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          primary_artist_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tracks_primary_artist_id_fkey"
+            columns: ["primary_artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1761,6 +1960,18 @@ export type Database = {
       is_account_admin: {
         Args: { target_account_id: string }
         Returns: boolean
+      }
+      process_income: {
+        Args: {
+          p_amount: number
+          p_created_by?: string
+          p_date?: string
+          p_description?: string
+          p_platform_id: string
+          p_reference?: string
+          p_track_id: string
+        }
+        Returns: string
       }
       user_has_active_subscription: {
         Args: { user_id?: string }
