@@ -1,31 +1,74 @@
 
+## Track-Based Royalty & Income Management System
 
-## Plan: Direct Admin Subscription Management
+### Phase 1: Database Schema (Migration)
 
-### What exists now
-- Admin can edit and activate subscriptions via an edge function (`admin-update-subscription`)
-- The edge function validates admin role, then upserts into the `subscribers` table
-- No "Remove" or "End Subscription" quick actions exist
+Create new tables:
 
-### What needs to change
+**`tracks`** — Track registry
+- `id`, `title`, `primary_artist_id` (references `artists.id`), `created_at`
+- RLS: Admins full access, artists can view tracks they're associated with
 
-#### 1. Add Remove/End actions to the admin UI
-- Add a **"Remove Subscription"** button (deletes the row from `subscribers`)
-- Add an **"End Subscription"** quick action (sets `subscribed = false`, clears tier/end date)
-- Add confirmation dialogs for destructive actions
-- Both edit and activate flows already work; keep them, just add the new actions
+**`income_platforms`** — Platform list (avoiding conflict with existing `platforms` column)
+- `id`, `name`
+- Seed: Spotify, Apple Music, Audiomack, Boomplay, YouTube Music, TikTok, Facebook/Instagram, Manual
 
-#### 2. Update the edge function to support `action` parameter
-- Add support for `action: "remove"` which deletes the subscriber record entirely
-- Add support for `action: "deactivate"` which sets `subscribed = false`
-- Keep existing upsert logic for activate/edit (default action)
+**`royalty_splits`** — Per-track artist percentage splits
+- `id`, `track_id`, `artist_id`, `percentage`
+- Constraint: total per track must = 100 (enforced via trigger)
 
-#### 3. Add RLS policy for admin DELETE on subscribers
-- Currently `subscribers` table has no DELETE policy — admins cannot delete records
-- Add a migration: `CREATE POLICY "Admins can delete subscribers" ON subscribers FOR DELETE USING (user_is_admin())`
+**`incomes`** — Income records per track + platform
+- `id`, `track_id`, `platform_id`, `amount`, `description`, `reference` (unique), `date`, `created_by`, `created_at`
+- RLS: Admin-only write, artists can view their own
 
-### Files to change
-- `supabase/functions/admin-update-subscription/index.ts` — add remove/deactivate actions
-- `src/components/admin/SubscriptionManagement.tsx` — add Remove & End buttons with confirmation
-- New migration — add admin DELETE policy on `subscribers`
+**`income_transactions`** — Every financial movement (audit trail)
+- `id`, `artist_id`, `track_id`, `platform_id`, `income_id`, `type` (income/royalty_share_in/royalty_share_out/withdrawal), `amount`, `balance_after`, `description`, `created_at`
+- RLS: Admin full access, artists view own
 
+**Database function: `process_income()`** — SECURITY DEFINER function that:
+1. Inserts income record
+2. Checks royalty_splits for the track
+3. If no splits → 100% to primary artist
+4. If splits exist → distribute by percentage
+5. Creates transaction records for each share
+6. Updates artist balances
+7. All within a single transaction (atomic)
+
+**Trigger on `royalty_splits`** — Validates total percentage per track = 100
+
+### Phase 2: Edge Function — Income Email Notification
+
+**`send-income-notification`** edge function:
+- Called after income is processed
+- Sends email to each artist who received income
+- Uses existing Brevo email infrastructure
+- Subject: "New Income Added to Your Account"
+
+### Phase 3: Admin UI
+
+**Admin Income Management** (`src/components/admin/IncomeManagementTab.tsx`):
+- Add Income form: Select Artist → Select Track → Select Platform → Amount, Description, Date, Reference
+- Income history table with filters
+- Track management (create tracks, assign to artists)
+- Royalty split editor per track (multi-artist percentage allocation)
+
+### Phase 4: Artist Dashboard
+
+**Transaction History Page** (`src/pages/Transactions.tsx`):
+- Table: Date, Track, Platform, Description, Type, Amount, Balance
+- Filters: by track, platform, date range
+- Dashboard totals: Total Balance, Total Earnings, Total Withdrawn, Pending, Transaction Count
+- All values calculated from `income_transactions` table
+
+### Phase 5: Integration
+
+- Add Transactions link to dashboard navigation
+- Wire admin tab into AdminDashboard
+- Add route for `/transactions`
+
+### Security
+- All write operations admin-only via RLS + `user_is_admin()`
+- Artists read-only on their own data
+- Balance derived from transactions (no manual editing)
+- Unique constraint on income reference to prevent duplicates
+- Database-level transaction ensures atomicity
