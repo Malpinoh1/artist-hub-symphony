@@ -28,8 +28,8 @@ interface Platform { id: string; name: string; }
 
 const Transactions = () => {
   const { user } = useAuth();
-  const { activeAccount } = useAccount();
-  const artistId = activeAccount?.id || user?.id;
+  const { currentAccountId } = useAccount();
+  const artistId = currentAccountId || user?.id;
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
