@@ -717,6 +717,7 @@ export type Database = {
           platform_id: string
           reference: string | null
           track_id: string
+          workflow_status: string
         }
         Insert: {
           amount: number
@@ -728,6 +729,7 @@ export type Database = {
           platform_id: string
           reference?: string | null
           track_id: string
+          workflow_status?: string
         }
         Update: {
           amount?: number
@@ -739,6 +741,7 @@ export type Database = {
           platform_id?: string
           reference?: string | null
           track_id?: string
+          workflow_status?: string
         }
         Relationships: [
           {
