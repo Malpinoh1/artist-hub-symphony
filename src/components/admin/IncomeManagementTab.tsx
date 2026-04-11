@@ -203,10 +203,15 @@ const IncomeManagementTab: React.FC = () => {
       return;
     }
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from('royalty_splits').insert({
         track_id: splitTrackId,
         artist_id: newSplitArtist,
         percentage: Number(newSplitPercentage),
+        status: 'approved',
+        created_by: user?.id,
+        approved_by: user?.id,
+        approved_at: new Date().toISOString(),
       });
       if (error) throw error;
       toast.success('Split added');
