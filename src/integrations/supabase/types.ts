@@ -1472,21 +1472,36 @@ export type Database = {
       }
       royalty_splits: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           artist_id: string
+          created_at: string
+          created_by: string | null
           id: string
           percentage: number
+          status: string
           track_id: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           artist_id: string
+          created_at?: string
+          created_by?: string | null
           id?: string
           percentage: number
+          status?: string
           track_id: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           artist_id?: string
+          created_at?: string
+          created_by?: string | null
           id?: string
           percentage?: number
+          status?: string
           track_id?: string
         }
         Relationships: [

@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface Artist { id: string; name: string; email: string; }
 interface Track { id: string; title: string; primary_artist_id: string; created_at: string; }
 interface Platform { id: string; name: string; }
-interface RoyaltySplit { id: string; track_id: string; artist_id: string; percentage: number; }
+interface RoyaltySplit { id: string; track_id: string; artist_id: string; percentage: number; status?: string; }
 interface Income { id: string; track_id: string; platform_id: string; amount: number; description: string; reference: string; date: string; created_at: string; workflow_status?: string; }
 
 const IncomeManagementTab: React.FC = () => {
@@ -83,7 +83,8 @@ const IncomeManagementTab: React.FC = () => {
       const { data } = await supabase
         .from('royalty_splits')
         .select('*')
-        .eq('track_id', trackId);
+        .eq('track_id', trackId)
+        .eq('status', 'approved');
       setSelectedTrackSplits(data || []);
     } catch {
       setSelectedTrackSplits([]);
@@ -203,10 +204,15 @@ const IncomeManagementTab: React.FC = () => {
       return;
     }
     try {
+      const { data: { user } } = await supabase.auth.getUser();
       const { error } = await supabase.from('royalty_splits').insert({
         track_id: splitTrackId,
         artist_id: newSplitArtist,
         percentage: Number(newSplitPercentage),
+        status: 'approved',
+        created_by: user?.id,
+        approved_by: user?.id,
+        approved_at: new Date().toISOString(),
       });
       if (error) throw error;
       toast.success('Split added');
