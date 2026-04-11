@@ -1,74 +1,55 @@
 
-## Track-Based Royalty & Income Management System
 
-### Phase 1: Database Schema (Migration)
+## Plan: Enforce Workflow Validation & Status Tracking
 
-Create new tables:
+### What Already Works
+The `process_income()` DB function already handles Rules 1-4:
+- Validates track exists (raises exception if not)
+- Validates royalty splits total 100% (raises exception if not)
+- Defaults to 100% primary artist when no splits exist
+- Creates transaction records atomically
 
-**`tracks`** — Track registry
-- `id`, `title`, `primary_artist_id` (references `artists.id`), `created_at`
-- RLS: Admins full access, artists can view tracks they're associated with
+Email notification (Rule 5) fires after successful income processing in the UI.
 
-**`income_platforms`** — Platform list (avoiding conflict with existing `platforms` column)
-- `id`, `name`
-- Seed: Spotify, Apple Music, Audiomack, Boomplay, YouTube Music, TikTok, Facebook/Instagram, Manual
+### What Needs to Change
 
-**`royalty_splits`** — Per-track artist percentage splits
-- `id`, `track_id`, `artist_id`, `percentage`
-- Constraint: total per track must = 100 (enforced via trigger)
+#### 1. Add `workflow_status` column to `incomes` table
+Migration to add `workflow_status TEXT NOT NULL DEFAULT 'draft'` to the `incomes` table.
 
-**`incomes`** — Income records per track + platform
-- `id`, `track_id`, `platform_id`, `amount`, `description`, `reference` (unique), `date`, `created_by`, `created_at`
-- RLS: Admin-only write, artists can view their own
+#### 2. Update `process_income()` DB function
+- Set `workflow_status = 'processed'` on success
+- Wrap in exception handler: on failure, insert income with `workflow_status = 'failed'` and re-raise
+- This ensures every income record reflects its processing state
 
-**`income_transactions`** — Every financial movement (audit trail)
-- `id`, `artist_id`, `track_id`, `platform_id`, `income_id`, `type` (income/royalty_share_in/royalty_share_out/withdrawal), `amount`, `balance_after`, `description`, `created_at`
-- RLS: Admin full access, artists view own
+#### 3. Improve Admin UI validation (IncomeManagementTab.tsx)
+- Before submitting, check if tracks exist — if zero tracks, show "You must create a track before adding income" and disable the Add Income form
+- When a track is selected, fetch its royalty splits and display a warning banner if splits exist but don't total 100%
+- Show `workflow_status` badge in income history table (draft/processed/failed)
+- Add a workflow guide banner at the top: "Create Track → Set Royalty Split → Add Income"
 
-**Database function: `process_income()`** — SECURITY DEFINER function that:
-1. Inserts income record
-2. Checks royalty_splits for the track
-3. If no splits → 100% to primary artist
-4. If splits exist → distribute by percentage
-5. Creates transaction records for each share
-6. Updates artist balances
-7. All within a single transaction (atomic)
+#### 4. Ensure email fires only after successful processing
+- Already the case (email sends after `process_income` returns without error), but add explicit check: only invoke `send-income-notification` if the RPC did not error
 
-**Trigger on `royalty_splits`** — Validates total percentage per track = 100
+### Files to Change
+- **New migration** — add `workflow_status` column, update `process_income()` function
+- **`src/components/admin/IncomeManagementTab.tsx`** — add pre-validation UI, workflow guide, status badges in history
+- **`src/integrations/supabase/types.ts`** — will auto-update after migration
 
-### Phase 2: Edge Function — Income Email Notification
+### Technical Details
 
-**`send-income-notification`** edge function:
-- Called after income is processed
-- Sends email to each artist who received income
-- Uses existing Brevo email infrastructure
-- Subject: "New Income Added to Your Account"
+**Migration SQL** (simplified):
+```sql
+ALTER TABLE incomes ADD COLUMN workflow_status text NOT NULL DEFAULT 'draft';
 
-### Phase 3: Admin UI
+CREATE OR REPLACE FUNCTION process_income(...) 
+-- Same logic but:
+-- 1. Insert income initially (already done)
+-- 2. On success: UPDATE incomes SET workflow_status = 'processed' WHERE id = v_income_id
+-- 3. On exception: UPDATE incomes SET workflow_status = 'failed', then re-raise
+```
 
-**Admin Income Management** (`src/components/admin/IncomeManagementTab.tsx`):
-- Add Income form: Select Artist → Select Track → Select Platform → Amount, Description, Date, Reference
-- Income history table with filters
-- Track management (create tracks, assign to artists)
-- Royalty split editor per track (multi-artist percentage allocation)
+**UI validation additions:**
+- Disabled "Add Income" tab content with message when `tracks.length === 0`
+- Real-time split validation warning when selecting a track with incomplete splits
+- Color-coded status badges in history: green=processed, red=failed, gray=draft
 
-### Phase 4: Artist Dashboard
-
-**Transaction History Page** (`src/pages/Transactions.tsx`):
-- Table: Date, Track, Platform, Description, Type, Amount, Balance
-- Filters: by track, platform, date range
-- Dashboard totals: Total Balance, Total Earnings, Total Withdrawn, Pending, Transaction Count
-- All values calculated from `income_transactions` table
-
-### Phase 5: Integration
-
-- Add Transactions link to dashboard navigation
-- Wire admin tab into AdminDashboard
-- Add route for `/transactions`
-
-### Security
-- All write operations admin-only via RLS + `user_is_admin()`
-- Artists read-only on their own data
-- Balance derived from transactions (no manual editing)
-- Unique constraint on income reference to prevent duplicates
-- Database-level transaction ensures atomicity
