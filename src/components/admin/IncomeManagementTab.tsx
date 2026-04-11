@@ -83,7 +83,8 @@ const IncomeManagementTab: React.FC = () => {
       const { data } = await supabase
         .from('royalty_splits')
         .select('*')
-        .eq('track_id', trackId);
+        .eq('track_id', trackId)
+        .eq('status', 'approved');
       setSelectedTrackSplits(data || []);
     } catch {
       setSelectedTrackSplits([]);
