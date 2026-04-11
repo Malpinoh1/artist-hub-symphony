@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 interface Artist { id: string; name: string; email: string; }
 interface Track { id: string; title: string; primary_artist_id: string; created_at: string; }
 interface Platform { id: string; name: string; }
-interface RoyaltySplit { id: string; track_id: string; artist_id: string; percentage: number; }
+interface RoyaltySplit { id: string; track_id: string; artist_id: string; percentage: number; status?: string; }
 interface Income { id: string; track_id: string; platform_id: string; amount: number; description: string; reference: string; date: string; created_at: string; workflow_status?: string; }
 
 const IncomeManagementTab: React.FC = () => {
