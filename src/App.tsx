@@ -48,6 +48,7 @@ const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide
 const Support = React.lazy(() => import("./pages/Support"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
 const ArtistRoyaltySplits = React.lazy(() => import("./pages/ArtistRoyaltySplits"));
+const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -100,6 +101,7 @@ const AppContent = () => {
         <Route path="/password-reset" element={<PasswordReset />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
+        <Route path="/accept-split" element={<AcceptSplit />} />
 
         {/* Protected dashboard routes — wrapped in DashboardLayout */}
         <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />

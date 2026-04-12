@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, MapPin, Globe, Clock, Music, Disc, DollarSign, Store, ExternalLink, Shield, Scissors, Download } from 'lucide-react';
+import { ArrowLeft, Calendar, MapPin, Globe, Clock, Music, Disc, DollarSign, Store, ExternalLink, Shield, Scissors, Download, GitBranch } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { toast } from 'sonner';
 import { Release, fetchReleaseDetails } from '../services/releaseService';
@@ -211,9 +211,14 @@ const ReleaseDetails = () => {
 
                         {/* Actions */}
                         {!!artistId && (release.status === 'approved' || release.status === 'processing') && (
-                          <Button variant="outline" size="sm" onClick={() => navigate(`/releases/${release.id}/edit-request`)}>
-                            Request Edit
-                          </Button>
+                          <div className="flex gap-2 flex-wrap">
+                            <Button variant="outline" size="sm" onClick={() => navigate(`/releases/${release.id}/edit-request`)}>
+                              Request Edit
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => navigate('/royalty-splits')}>
+                              <GitBranch className="h-4 w-4 mr-1" />Manage Splits
+                            </Button>
+                          </div>
                         )}
                       </div>
                     </div>
