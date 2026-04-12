@@ -1479,6 +1479,7 @@ export type Database = {
           created_by: string | null
           id: string
           percentage: number
+          release_id: string | null
           status: string
           track_id: string
         }
@@ -1490,6 +1491,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           percentage: number
+          release_id?: string | null
           status?: string
           track_id: string
         }
@@ -1501,6 +1503,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           percentage?: number
+          release_id?: string | null
           status?: string
           track_id?: string
         }
@@ -1510,6 +1513,13 @@ export type Database = {
             columns: ["artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "royalty_splits_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
             referencedColumns: ["id"]
           },
           {
@@ -1621,6 +1631,76 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      split_invitations: {
+        Row: {
+          accepted_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          invited_by: string
+          invited_email: string
+          percentage: number
+          release_id: string | null
+          role: string | null
+          split_id: string | null
+          status: string
+          token: string
+          track_id: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by: string
+          invited_email: string
+          percentage: number
+          release_id?: string | null
+          role?: string | null
+          split_id?: string | null
+          status?: string
+          token?: string
+          track_id: string
+        }
+        Update: {
+          accepted_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          invited_by?: string
+          invited_email?: string
+          percentage?: number
+          release_id?: string | null
+          role?: string | null
+          split_id?: string | null
+          status?: string
+          token?: string
+          track_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_invitations_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_invitations_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "royalty_splits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "split_invitations_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       streaming_links: {
         Row: {
