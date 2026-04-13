@@ -214,7 +214,18 @@ const ReleaseForm = () => {
           explicit_content: track.explicit_content || false,
           featured_artists: track.featured_artists || []
         }));
-        await supabase.from('release_tracks').insert(trackRecords);
+        const { data: insertedReleaseTracks } = await supabase.from('release_tracks').insert(trackRecords).select('id, title, track_number');
+
+        // Auto-create corresponding records in the `tracks` table for royalty/income system
+        if (insertedReleaseTracks && insertedReleaseTracks.length > 0) {
+          const incomeTrackRecords = insertedReleaseTracks.map(rt => ({
+            title: rt.title,
+            primary_artist_id: userId,
+            release_id: insertedRelease.id,
+            release_track_id: rt.id,
+          }));
+          await supabase.from('tracks').insert(incomeTrackRecords);
+        }
       }
 
       // Save store selections

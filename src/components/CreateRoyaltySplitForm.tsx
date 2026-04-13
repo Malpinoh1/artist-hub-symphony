@@ -79,23 +79,30 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
 
   useEffect(() => { fetchReleases(); }, [fetchReleases]);
 
-  // Fetch tracks when release is selected
+  // Fetch tracks from the income/royalty `tracks` table when release is selected
   useEffect(() => {
-    if (!selectedRelease || selectedRelease === 'new') {
+    if (!selectedRelease || selectedRelease === 'new' || !user) {
       setTracks([]);
       setSelectedTrack('');
       return;
     }
     supabase
-      .from('release_tracks')
-      .select('id, title, track_number, release_id')
+      .from('tracks')
+      .select('id, title')
       .eq('release_id', selectedRelease)
-      .order('track_number')
+      .eq('primary_artist_id', user.id)
+      .order('created_at')
       .then(({ data }) => {
-        setTracks(data || []);
+        const mapped = (data || []).map((t, i) => ({
+          id: t.id,
+          title: t.title,
+          track_number: i + 1,
+          release_id: selectedRelease,
+        }));
+        setTracks(mapped);
         setSelectedTrack('');
       });
-  }, [selectedRelease]);
+  }, [selectedRelease, user]);
 
   const handleAddCollaborator = () => {
     setCollaborators(prev => [...prev, { email: '', role: 'collaborator', percentage: '' }]);
