@@ -1,55 +1,44 @@
 
 
-## Plan: Enforce Workflow Validation & Status Tracking
+## Plan: Fix Royalty Split Creation — Auto-Create Tracks on Release Upload
 
-### What Already Works
-The `process_income()` DB function already handles Rules 1-4:
-- Validates track exists (raises exception if not)
-- Validates royalty splits total 100% (raises exception if not)
-- Defaults to 100% primary artist when no splits exist
-- Creates transaction records atomically
+### Problem
+The `tracks` table (used for income distribution and royalty splits) is only populated by admins. Artists upload releases which create `release_tracks` entries, but no corresponding `tracks` records. This means artists have no tracks to create royalty splits against.
 
-Email notification (Rule 5) fires after successful income processing in the UI.
+### Current Architecture
+- `release_tracks` — created during release upload (per-release track metadata)
+- `tracks` — used by income/royalty system, has `primary_artist_id`, only created by admin via IncomeManagementTab
+- `royalty_splits.track_id` references `tracks.id`
+- `CreateRoyaltySplitForm` fetches from `release_tracks` for the track dropdown
 
-### What Needs to Change
+### Changes
 
-#### 1. Add `workflow_status` column to `incomes` table
-Migration to add `workflow_status TEXT NOT NULL DEFAULT 'draft'` to the `incomes` table.
+#### 1. Auto-create `tracks` records on release upload
+**File: `src/pages/ReleaseForm.tsx`**
 
-#### 2. Update `process_income()` DB function
-- Set `workflow_status = 'processed'` on success
-- Wrap in exception handler: on failure, insert income with `workflow_status = 'failed'` and re-raise
-- This ensures every income record reflects its processing state
+After inserting `release_tracks`, also insert corresponding records into `tracks` table for each track. Map `release_tracks` entries to `tracks` entries with `primary_artist_id = userId` and link them via a new `release_id` column.
 
-#### 3. Improve Admin UI validation (IncomeManagementTab.tsx)
-- Before submitting, check if tracks exist — if zero tracks, show "You must create a track before adding income" and disable the Add Income form
-- When a track is selected, fetch its royalty splits and display a warning banner if splits exist but don't total 100%
-- Show `workflow_status` badge in income history table (draft/processed/failed)
-- Add a workflow guide banner at the top: "Create Track → Set Royalty Split → Add Income"
+#### 2. Add `release_id` and `release_track_id` columns to `tracks` table
+**New migration**
 
-#### 4. Ensure email fires only after successful processing
-- Already the case (email sends after `process_income` returns without error), but add explicit check: only invoke `send-income-notification` if the RPC did not error
-
-### Files to Change
-- **New migration** — add `workflow_status` column, update `process_income()` function
-- **`src/components/admin/IncomeManagementTab.tsx`** — add pre-validation UI, workflow guide, status badges in history
-- **`src/integrations/supabase/types.ts`** — will auto-update after migration
-
-### Technical Details
-
-**Migration SQL** (simplified):
 ```sql
-ALTER TABLE incomes ADD COLUMN workflow_status text NOT NULL DEFAULT 'draft';
-
-CREATE OR REPLACE FUNCTION process_income(...) 
--- Same logic but:
--- 1. Insert income initially (already done)
--- 2. On success: UPDATE incomes SET workflow_status = 'processed' WHERE id = v_income_id
--- 3. On exception: UPDATE incomes SET workflow_status = 'failed', then re-raise
+ALTER TABLE tracks ADD COLUMN IF NOT EXISTS release_id uuid;
+ALTER TABLE tracks ADD COLUMN IF NOT EXISTS release_track_id uuid;
 ```
 
-**UI validation additions:**
-- Disabled "Add Income" tab content with message when `tracks.length === 0`
-- Real-time split validation warning when selecting a track with incomplete splits
-- Color-coded status badges in history: green=processed, red=failed, gray=draft
+Add RLS policies so artists can INSERT and SELECT their own tracks:
+- Artists can insert tracks where `primary_artist_id = auth.uid()`
+- Artists can view tracks where `primary_artist_id = auth.uid()`
+- Admins retain full access (existing policy)
 
+#### 3. Update `CreateRoyaltySplitForm.tsx` — use `tracks` table instead of `release_tracks`
+When a release is selected, fetch from `tracks` table filtered by `release_id` and `primary_artist_id = user.id` instead of `release_tracks`. This ensures splits are created against the correct table.
+
+#### 4. Update `ArtistRoyaltySplits.tsx` description text
+Change "Splits require admin approval before income distribution" to "Upload a release to start managing royalty splits." Remove any references to admin-created tracks.
+
+#### 5. Update `IncomeManagementTab.tsx`
+Remove the "Tracks are created by admin" messaging (already absent based on search, but ensure the admin track creation still works as a fallback).
+
+### Files to Change
+- **New migration** — add `release_id`, `release_track_id` to
