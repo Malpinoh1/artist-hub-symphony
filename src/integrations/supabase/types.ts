@@ -1894,18 +1894,24 @@ export type Database = {
           created_at: string
           id: string
           primary_artist_id: string
+          release_id: string | null
+          release_track_id: string | null
           title: string
         }
         Insert: {
           created_at?: string
           id?: string
           primary_artist_id: string
+          release_id?: string | null
+          release_track_id?: string | null
           title: string
         }
         Update: {
           created_at?: string
           id?: string
           primary_artist_id?: string
+          release_id?: string | null
+          release_track_id?: string | null
           title?: string
         }
         Relationships: [
@@ -1914,6 +1920,20 @@ export type Database = {
             columns: ["primary_artist_id"]
             isOneToOne: false
             referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracks_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tracks_release_track_id_fkey"
+            columns: ["release_track_id"]
+            isOneToOne: false
+            referencedRelation: "release_tracks"
             referencedColumns: ["id"]
           },
         ]
