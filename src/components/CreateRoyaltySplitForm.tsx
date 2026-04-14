@@ -188,7 +188,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
             track_id: selectedTrack,
             artist_id: existingArtist.id,
             percentage: Number(collab.percentage),
-            status: 'pending',
+            status: 'approved',
             created_by: user.id,
             release_id: selectedRelease || null,
           });
