@@ -135,7 +135,7 @@ const ArtistRoyaltySplits: React.FC = () => {
             <GitBranch className="h-6 w-6" />Royalty Splits
           </h1>
           <p className="text-muted-foreground mt-1">
-            Upload a release to start managing royalty splits. Collaborators will be invited via email.
+            Splits are active immediately — no admin approval needed. Collaborators will be invited via email.
           </p>
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

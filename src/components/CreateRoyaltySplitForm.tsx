@@ -167,7 +167,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
         track_id: selectedTrack,
         artist_id: user.id,
         percentage: ownerPct,
-        status: 'pending',
+        status: 'approved',
         created_by: user.id,
         release_id: selectedRelease || null,
       });
@@ -243,7 +243,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
         }
       }
 
-      toast.success('Royalty splits submitted for admin approval. Invitations sent!');
+      toast.success('Royalty splits created successfully! Invitations sent.');
       setCollaborators([]);
       setOwnerPercentage('100');
       setSelectedTrack('');
@@ -443,7 +443,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
                     <TableCell className="font-medium">{user?.email} (You)</TableCell>
                     <TableCell>Owner</TableCell>
                     <TableCell>{ownerPct}%</TableCell>
-                    <TableCell><Badge variant="secondary">Pending</Badge></TableCell>
+                    <TableCell><Badge className="bg-green-600 text-white">Active</Badge></TableCell>
                   </TableRow>
                   {collaborators.map((c, i) => (
                     <TableRow key={i}>
@@ -463,7 +463,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
               className="w-full"
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Submit Split & Send Invitations
+              Create Split & Send Invitations
             </Button>
           </CardContent>
         </Card>
