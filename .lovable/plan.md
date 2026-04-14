@@ -1,44 +1,38 @@
 
 
-## Plan: Fix Royalty Split Creation — Auto-Create Tracks on Release Upload
+## Plan: Allow Artists to Create Royalty Splits Without Admin Approval
 
 ### Problem
-The `tracks` table (used for income distribution and royalty splits) is only populated by admins. Artists upload releases which create `release_tracks` entries, but no corresponding `tracks` records. This means artists have no tracks to create royalty splits against.
-
-### Current Architecture
-- `release_tracks` — created during release upload (per-release track metadata)
-- `tracks` — used by income/royalty system, has `primary_artist_id`, only created by admin via IncomeManagementTab
-- `royalty_splits.track_id` references `tracks.id`
-- `CreateRoyaltySplitForm` fetches from `release_tracks` for the track dropdown
+Currently, when an artist creates a royalty split, it's saved with `status = 'pending'`. The `process_income()` function only uses splits where `status = 'approved'`, meaning admin must manually approve each split before it takes effect. The toast message also says "submitted for admin approval."
 
 ### Changes
 
-#### 1. Auto-create `tracks` records on release upload
-**File: `src/pages/ReleaseForm.tsx`**
+#### 1. Update `CreateRoyaltySplitForm.tsx` — set status to `approved` directly
+- Change the owner's split insert from `status: 'pending'` to `status: 'approved'`
+- For collaborators who already have an account, also set `status: 'approved'`
+- Update the success toast from "submitted for admin approval" to "Royalty splits created successfully!"
+- Update the submit button text to "Create Split & Send Invitations"
 
-After inserting `release_tracks`, also insert corresponding records into `tracks` table for each track. Map `release_tracks` entries to `tracks` entries with `primary_artist_id = userId` and link them via a new `release_id` column.
+#### 2. Update RLS policy for artists creating splits
+The current INSERT policy requires `status = 'pending'`. Need a migration to update the policy so artists can insert splits with `status = 'approved'` as well (for their own tracks).
 
-#### 2. Add `release_id` and `release_track_id` columns to `tracks` table
-**New migration**
-
+**Migration:**
 ```sql
-ALTER TABLE tracks ADD COLUMN IF NOT EXISTS release_id uuid;
-ALTER TABLE tracks ADD COLUMN IF NOT EXISTS release_track_id uuid;
+DROP POLICY IF EXISTS "Artists can create splits for own tracks" ON royalty_splits;
+CREATE POLICY "Artists can create splits for own tracks"
+ON royalty_splits FOR INSERT TO authenticated
+WITH CHECK (
+  EXISTS (SELECT 1 FROM tracks t WHERE t.id = royalty_splits.track_id AND t.primary_artist_id = auth.uid())
+  AND created_by = auth.uid()
+  AND status IN ('pending', 'approved')
+);
 ```
 
-Add RLS policies so artists can INSERT and SELECT their own tracks:
-- Artists can insert tracks where `primary_artist_id = auth.uid()`
-- Artists can view tracks where `primary_artist_id = auth.uid()`
-- Admins retain full access (existing policy)
-
-#### 3. Update `CreateRoyaltySplitForm.tsx` — use `tracks` table instead of `release_tracks`
-When a release is selected, fetch from `tracks` table filtered by `release_id` and `primary_artist_id = user.id` instead of `release_tracks`. This ensures splits are created against the correct table.
-
-#### 4. Update `ArtistRoyaltySplits.tsx` description text
-Change "Splits require admin approval before income distribution" to "Upload a release to start managing royalty splits." Remove any references to admin-created tracks.
-
-#### 5. Update `IncomeManagementTab.tsx`
-Remove the "Tracks are created by admin" messaging (already absent based on search, but ensure the admin track creation still works as a fallback).
+#### 3. Update `ArtistRoyaltySplits.tsx` description
+Change "Collaborators will be invited via email" to clarify splits are active immediately — no admin approval needed.
 
 ### Files to Change
-- **New migration** — add `release_id`, `release_track_id` to
+- **New migration** — update RLS INSERT policy to allow `approved` status
+- **`src/components/CreateRoyaltySplitForm.tsx`** — change status to `approved`, update messaging
+- **`src/pages/ArtistRoyaltySplits.tsx`** — update description text
+
