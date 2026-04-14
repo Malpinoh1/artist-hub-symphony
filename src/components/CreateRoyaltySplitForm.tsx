@@ -86,22 +86,63 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
       setSelectedTrack('');
       return;
     }
-    supabase
-      .from('tracks')
-      .select('id, title')
-      .eq('release_id', selectedRelease)
-      .eq('primary_artist_id', user.id)
-      .order('created_at')
-      .then(({ data }) => {
-        const mapped = (data || []).map((t, i) => ({
+    const fetchTracks = async () => {
+      // Try the tracks table first (linked to income/royalty system)
+      const { data: tracksData } = await supabase
+        .from('tracks')
+        .select('id, title')
+        .eq('release_id', selectedRelease)
+        .eq('primary_artist_id', user.id)
+        .order('created_at');
+
+      if (tracksData && tracksData.length > 0) {
+        setTracks(tracksData.map((t, i) => ({
           id: t.id,
           title: t.title,
           track_number: i + 1,
           release_id: selectedRelease,
-        }));
-        setTracks(mapped);
+        })));
         setSelectedTrack('');
-      });
+        return;
+      }
+
+      // Fallback: auto-create tracks from release_tracks if missing
+      const { data: releaseTracks } = await supabase
+        .from('release_tracks')
+        .select('id, title, track_number')
+        .eq('release_id', selectedRelease)
+        .order('track_number');
+
+      if (releaseTracks && releaseTracks.length > 0) {
+        // Insert missing tracks into the tracks table
+        for (const rt of releaseTracks) {
+          await supabase.from('tracks').insert({
+            title: rt.title,
+            primary_artist_id: user.id,
+            release_id: selectedRelease,
+            release_track_id: rt.id,
+          }).select().maybeSingle();
+        }
+        // Re-fetch from tracks table
+        const { data: newTracks } = await supabase
+          .from('tracks')
+          .select('id, title')
+          .eq('release_id', selectedRelease)
+          .eq('primary_artist_id', user.id)
+          .order('created_at');
+
+        setTracks((newTracks || []).map((t, i) => ({
+          id: t.id,
+          title: t.title,
+          track_number: i + 1,
+          release_id: selectedRelease,
+        })));
+      } else {
+        setTracks([]);
+      }
+      setSelectedTrack('');
+    };
+    fetchTracks();
   }, [selectedRelease, user]);
 
   const handleAddCollaborator = () => {
