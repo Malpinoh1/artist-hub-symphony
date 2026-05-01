@@ -1,0 +1,150 @@
+import { supabase } from '@/integrations/supabase/client';
+import type { OnerpmRow } from '@/utils/onerpmCsvParser';
+
+export interface RoyaltyUpload {
+  id: string;
+  file_name: string;
+  period_label: string;
+  period_year: number;
+  period_month: number;
+  uploaded_by: string;
+  total_rows: number;
+  matched_rows: number;
+  unmatched_rows: number;
+  total_amount: number;
+  currency: string;
+  status: string;
+  error_message: string | null;
+  created_at: string;
+}
+
+export async function createUploadAndProcess(params: {
+  fileName: string;
+  year: number;
+  month: number;
+  rows: OnerpmRow[];
+  skipZero?: boolean;
+}): Promise<{ uploadId: string; matched: number; unmatched: number }> {
+  const { fileName, year, month, rows, skipZero = true } = params;
+  const filtered = skipZero ? rows.filter((r) => r.net_amount !== 0) : rows;
+
+  const totalAmount = filtered.reduce((s, r) => s + r.net_amount, 0);
+  const currency = filtered[0]?.currency || 'USD';
+  const periodLabel = `${year}-${String(month).padStart(2, '0')}`;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: upload, error: uErr } = await supabase
+    .from('royalty_uploads')
+    .insert({
+      file_name: fileName,
+      period_label: periodLabel,
+      period_year: year,
+      period_month: month,
+      uploaded_by: user.id,
+      total_rows: filtered.length,
+      total_amount: totalAmount,
+      currency,
+      status: 'processing',
+    })
+    .select('id')
+    .single();
+  if (uErr) throw uErr;
+
+  // Insert rows in chunks to avoid payload limits
+  const chunkSize = 500;
+  for (let i = 0; i < filtered.length; i += chunkSize) {
+    const chunk = filtered.slice(i, i + chunkSize).map((r) => ({
+      upload_id: upload.id,
+      track_title: r.track_title,
+      raw_artists: r.raw_artists,
+      performer_names: r.performer_names,
+      track_external_id: r.track_external_id,
+      quantity: r.quantity,
+      net_amount: r.net_amount,
+      currency: r.currency,
+      sales_type: r.sales_type,
+    }));
+    const { error } = await supabase.from('royalty_upload_rows').insert(chunk);
+    if (error) throw error;
+  }
+
+  const { data: result, error: pErr } = await supabase.rpc('process_royalty_upload', {
+    p_upload_id: upload.id,
+  });
+  if (pErr) throw pErr;
+
+  const r = (result as any) || {};
+  return { uploadId: upload.id, matched: r.matched ?? 0, unmatched: r.unmatched ?? 0 };
+}
+
+export async function fetchUploads(): Promise<RoyaltyUpload[]> {
+  const { data, error } = await supabase
+    .from('royalty_uploads')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data || []) as RoyaltyUpload[];
+}
+
+export async function fetchUnmatchedRows(uploadId: string) {
+  const { data, error } = await supabase
+    .from('royalty_upload_rows')
+    .select('*')
+    .eq('upload_id', uploadId)
+    .eq('match_status', 'unmatched')
+    .order('net_amount', { ascending: false });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function assignRowToArtist(rowId: string, artistId: string) {
+  // Set matched_artist_ids and re-run aggregation by reprocessing the parent upload
+  const { data: row, error: rErr } = await supabase
+    .from('royalty_upload_rows')
+    .select('id, upload_id, net_amount')
+    .eq('id', rowId)
+    .single();
+  if (rErr) throw rErr;
+
+  await supabase
+    .from('royalty_upload_rows')
+    .update({
+      matched_artist_ids: [artistId],
+      match_status: 'matched',
+      assigned_amount_per_artist: row.net_amount,
+    })
+    .eq('id', rowId);
+
+  // Re-run aggregation for the entire upload (simplest correct path)
+  await supabase.rpc('process_royalty_upload', { p_upload_id: row.upload_id });
+}
+
+export async function deleteUpload(uploadId: string) {
+  const { error } = await supabase.from('royalty_uploads').delete().eq('id', uploadId);
+  if (error) throw error;
+}
+
+export async function fetchMonthlyEarnings(artistId: string) {
+  const { data, error } = await supabase
+    .from('monthly_artist_earnings')
+    .select('*')
+    .eq('artist_id', artistId)
+    .order('period_year', { ascending: true })
+    .order('period_month', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchArtistTrackBreakdown(artistId: string, year?: number, month?: number) {
+  let q = supabase
+    .from('royalty_upload_rows')
+    .select('track_title, quantity, assigned_amount_per_artist, currency, upload_id, royalty_uploads!inner(period_year, period_month)')
+    .contains('matched_artist_ids', [artistId]);
+  if (year) q = q.eq('royalty_uploads.period_year', year);
+  if (month) q = q.eq('royalty_uploads.period_month', month);
+  const { data, error } = await q;
+  if (error) throw error;
+  return data || [];
+}
