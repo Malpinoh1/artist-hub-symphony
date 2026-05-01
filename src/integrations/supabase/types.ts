@@ -318,6 +318,7 @@ export type Database = {
       }
       artists: {
         Row: {
+          account_name: string | null
           available_balance: number | null
           ban_reason: string | null
           created_at: string | null
@@ -332,6 +333,7 @@ export type Database = {
           wallet_balance: number | null
         }
         Insert: {
+          account_name?: string | null
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
@@ -346,6 +348,7 @@ export type Database = {
           wallet_balance?: number | null
         }
         Update: {
+          account_name?: string | null
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
@@ -756,6 +759,56 @@ export type Database = {
             columns: ["track_id"]
             isOneToOne: false
             referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      monthly_artist_earnings: {
+        Row: {
+          account_name: string | null
+          artist_id: string
+          created_at: string
+          currency: string
+          id: string
+          period_month: number
+          period_year: number
+          total_earnings: number
+          total_streams: number
+          updated_at: string
+          upload_id: string | null
+        }
+        Insert: {
+          account_name?: string | null
+          artist_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          period_month: number
+          period_year: number
+          total_earnings?: number
+          total_streams?: number
+          updated_at?: string
+          upload_id?: string | null
+        }
+        Update: {
+          account_name?: string | null
+          artist_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          period_month?: number
+          period_year?: number
+          total_earnings?: number
+          total_streams?: number
+          updated_at?: string
+          upload_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_artist_earnings_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "royalty_uploads"
             referencedColumns: ["id"]
           },
         ]
@@ -1590,6 +1643,119 @@ export type Database = {
           },
         ]
       }
+      royalty_upload_rows: {
+        Row: {
+          assigned_amount_per_artist: number
+          created_at: string
+          currency: string
+          id: string
+          match_status: string
+          matched_artist_ids: string[]
+          net_amount: number
+          performer_names: string[]
+          quantity: number
+          raw_artists: string | null
+          sales_type: string | null
+          track_external_id: string | null
+          track_title: string | null
+          upload_id: string
+        }
+        Insert: {
+          assigned_amount_per_artist?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          match_status?: string
+          matched_artist_ids?: string[]
+          net_amount?: number
+          performer_names?: string[]
+          quantity?: number
+          raw_artists?: string | null
+          sales_type?: string | null
+          track_external_id?: string | null
+          track_title?: string | null
+          upload_id: string
+        }
+        Update: {
+          assigned_amount_per_artist?: number
+          created_at?: string
+          currency?: string
+          id?: string
+          match_status?: string
+          matched_artist_ids?: string[]
+          net_amount?: number
+          performer_names?: string[]
+          quantity?: number
+          raw_artists?: string | null
+          sales_type?: string | null
+          track_external_id?: string | null
+          track_title?: string | null
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "royalty_upload_rows_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "royalty_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      royalty_uploads: {
+        Row: {
+          created_at: string
+          currency: string
+          error_message: string | null
+          file_name: string
+          id: string
+          matched_rows: number
+          period_label: string
+          period_month: number
+          period_year: number
+          status: string
+          total_amount: number
+          total_rows: number
+          unmatched_rows: number
+          updated_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          file_name: string
+          id?: string
+          matched_rows?: number
+          period_label: string
+          period_month: number
+          period_year: number
+          status?: string
+          total_amount?: number
+          total_rows?: number
+          unmatched_rows?: number
+          updated_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          created_at?: string
+          currency?: string
+          error_message?: string | null
+          file_name?: string
+          id?: string
+          matched_rows?: number
+          period_label?: string
+          period_month?: number
+          period_year?: number
+          status?: string
+          total_amount?: number
+          total_rows?: number
+          unmatched_rows?: number
+          updated_at?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       site_notices: {
         Row: {
           created_at: string
@@ -2091,6 +2257,7 @@ export type Database = {
         }
         Returns: string
       }
+      process_royalty_upload: { Args: { p_upload_id: string }; Returns: Json }
       user_has_active_subscription: {
         Args: { user_id?: string }
         Returns: boolean

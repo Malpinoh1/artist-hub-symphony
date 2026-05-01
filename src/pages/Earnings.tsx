@@ -8,6 +8,8 @@ import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
+import MonthlyTrendChart from '../components/earnings/MonthlyTrendChart';
+import StatementGeneratorCard from '../components/earnings/StatementGeneratorCard';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import { useAuth } from '../contexts/AuthContext';
@@ -85,6 +87,14 @@ const EarningsContent = () => {
               </TabsList>
 
               <TabsContent value="overview">
+                {effectiveAccountId && (
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-4 sm:mb-6">
+                    <div className="lg:col-span-2">
+                      <MonthlyTrendChart artistId={effectiveAccountId} />
+                    </div>
+                    <StatementGeneratorCard artistId={effectiveAccountId} />
+                  </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                   <Card className="p-4 sm:p-6">
                     <h2 className="text-base sm:text-lg font-medium mb-4 dark:text-white">Recent Earnings</h2>

@@ -18,6 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import AccountNameMigrationModal from './AccountNameMigrationModal';
 
 const sidebarNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -242,6 +243,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           {children}
         </main>
       </div>
+      <AccountNameMigrationModal />
     </div>
   );
 };
