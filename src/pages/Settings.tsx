@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
+import AccountNameField from '../components/AccountNameField';
 
 interface UserProfile {
   id: string;
@@ -401,6 +402,8 @@ const Settings = () => {
                       />
                     </div>
                   </div>
+
+                  <AccountNameField userId={currentUser?.id} />
 
                   <div>
                     <Label htmlFor="bio" className="text-slate-700 dark:text-slate-300">Bio</Label>
