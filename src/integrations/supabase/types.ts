@@ -151,6 +151,30 @@ export type Database = {
         }
         Relationships: []
       }
+      artist_aliases: {
+        Row: {
+          alias: string
+          artist_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+        }
+        Insert: {
+          alias: string
+          artist_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Update: {
+          alias?: string
+          artist_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
       artist_custom_buttons: {
         Row: {
           artist_profile_id: string

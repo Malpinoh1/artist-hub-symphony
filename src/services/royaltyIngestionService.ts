@@ -25,8 +25,9 @@ export async function createUploadAndProcess(params: {
   rows: OnerpmRow[];
   skipZero?: boolean;
 }): Promise<{ uploadId: string; matched: number; unmatched: number }> {
-  const { fileName, year, month, rows, skipZero = true } = params;
-  const filtered = skipZero ? rows.filter((r) => r.net_amount !== 0) : rows;
+  // Always include zero-net rows (they're stored & flagged as zero_revenue)
+  const { fileName, year, month, rows } = params;
+  const filtered = rows;
 
   const totalAmount = filtered.reduce((s, r) => s + r.net_amount, 0);
   const currency = filtered[0]?.currency || 'USD';
