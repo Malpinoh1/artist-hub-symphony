@@ -123,6 +123,15 @@ const RoyaltyUploadTab: React.FC = () => {
     }
   };
 
+  const notify = async (id: string) => {
+    try {
+      const res: any = await notifyArtistsForUpload(id);
+      toast.success(`Notifications sent to ${res?.sent ?? 0} artists`);
+    } catch (e: any) {
+      toast.error(e.message || 'Notification failed');
+    }
+  };
+
   const totalNet = preview.reduce((s, r) => s + r.net_amount, 0);
   const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
