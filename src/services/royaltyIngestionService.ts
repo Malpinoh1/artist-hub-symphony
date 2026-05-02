@@ -77,7 +77,25 @@ export async function createUploadAndProcess(params: {
   if (pErr) throw pErr;
 
   const r = (result as any) || {};
+
+  // Notify artists of their new earnings (best-effort)
+  try {
+    await supabase.functions.invoke('send-royalty-upload-notification', {
+      body: { upload_id: upload.id },
+    });
+  } catch (e) {
+    console.warn('Royalty notification failed:', e);
+  }
+
   return { uploadId: upload.id, matched: r.matched ?? 0, unmatched: r.unmatched ?? 0 };
+}
+
+export async function notifyArtistsForUpload(uploadId: string) {
+  const { data, error } = await supabase.functions.invoke('send-royalty-upload-notification', {
+    body: { upload_id: uploadId },
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchUploads(): Promise<RoyaltyUpload[]> {

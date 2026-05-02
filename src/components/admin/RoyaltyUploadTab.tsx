@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseOnerpmCsv, type OnerpmRow } from '@/utils/onerpmCsvParser';
 import {
@@ -16,6 +16,7 @@ import {
   fetchUnmatchedRows,
   assignRowToArtist,
   deleteUpload,
+  notifyArtistsForUpload,
   type RoyaltyUpload,
 } from '@/services/royaltyIngestionService';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,7 +81,7 @@ const RoyaltyUploadTab: React.FC = () => {
         month,
         rows: preview,
       });
-      toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched`);
+      toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched. Artist notifications sent.`);
       setFile(null);
       setPreview([]);
       loadAll();
@@ -119,6 +120,15 @@ const RoyaltyUploadTab: React.FC = () => {
       loadAll();
     } catch (e: any) {
       toast.error(e.message || 'Delete failed');
+    }
+  };
+
+  const notify = async (id: string) => {
+    try {
+      const res: any = await notifyArtistsForUpload(id);
+      toast.success(`Notifications sent to ${res?.sent ?? 0} artists`);
+    } catch (e: any) {
+      toast.error(e.message || 'Notification failed');
     }
   };
 
@@ -250,9 +260,14 @@ const RoyaltyUploadTab: React.FC = () => {
                           : <Badge variant="secondary">{u.status}</Badge>}
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" onClick={() => remove(u.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => notify(u.id)} title="Resend artist notifications">
+                            <Mail className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => remove(u.id)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
