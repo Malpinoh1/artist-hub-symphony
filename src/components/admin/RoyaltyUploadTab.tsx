@@ -81,7 +81,7 @@ const RoyaltyUploadTab: React.FC = () => {
         month,
         rows: preview,
       });
-      toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched`);
+      toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched. Artist notifications sent.`);
       setFile(null);
       setPreview([]);
       loadAll();
