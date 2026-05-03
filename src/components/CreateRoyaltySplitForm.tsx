@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAccount } from '@/contexts/AccountContext';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +45,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
   onSuccess,
 }) => {
   const { user } = useAuth();
+  const { currentAccountId } = useAccount();
   const navigate = useNavigate();
   const [releases, setReleases] = useState<Release[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -59,15 +61,17 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
   // Collaborators
   const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
 
-  // Fetch releases owned by artist
+  const accountId = currentAccountId || user?.id || null;
+
+  // Fetch releases for the active account
   const fetchReleases = useCallback(async () => {
-    if (!user) return;
+    if (!accountId) return;
     setLoading(true);
     try {
       const { data } = await supabase
         .from('releases')
-        .select('id, title, artist_name, release_date, status')
-        .eq('artist_id', user.id)
+        .select('id, title, artist_name, release_date, status, artist_id')
+        .eq('artist_id', accountId)
         .order('release_date', { ascending: false });
       setReleases(data || []);
     } catch (err) {
@@ -75,24 +79,22 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [accountId]);
 
   useEffect(() => { fetchReleases(); }, [fetchReleases]);
 
-  // Fetch tracks from the income/royalty `tracks` table when release is selected
+  // Fetch tracks when release is selected (RLS already restricts visibility)
   useEffect(() => {
-    if (!selectedRelease || selectedRelease === 'new' || !user) {
+    if (!selectedRelease || selectedRelease === 'new') {
       setTracks([]);
       setSelectedTrack('');
       return;
     }
     const fetchTracks = async () => {
-      // Try the tracks table first (linked to income/royalty system)
       const { data: tracksData } = await supabase
         .from('tracks')
         .select('id, title')
         .eq('release_id', selectedRelease)
-        .eq('primary_artist_id', user.id)
         .order('created_at');
 
       if (tracksData && tracksData.length > 0) {
@@ -114,21 +116,26 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
         .order('track_number');
 
       if (releaseTracks && releaseTracks.length > 0) {
-        // Insert missing tracks into the tracks table
+        // Determine the release owner so primary_artist_id is correct
+        const { data: releaseRow } = await supabase
+          .from('releases')
+          .select('artist_id')
+          .eq('id', selectedRelease)
+          .maybeSingle();
+        const ownerId = releaseRow?.artist_id || accountId;
+
         for (const rt of releaseTracks) {
           await supabase.from('tracks').insert({
             title: rt.title,
-            primary_artist_id: user.id,
+            primary_artist_id: ownerId,
             release_id: selectedRelease,
             release_track_id: rt.id,
           }).select().maybeSingle();
         }
-        // Re-fetch from tracks table
         const { data: newTracks } = await supabase
           .from('tracks')
           .select('id, title')
           .eq('release_id', selectedRelease)
-          .eq('primary_artist_id', user.id)
           .order('created_at');
 
         setTracks((newTracks || []).map((t, i) => ({
@@ -143,7 +150,7 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
       setSelectedTrack('');
     };
     fetchTracks();
-  }, [selectedRelease, user]);
+  }, [selectedRelease, accountId]);
 
   const handleAddCollaborator = () => {
     setCollaborators(prev => [...prev, { email: '', role: 'collaborator', percentage: '' }]);
