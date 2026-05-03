@@ -33,8 +33,8 @@ import {
  import { MoreHorizontal, Check, X, Eye } from 'lucide-react';
  import { sendWithdrawalNotificationEmail } from '@/utils/email';
  import { supabase } from '@/integrations/supabase/client';
+ import { useExchangeRate } from '@/hooks/useExchangeRate';
  
- const EXCHANGE_RATE = 1250;
  
 interface ExtendedWithdrawal extends Withdrawal {
   rejection_reason?: string | null;
@@ -51,6 +51,7 @@ interface WithdrawalsTabProps {
 }
 
 const WithdrawalsTab: React.FC<WithdrawalsTabProps> = ({ withdrawals, loading, onWithdrawalUpdate }) => {
+   const { rate: EXCHANGE_RATE } = useExchangeRate();
    const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
    const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
    const [selectedWithdrawal, setSelectedWithdrawal] = useState<ExtendedWithdrawal | null>(null);
