@@ -73,8 +73,8 @@ serve(async (req) => {
     const { data: profile, error: profileError } = await supabaseClient
       .from('profiles')
       .select('two_factor_secret, backup_codes')
-      .eq('id', userId)
-      .single()
+      .eq('user_id', userId)
+      .maybeSingle()
 
     if (profileError || !profile) {
       return new Response(
@@ -98,7 +98,7 @@ serve(async (req) => {
       await supabaseClient
         .from('profiles')
         .update({ backup_codes: updatedBackupCodes })
-        .eq('id', userId)
+        .eq('user_id', userId)
 
       return new Response(
         JSON.stringify({ valid: true }),
