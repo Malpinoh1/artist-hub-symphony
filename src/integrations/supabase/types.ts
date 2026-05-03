@@ -599,6 +599,33 @@ export type Database = {
           },
         ]
       }
+      exchange_rates: {
+        Row: {
+          base: string
+          fetched_at: string
+          id: string
+          quote: string
+          rate: number
+          source: string
+        }
+        Insert: {
+          base?: string
+          fetched_at?: string
+          id?: string
+          quote?: string
+          rate: number
+          source?: string
+        }
+        Update: {
+          base?: string
+          fetched_at?: string
+          id?: string
+          quote?: string
+          rate?: number
+          source?: string
+        }
+        Relationships: []
+      }
       fanlinks: {
         Row: {
           artist: string

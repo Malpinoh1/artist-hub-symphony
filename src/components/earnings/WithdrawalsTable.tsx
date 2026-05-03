@@ -9,6 +9,7 @@ import {
   Tooltip, TooltipContent, TooltipProvider, TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 
 export interface WithdrawalData {
   id: string;
@@ -30,7 +31,7 @@ interface WithdrawalsTableProps {
   withdrawals: WithdrawalData[];
 }
 
-const EXCHANGE_RATE = 1250;
+
 
 const WithdrawalProgress: React.FC<{ status: string }> = ({ status }) => {
   const steps = [
@@ -83,6 +84,7 @@ const WithdrawalProgress: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const WithdrawalsTable: React.FC<WithdrawalsTableProps> = ({ withdrawals }) => {
+  const { rate: EXCHANGE_RATE } = useExchangeRate();
   if (withdrawals.length === 0) {
     return (
       <div className="mb-8 text-center py-8 text-muted-foreground">

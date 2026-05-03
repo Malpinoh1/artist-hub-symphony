@@ -82,11 +82,11 @@ serve(async (req) => {
       )
     }
 
-    // Get the backup codes from setup (use maybeSingle to avoid error if no row)
+    // Get the backup codes from setup (match by user_id, the canonical key)
     const { data: setupData, error: selectError } = await supabaseClient
       .from('profiles')
-      .select('backup_codes')
-      .eq('id', user.id)
+      .select('id, backup_codes')
+      .eq('user_id', user.id)
       .maybeSingle()
 
     if (selectError) {
@@ -95,21 +95,37 @@ serve(async (req) => {
 
     console.log('Profile exists:', !!setupData, 'has backup codes:', !!setupData?.backup_codes)
 
-    // Use upsert to ensure the profile exists and is updated
-    const { data: updateData, error: updateError } = await supabaseClient
-      .from('profiles')
-      .upsert({
-        id: user.id,
-        username: user.email || user.id,
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        two_factor_enabled: true,
-        two_factor_secret: secret,
-        backup_codes: setupData?.backup_codes || []
-      }, {
-        onConflict: 'id'
-      })
-      .select()
-      .single()
+    let updateData: any = null
+    let updateError: any = null
+
+    if (setupData?.id) {
+      const res = await supabaseClient
+        .from('profiles')
+        .update({
+          two_factor_enabled: true,
+          two_factor_secret: secret,
+          backup_codes: setupData.backup_codes || []
+        })
+        .eq('user_id', user.id)
+        .select()
+        .maybeSingle()
+      updateData = res.data; updateError = res.error
+    } else {
+      // No profile row yet — create one
+      const res = await supabaseClient
+        .from('profiles')
+        .insert({
+          user_id: user.id,
+          username: user.email || user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+          two_factor_enabled: true,
+          two_factor_secret: secret,
+          backup_codes: []
+        })
+        .select()
+        .maybeSingle()
+      updateData = res.data; updateError = res.error
+    }
 
     if (updateError) {
       console.error('Error updating profile:', updateError)

@@ -59,11 +59,15 @@ serve(async (req) => {
     const otpauthUrl = totp.toString()
     
 
-    // Store backup codes temporarily (they'll be saved when 2FA is enabled)
-    const { error: updateError } = await supabaseClient
+    // Store backup codes temporarily using service role (they'll be saved when 2FA is enabled)
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    const { error: updateError } = await adminClient
       .from('profiles')
       .update({ backup_codes: backupCodes })
-      .eq('id', user.id);
+      .eq('user_id', user.id);
 
     if (updateError) {
       console.error('Error storing backup codes:', updateError);

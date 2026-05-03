@@ -5,8 +5,8 @@ import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { Alert, AlertDescription } from './ui/alert';
 import { sendWithdrawalNotificationEmail } from '@/utils/email';
+import { useExchangeRate } from '@/hooks/useExchangeRate';
 
-const EXCHANGE_RATE = 1250;
 const MIN_WITHDRAWAL = 50;
 const MAX_WITHDRAWAL = 10000;
 
@@ -20,6 +20,7 @@ interface WithdrawalFormProps {
 
 const WithdrawalForm: React.FC<WithdrawalFormProps> = ({ availableBalance, creditBalance = 0, userId, artistId, onSuccess }) => {
   const { toast } = useToast();
+  const { rate: EXCHANGE_RATE } = useExchangeRate();
   const [loading, setLoading] = useState(false);
   const [hasPendingWithdrawal, setHasPendingWithdrawal] = useState(false);
   const [checkingPending, setCheckingPending] = useState(true);

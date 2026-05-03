@@ -81,7 +81,7 @@ serve(async (req) => {
         two_factor_recovery_code: null,
         two_factor_recovery_expires: null
       })
-      .eq('id', user.id)
+      .eq('user_id', user.id)
 
     if (updateError) {
       console.error('Error updating profile:', updateError)
