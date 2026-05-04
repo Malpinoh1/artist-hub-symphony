@@ -217,9 +217,9 @@ const IncomeManagementTab: React.FC = () => {
       if (!splitRow) {
         const { data: created, error } = await supabase.from('splits').insert([{
           track_id: splitTrackId, owner_artist_id: trk?.primary_artist_id, status: 'active',
-        }]).select('id').single();
+        }]).select('id, status').single();
         if (error) throw error;
-        splitRow = created;
+        splitRow = created as any;
       }
       const { data: artistRow } = await supabase.from('artists').select('email').eq('id', newSplitArtist).maybeSingle();
       const { error } = await supabase.from('split_recipients').insert([{
