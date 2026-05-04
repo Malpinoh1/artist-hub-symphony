@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccountProvider } from "./contexts/AccountContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import DashboardLayout from "./components/DashboardLayout";
 import MobileBottomNav from "./components/MobileBottomNav";
@@ -118,7 +119,7 @@ const AppContent = () => {
         <Route path="/support" element={<DashboardPage><Support /></DashboardPage>} />
         <Route path="/transactions" element={<DashboardPage><Transactions /></DashboardPage>} />
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
-        <Route path="/admin" element={<DashboardPage><AdminDashboard /></DashboardPage>} />
+        <Route path="/admin" element={<AdminProtectedRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
       </Routes>
