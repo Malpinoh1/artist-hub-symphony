@@ -8,45 +8,25 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Plus, Trash2, Loader2, Send, AlertTriangle, Music, Upload } from 'lucide-react';
+import { Plus, Trash2, Loader2, Music, Upload, Wand2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
-interface Release {
-  id: string;
-  title: string;
-  artist_name: string | null;
-  release_date: string;
-  status: string;
-}
+interface Release { id: string; title: string; artist_name: string | null; }
+interface Track { id: string; title: string; track_number: number; }
+interface Recipient { email: string; role: string; percentage: string; }
 
-interface Track {
-  id: string;
-  title: string;
-  track_number: number;
-  release_id: string;
-}
-
-interface CollaboratorEntry {
-  email: string;
-  role: string;
-  percentage: string;
-}
-
-interface CreateRoyaltySplitFormProps {
+interface Props {
   preSelectedReleaseId?: string;
   onSuccess?: () => void;
 }
 
-const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
-  preSelectedReleaseId,
-  onSuccess,
-}) => {
+const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSuccess }) => {
   const { user } = useAuth();
   const { currentAccountId } = useAccount();
   const navigate = useNavigate();
+  const accountId = currentAccountId || user?.id || null;
+
   const [releases, setReleases] = useState<Release[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,464 +34,294 @@ const CreateRoyaltySplitForm: React.FC<CreateRoyaltySplitFormProps> = ({
 
   const [selectedRelease, setSelectedRelease] = useState(preSelectedReleaseId || '');
   const [selectedTrack, setSelectedTrack] = useState('');
+  const [ownerPct, setOwnerPct] = useState<string>('100');
+  const [recipients, setRecipients] = useState<Recipient[]>([]);
 
-  // Owner entry (auto-filled)
-  const [ownerPercentage, setOwnerPercentage] = useState('100');
-
-  // Collaborators
-  const [collaborators, setCollaborators] = useState<CollaboratorEntry[]>([]);
-
-  const accountId = currentAccountId || user?.id || null;
-
-  // Fetch releases for the active account
   const fetchReleases = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
-    try {
-      const { data } = await supabase
-        .from('releases')
-        .select('id, title, artist_name, release_date, status, artist_id')
-        .eq('artist_id', accountId)
-        .order('release_date', { ascending: false });
-      setReleases(data || []);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await supabase
+      .from('releases')
+      .select('id, title, artist_name')
+      .eq('artist_id', accountId)
+      .order('release_date', { ascending: false });
+    setReleases(data || []);
+    setLoading(false);
   }, [accountId]);
 
   useEffect(() => { fetchReleases(); }, [fetchReleases]);
 
-  // Fetch tracks when release is selected (RLS already restricts visibility)
   useEffect(() => {
-    if (!selectedRelease || selectedRelease === 'new') {
-      setTracks([]);
-      setSelectedTrack('');
-      return;
-    }
-    const fetchTracks = async () => {
-      const { data: tracksData } = await supabase
-        .from('tracks')
-        .select('id, title')
-        .eq('release_id', selectedRelease)
-        .order('created_at');
-
-      if (tracksData && tracksData.length > 0) {
-        setTracks(tracksData.map((t, i) => ({
-          id: t.id,
-          title: t.title,
-          track_number: i + 1,
-          release_id: selectedRelease,
-        })));
-        setSelectedTrack('');
-        return;
-      }
-
-      // Fallback: auto-create tracks from release_tracks if missing
-      const { data: releaseTracks } = await supabase
-        .from('release_tracks')
-        .select('id, title, track_number')
-        .eq('release_id', selectedRelease)
-        .order('track_number');
-
-      if (releaseTracks && releaseTracks.length > 0) {
-        // Determine the release owner so primary_artist_id is correct
-        const { data: releaseRow } = await supabase
-          .from('releases')
-          .select('artist_id')
-          .eq('id', selectedRelease)
-          .maybeSingle();
-        const ownerId = releaseRow?.artist_id || accountId;
-
-        for (const rt of releaseTracks) {
-          await supabase.from('tracks').insert({
-            title: rt.title,
-            primary_artist_id: ownerId,
-            release_id: selectedRelease,
-            release_track_id: rt.id,
-          }).select().maybeSingle();
+    if (!selectedRelease) { setTracks([]); setSelectedTrack(''); return; }
+    (async () => {
+      let { data: trks } = await supabase
+        .from('tracks').select('id, title')
+        .eq('release_id', selectedRelease).order('created_at');
+      if (!trks || trks.length === 0) {
+        const { data: rt } = await supabase
+          .from('release_tracks').select('id, title, track_number')
+          .eq('release_id', selectedRelease).order('track_number');
+        if (rt && rt.length > 0) {
+          const { data: rel } = await supabase.from('releases').select('artist_id').eq('id', selectedRelease).maybeSingle();
+          for (const t of rt) {
+            await supabase.from('tracks').insert({
+              title: t.title, primary_artist_id: rel?.artist_id || accountId,
+              release_id: selectedRelease, release_track_id: t.id,
+            });
+          }
+          ({ data: trks } = await supabase.from('tracks').select('id, title').eq('release_id', selectedRelease).order('created_at'));
         }
-        const { data: newTracks } = await supabase
-          .from('tracks')
-          .select('id, title')
-          .eq('release_id', selectedRelease)
-          .order('created_at');
-
-        setTracks((newTracks || []).map((t, i) => ({
-          id: t.id,
-          title: t.title,
-          track_number: i + 1,
-          release_id: selectedRelease,
-        })));
-      } else {
-        setTracks([]);
       }
+      setTracks((trks || []).map((t, i) => ({ id: t.id, title: t.title, track_number: i + 1 })));
       setSelectedTrack('');
-    };
-    fetchTracks();
+    })();
   }, [selectedRelease, accountId]);
 
-  const handleAddCollaborator = () => {
-    setCollaborators(prev => [...prev, { email: '', role: 'collaborator', percentage: '' }]);
+  const recipTotal = recipients.reduce((s, r) => s + (Number(r.percentage) || 0), 0);
+  const owner = Number(ownerPct) || 0;
+  const total = owner + recipTotal;
+  const remaining = 100 - total;
+
+  const addRecipient = () => setRecipients(p => [...p, { email: '', role: 'collaborator', percentage: '' }]);
+  const removeRecipient = (i: number) => setRecipients(p => p.filter((_, idx) => idx !== i));
+  const update = (i: number, field: keyof Recipient, v: string) =>
+    setRecipients(p => p.map((r, idx) => idx === i ? { ...r, [field]: v } : r));
+
+  const autoFill = (i: number) => {
+    const others = recipients.reduce((s, r, idx) => idx === i ? s : s + (Number(r.percentage) || 0), 0);
+    const fill = Math.max(0, 100 - owner - others);
+    update(i, 'percentage', String(fill));
   };
 
-  const handleRemoveCollaborator = (idx: number) => {
-    setCollaborators(prev => prev.filter((_, i) => i !== idx));
-  };
-
-  const handleCollaboratorChange = (idx: number, field: keyof CollaboratorEntry, value: string) => {
-    setCollaborators(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c));
-  };
-
-  const collabTotal = collaborators.reduce((sum, c) => sum + (Number(c.percentage) || 0), 0);
-  const ownerPct = Number(ownerPercentage) || 0;
-  const totalPct = ownerPct + collabTotal;
-
-  // Auto-adjust owner percentage when collaborators change
-  useEffect(() => {
-    const remaining = 100 - collabTotal;
-    if (remaining >= 0 && remaining <= 100) {
-      setOwnerPercentage(String(remaining));
-    }
-  }, [collabTotal]);
-
-  const handleSubmit = async () => {
+  const submit = async () => {
     if (!user || !selectedTrack) return;
+    if (Math.abs(total - 100) > 0.001) { toast.error(`Total must equal 100% (currently ${total.toFixed(2)}%)`); return; }
+    if (owner <= 0) { toast.error('Your share must be greater than 0'); return; }
+    if (recipients.length === 0) { toast.error('Add at least one collaborator'); return; }
 
-    if (totalPct !== 100) {
-      toast.error('Total split must equal 100 percent.');
-      return;
-    }
-
-    if (ownerPct <= 0) {
-      toast.error('Your share must be greater than 0.');
-      return;
-    }
-
-    // Check duplicate emails
-    const emails = collaborators.map(c => c.email.toLowerCase().trim());
-    if (new Set(emails).size !== emails.length) {
-      toast.error('Cannot add the same email twice.');
-      return;
-    }
-
-    // Check empty fields
-    for (const c of collaborators) {
-      if (!c.email.trim() || !c.percentage || Number(c.percentage) <= 0) {
-        toast.error('All collaborators must have a valid email and percentage.');
-        return;
-      }
-      if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(c.email.trim())) {
-        toast.error(`Invalid email address: ${c.email}`);
-        return;
-      }
+    const emails = recipients.map(r => r.email.toLowerCase().trim());
+    if (new Set(emails).size !== emails.length) { toast.error('Duplicate collaborator emails'); return; }
+    for (const r of recipients) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email.trim())) { toast.error(`Invalid email: ${r.email}`); return; }
+      if (Number(r.percentage) <= 0) { toast.error('All percentages must be > 0'); return; }
     }
 
     setSubmitting(true);
     try {
-      // 1. Create owner's split record
-      const { error: ownerError } = await supabase.from('royalty_splits').insert({
-        track_id: selectedTrack,
-        artist_id: user.id,
-        percentage: ownerPct,
-        status: 'approved',
-        created_by: user.id,
-        release_id: selectedRelease || null,
-      });
-      if (ownerError) throw ownerError;
+      // Upsert split row for this track
+      const { data: existingSplit } = await supabase.from('splits').select('id, status').eq('track_id', selectedTrack).maybeSingle();
+      if (existingSplit?.status === 'locked') {
+        toast.error('This track already has earnings — split is locked.'); setSubmitting(false); return;
+      }
+      let splitId = existingSplit?.id as string | undefined;
+      if (!splitId) {
+        const { data: newSplit, error: sErr } = await supabase.from('splits').insert([{
+          track_id: selectedTrack, release_id: selectedRelease || null,
+          owner_artist_id: accountId, status: 'active',
+        }]).select('id').single();
+        if (sErr) throw sErr;
+        splitId = newSplit.id;
+      } else {
+        await supabase.from('splits').update({ status: 'active' }).eq('id', splitId);
+        await supabase.from('split_recipients').delete().eq('split_id', splitId);
+      }
 
-      // 2. Create invitations for collaborators
-      for (const collab of collaborators) {
-        // Check if collaborator has an account
-        const { data: existingArtist } = await supabase
-          .from('artists')
-          .select('id')
-          .eq('email', collab.email.toLowerCase().trim())
-          .maybeSingle();
+      // Owner row (auto-accepted)
+      await supabase.from('split_recipients').insert([{
+        split_id: splitId, artist_id: accountId, email: user.email,
+        percentage: owner, role: 'owner', status: 'accepted', accepted_at: new Date().toISOString(),
+      }]);
 
-        // Create royalty split record if artist exists
-        if (existingArtist) {
-          await supabase.from('royalty_splits').insert({
-            track_id: selectedTrack,
-            artist_id: existingArtist.id,
-            percentage: Number(collab.percentage),
-            status: 'approved',
-            created_by: user.id,
-            release_id: selectedRelease || null,
-          });
-        }
+      // Collaborators
+      const releaseTitle = releases.find(r => r.id === selectedRelease)?.title || 'Unknown';
+      const trackTitle = tracks.find(t => t.id === selectedTrack)?.title || 'Unknown';
 
-        // Create invitation
-        const { error: invError } = await supabase.from('split_invitations').insert({
-          track_id: selectedTrack,
-          release_id: selectedRelease || null,
-          invited_email: collab.email.toLowerCase().trim(),
-          percentage: Number(collab.percentage),
-          role: collab.role,
-          invited_by: user.id,
-        });
-        if (invError) throw invError;
+      for (const c of recipients) {
+        const email = c.email.toLowerCase().trim();
+        const { data: existingArtist } = await supabase.from('artists').select('id').eq('email', email).maybeSingle();
+        const { data: rec, error: rErr } = await supabase.from('split_recipients').insert([{
+          split_id: splitId, artist_id: existingArtist?.id || null, email,
+          percentage: Number(c.percentage), role: c.role, status: 'pending',
+        }]).select('invitation_token').single();
+        if (rErr) throw rErr;
 
-        // Send invitation email
-        const releaseTitle = releases.find(r => r.id === selectedRelease)?.title || 'Unknown Release';
-        const trackTitle = tracks.find(t => t.id === selectedTrack)?.title || 'Unknown Track';
-        
         try {
           await supabase.functions.invoke('send-email', {
             body: {
-              to: collab.email.trim(),
+              to: email,
               subject: "You've been invited to a royalty split",
-              html: `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <div style="background: #1a1a2e; padding: 24px; text-align: center;">
-                    <h1 style="color: white; margin: 0;">MALPINOHdistro</h1>
-                    <p style="color: #a0a0b0; font-size: 12px; margin: 4px 0 0;">GLOBAL MUSIC DISTRIBUTION SERVICE</p>
+              html: `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
+                <div style="background:#1a1a2e;padding:24px;text-align:center"><h1 style="color:#fff;margin:0">MALPINOHdistro</h1></div>
+                <div style="padding:32px 24px">
+                  <h2>Royalty Split Invitation</h2>
+                  <p>You have been invited to receive royalties for:</p>
+                  <div style="background:#f5f5f7;padding:16px;border-radius:8px;margin:16px 0">
+                    <p><strong>Track:</strong> ${trackTitle}</p>
+                    <p><strong>Release:</strong> ${releaseTitle}</p>
+                    <p><strong>Your share:</strong> ${c.percentage}%</p>
+                    <p><strong>Role:</strong> ${c.role}</p>
                   </div>
-                  <div style="padding: 32px 24px;">
-                    <h2 style="color: #1a1a2e; margin: 0 0 16px;">Royalty Split Invitation</h2>
-                    <p style="color: #555;">You have been invited to receive royalties for:</p>
-                    <div style="background: #f5f5f7; padding: 16px; border-radius: 8px; margin: 16px 0;">
-                      <p style="margin: 4px 0; color: #333;"><strong>Track:</strong> ${trackTitle}</p>
-                      <p style="margin: 4px 0; color: #333;"><strong>Release:</strong> ${releaseTitle}</p>
-                      <p style="margin: 4px 0; color: #333;"><strong>Your Share:</strong> ${collab.percentage}%</p>
-                      <p style="margin: 4px 0; color: #333;"><strong>Role:</strong> ${collab.role}</p>
-                    </div>
-                    <div style="text-align: center; margin: 24px 0;">
-                      <a href="https://malpinohdistro.com/accept-split" style="background: #4f46e5; color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: 600;">Accept Split</a>
-                    </div>
-                    <p style="color: #999; font-size: 12px;">This invitation expires in 7 days.</p>
+                  <div style="text-align:center;margin:24px 0">
+                    <a href="${window.location.origin}/accept-split?token=${rec.invitation_token}"
+                       style="background:#4f46e5;color:#fff;padding:12px 32px;border-radius:6px;text-decoration:none;font-weight:600">Accept Split</a>
                   </div>
-                </div>
-              `,
+                </div></div>`,
             },
           });
-        } catch {
-          console.error('Failed to send invitation email to', collab.email);
-        }
+        } catch (e) { console.warn('Email failed for', email); }
       }
 
-      toast.success('Royalty splits created successfully! Invitations sent.');
-      setCollaborators([]);
-      setOwnerPercentage('100');
-      setSelectedTrack('');
+      toast.success('Split created and invitations sent');
+      setRecipients([]); setOwnerPct('100'); setSelectedTrack('');
       onSuccess?.();
     } catch (err: any) {
-      toast.error(err.message || 'Failed to submit splits');
+      toast.error(err.message || 'Failed to create split');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
-  }
-
+  if (loading) return <div className="flex justify-center py-8"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>;
   if (releases.length === 0) {
     return (
       <Card>
         <CardContent className="py-12 text-center space-y-4">
           <Music className="h-12 w-12 mx-auto text-muted-foreground" />
-          <div>
-            <h3 className="font-semibold text-lg">You don't have any releases yet.</h3>
-            <p className="text-muted-foreground">Upload your first release to create royalty splits.</p>
-          </div>
-          <Button onClick={() => navigate('/release-form')}>
-            <Upload className="h-4 w-4 mr-2" />Upload Release
-          </Button>
+          <h3 className="font-semibold text-lg">No releases yet</h3>
+          <p className="text-muted-foreground text-sm">Upload your first release to create royalty splits.</p>
+          <Button onClick={() => navigate('/release-form')} className="min-h-[44px]"><Upload className="h-4 w-4 mr-2" />Upload Release</Button>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Release Selector */}
+    <div className="space-y-4 sm:space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Select Release</CardTitle>
-          <CardDescription>Choose the release you want to create a royalty split for.</CardDescription>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base sm:text-lg">1. Pick release & track</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Select value={selectedRelease} onValueChange={(v) => {
-            if (v === 'new') {
-              navigate('/release-form');
-              return;
-            }
-            setSelectedRelease(v);
-          }}>
-            <SelectTrigger className="max-w-md">
-              <SelectValue placeholder="Choose a release..." />
-            </SelectTrigger>
-            <SelectContent>
-              {releases.map(r => (
-                <SelectItem key={r.id} value={r.id}>
-                  {r.title} {r.artist_name ? `— ${r.artist_name}` : ''}
-                </SelectItem>
-              ))}
-              <SelectItem value="new">
-                <span className="flex items-center gap-1"><Plus className="h-3 w-3" />Create New Release</span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
+        <CardContent className="space-y-3">
+          <div>
+            <Label className="text-xs">Release</Label>
+            <Select value={selectedRelease} onValueChange={setSelectedRelease}>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="Choose a release..." /></SelectTrigger>
+              <SelectContent>
+                {releases.map(r => (
+                  <SelectItem key={r.id} value={r.id}>{r.title}{r.artist_name ? ` — ${r.artist_name}` : ''}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedRelease && (
+            <div>
+              <Label className="text-xs">Track</Label>
+              {tracks.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-2">No tracks found for this release.</p>
+              ) : (
+                <Select value={selectedTrack} onValueChange={setSelectedTrack}>
+                  <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="Choose a track..." /></SelectTrigger>
+                  <SelectContent>
+                    {tracks.map(t => <SelectItem key={t.id} value={t.id}>{t.track_number}. {t.title}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      {/* Track Selector */}
-      {selectedRelease && selectedRelease !== 'new' && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Select Track</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {tracks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No tracks found for this release.</p>
-            ) : (
-              <Select value={selectedTrack} onValueChange={setSelectedTrack}>
-                <SelectTrigger className="max-w-md">
-                  <SelectValue placeholder="Choose a track..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {tracks.map(t => (
-                    <SelectItem key={t.id} value={t.id}>
-                      {t.track_number}. {t.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Split Creation Form */}
       {selectedTrack && (
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Royalty Split</CardTitle>
-            <CardDescription>Add collaborators and set percentage shares. Total must equal 100%.</CardDescription>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base sm:text-lg">2. Set up split</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Total must equal exactly 100%.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Owner entry */}
-            <div className="flex items-end gap-4 p-4 rounded-lg bg-muted/50 border">
-              <div className="flex-1">
-                <Label className="text-xs text-muted-foreground">Primary Artist (You)</Label>
-                <p className="font-medium mt-1">{user?.email}</p>
+          <CardContent className="space-y-4">
+            {/* Owner */}
+            <div className="rounded-lg border bg-muted/40 p-3 sm:p-4 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs text-muted-foreground">Primary Artist (You)</p>
+                  <p className="font-medium truncate text-sm">{user?.email}</p>
+                </div>
+                <Badge variant="secondary" className="shrink-0">Owner</Badge>
               </div>
-              <div className="w-20">
-                <Label className="text-xs">%</Label>
-                <Input
-                  type="number"
-                  min="0.01"
-                  max="100"
-                  step="0.01"
-                  value={ownerPercentage}
-                  onChange={e => setOwnerPercentage(e.target.value)}
-                />
+              <div>
+                <Label className="text-xs">Your share %</Label>
+                <Input type="number" min="0.01" max="100" step="0.01" inputMode="decimal"
+                  className="min-h-[44px]" value={ownerPct} onChange={e => setOwnerPct(e.target.value)} />
               </div>
-              <Badge variant="secondary" className="mb-1">Owner</Badge>
             </div>
 
-            {/* Collaborators */}
-            {collaborators.map((collab, idx) => (
-              <div key={idx} className="flex items-end gap-3 p-4 rounded-lg border">
-                <div className="flex-1">
-                  <Label className="text-xs">Email Address</Label>
-                  <Input
-                    type="email"
-                    value={collab.email}
-                    onChange={e => handleCollaboratorChange(idx, 'email', e.target.value)}
-                    placeholder="collaborator@email.com"
-                  />
+            {/* Recipients */}
+            {recipients.map((r, i) => (
+              <div key={i} className="rounded-lg border p-3 sm:p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-medium text-muted-foreground">Collaborator {i + 1}</p>
+                  <Button variant="ghost" size="icon" onClick={() => removeRecipient(i)} className="min-h-[44px] min-w-[44px]">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
                 </div>
-                <div className="w-32">
-                  <Label className="text-xs">Role</Label>
-                  <Select value={collab.role} onValueChange={v => handleCollaboratorChange(idx, 'role', v)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="collaborator">Collaborator</SelectItem>
-                      <SelectItem value="producer">Producer</SelectItem>
-                      <SelectItem value="songwriter">Songwriter</SelectItem>
-                      <SelectItem value="featured">Featured Artist</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <Label className="text-xs">Email</Label>
+                  <Input type="email" inputMode="email" className="min-h-[44px]"
+                    placeholder="collaborator@email.com" value={r.email}
+                    onChange={e => update(i, 'email', e.target.value)} />
                 </div>
-                <div className="w-20">
-                  <Label className="text-xs">%</Label>
-                  <Input
-                    type="number"
-                    min="0.01"
-                    max="100"
-                    step="0.01"
-                    value={collab.percentage}
-                    onChange={e => handleCollaboratorChange(idx, 'percentage', e.target.value)}
-                    placeholder="0"
-                  />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">Role</Label>
+                    <Select value={r.role} onValueChange={v => update(i, 'role', v)}>
+                      <SelectTrigger className="min-h-[44px]"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="collaborator">Collaborator</SelectItem>
+                        <SelectItem value="producer">Producer</SelectItem>
+                        <SelectItem value="songwriter">Songwriter</SelectItem>
+                        <SelectItem value="featured">Featured Artist</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs">Percentage</Label>
+                    <div className="flex gap-1">
+                      <Input type="number" min="0.01" max="100" step="0.01" inputMode="decimal"
+                        className="min-h-[44px]" value={r.percentage}
+                        onChange={e => update(i, 'percentage', e.target.value)} placeholder="0" />
+                      <Button type="button" variant="outline" size="icon" className="min-h-[44px] min-w-[44px] shrink-0"
+                        onClick={() => autoFill(i)} title="Fill remaining">
+                        <Wand2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => handleRemoveCollaborator(idx)}>
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
               </div>
             ))}
 
-            <Button variant="outline" size="sm" onClick={handleAddCollaborator}>
-              <Plus className="h-3 w-3 mr-1" />Add Collaborator
+            <Button variant="outline" onClick={addRecipient} className="w-full min-h-[44px]">
+              <Plus className="h-4 w-4 mr-2" />Add Collaborator
             </Button>
 
-            {/* Summary */}
-            <div className="flex items-center justify-between pt-4 border-t">
-              <div className={`text-sm font-semibold ${totalPct === 100 ? 'text-green-600' : 'text-destructive'}`}>
-                Total: {totalPct}% {totalPct !== 100 && '(must be 100%)'}
+            {/* Live total */}
+            <div className={`rounded-lg p-3 border-2 ${
+              Math.abs(total - 100) < 0.001 ? 'border-green-500 bg-green-500/10' :
+              total > 100 ? 'border-destructive bg-destructive/10' : 'border-yellow-500 bg-yellow-500/10'
+            }`}>
+              <div className="flex items-center justify-between text-sm font-semibold">
+                <span>Total</span>
+                <span>{total.toFixed(2)}% / 100%</span>
               </div>
-              <div className="text-sm text-muted-foreground">
-                {1 + collaborators.length} participant(s)
-              </div>
+              {Math.abs(total - 100) >= 0.001 && (
+                <p className="text-xs mt-1 text-muted-foreground">
+                  {remaining > 0 ? `${remaining.toFixed(2)}% remaining` : `Over by ${Math.abs(remaining).toFixed(2)}%`}
+                </p>
+              )}
             </div>
 
-            {totalPct !== 100 && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>Total split must equal 100 percent.</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Existing splits table */}
-            {collaborators.length > 0 && (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Percentage</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  <TableRow>
-                    <TableCell className="font-medium">{user?.email} (You)</TableCell>
-                    <TableCell>Owner</TableCell>
-                    <TableCell>{ownerPct}%</TableCell>
-                    <TableCell><Badge className="bg-green-600 text-white">Active</Badge></TableCell>
-                  </TableRow>
-                  {collaborators.map((c, i) => (
-                    <TableRow key={i}>
-                      <TableCell>{c.email || '—'}</TableCell>
-                      <TableCell className="capitalize">{c.role}</TableCell>
-                      <TableCell>{c.percentage || 0}%</TableCell>
-                      <TableCell><Badge variant="secondary">Invitation Pending</Badge></TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            )}
-
-            <Button
-              onClick={handleSubmit}
-              disabled={submitting || totalPct !== 100 || collaborators.length === 0}
-              className="w-full"
-            >
-              {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Send className="h-4 w-4 mr-2" />}
-              Create Split & Send Invitations
+            <Button onClick={submit} disabled={submitting || Math.abs(total - 100) >= 0.001 || recipients.length === 0}
+              className="w-full min-h-[48px]">
+              {submitting ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+              Save & Send Invitations
             </Button>
           </CardContent>
         </Card>
