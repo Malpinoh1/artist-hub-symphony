@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '../../integrations/supabase/client';
 import { sendMarketingEmail } from '../../services/emailService';
+import DOMPurify from 'dompurify';
 
 interface MarketingRecipient {
   id: string;
@@ -278,7 +279,7 @@ True marketing_emails: ${allProfiles?.filter(p => p.marketing_emails === true).l
                   <strong>From:</strong> MALPINOHdistro &lt;marketing@malpinohdistro.com.ng&gt;<br/>
                   <strong>Subject:</strong> {emailData.subject || "Your subject line"}
                 </div>
-                <div dangerouslySetInnerHTML={{ __html: getPreviewContent() }} />
+                <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(getPreviewContent()) }} />
                 {emailData.actionLabel && emailData.actionUrl && (
                   <div className="mt-4">
                     <Button size="sm" className="bg-blue-600 hover:bg-blue-700">
