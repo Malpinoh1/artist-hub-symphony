@@ -254,11 +254,11 @@ const Auth = () => {
       }
       
       if (data.user) {
-        // Check if user has 2FA enabled (if profile exists)
+        // Check if user has 2FA enabled
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('two_factor_enabled')
-          .eq('id', data.user.id)
+          .eq('user_id', data.user.id)
           .maybeSingle();
 
         if (profileError && profileError.code !== 'PGRST116') {
@@ -266,21 +266,16 @@ const Auth = () => {
         }
 
         if (profile?.two_factor_enabled) {
-          // User needs 2FA verification - store session data for re-authentication
-          setPendingSession({
-            user: data.user,
-            session: data.session,
-            email: email,
-            password: password
-          });
-          // Sign out temporarily until 2FA is verified
+          // Sign out immediately; do NOT keep password in memory.
+          // User must complete 2FA via the verify-2fa edge function (looks up by email).
           await supabase.auth.signOut();
+          setPendingSession({ email });
           setNeedsTwoFactor(true);
           setLoading(false);
           return;
         }
 
-        // Complete login without 2FA (no profile or 2FA disabled)
+        // Complete login without 2FA
         await completeLogin(data.user);
       }
     } catch (error: any) {
@@ -315,17 +310,11 @@ const Auth = () => {
   };
 
   const handle2FAVerificationSuccess = async () => {
-    if (pendingSession?.email && pendingSession?.password) {
-      // Re-authenticate with stored credentials after 2FA verification
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: pendingSession.email,
-        password: pendingSession.password
-      });
-      
-      if (!error && data.user) {
-        await completeLogin(data.user);
-      }
-    }
+    // After 2FA succeeds, ask user to re-enter password (no password stored).
+    setNeedsTwoFactor(false);
+    setPendingSession(null);
+    setPassword('');
+    showNotification('success', '2FA verified', 'Please sign in again to complete login.');
   };
 
   const handleBack2FA = () => {
