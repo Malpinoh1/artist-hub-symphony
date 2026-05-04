@@ -1919,6 +1919,83 @@ export type Database = {
           },
         ]
       }
+      split_recipients: {
+        Row: {
+          accepted_at: string | null
+          artist_id: string | null
+          email: string | null
+          id: string
+          invitation_token: string | null
+          invited_at: string
+          percentage: number
+          role: string
+          split_id: string
+          status: Database["public"]["Enums"]["split_recipient_status"]
+        }
+        Insert: {
+          accepted_at?: string | null
+          artist_id?: string | null
+          email?: string | null
+          id?: string
+          invitation_token?: string | null
+          invited_at?: string
+          percentage: number
+          role?: string
+          split_id: string
+          status?: Database["public"]["Enums"]["split_recipient_status"]
+        }
+        Update: {
+          accepted_at?: string | null
+          artist_id?: string | null
+          email?: string | null
+          id?: string
+          invitation_token?: string | null
+          invited_at?: string
+          percentage?: number
+          role?: string
+          split_id?: string
+          status?: Database["public"]["Enums"]["split_recipient_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "split_recipients_split_id_fkey"
+            columns: ["split_id"]
+            isOneToOne: false
+            referencedRelation: "splits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      splits: {
+        Row: {
+          created_at: string
+          id: string
+          owner_artist_id: string
+          release_id: string | null
+          status: Database["public"]["Enums"]["split_status"]
+          track_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          owner_artist_id: string
+          release_id?: string | null
+          status?: Database["public"]["Enums"]["split_status"]
+          track_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          owner_artist_id?: string
+          release_id?: string | null
+          status?: Database["public"]["Enums"]["split_status"]
+          track_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       streaming_links: {
         Row: {
           created_at: string
@@ -2324,6 +2401,8 @@ export type Database = {
         | "Rejected"
         | "TakeDown"
         | "TakeDownRequested"
+      split_recipient_status: "pending" | "accepted" | "declined"
+      split_status: "draft" | "active" | "locked"
       user_role: "user" | "admin"
     }
     CompositeTypes: {
@@ -2461,6 +2540,8 @@ export const Constants = {
         "TakeDown",
         "TakeDownRequested",
       ],
+      split_recipient_status: ["pending", "accepted", "declined"],
+      split_status: ["draft", "active", "locked"],
       user_role: ["user", "admin"],
     },
   },
