@@ -80,12 +80,16 @@ const IncomeManagementTab: React.FC = () => {
     }
     setLoadingSplitCheck(true);
     try {
+      const { data: splitRow } = await supabase
+        .from('splits').select('id').eq('track_id', trackId)
+        .in('status', ['active','locked']).maybeSingle();
+      if (!splitRow) { setSelectedTrackSplits([]); return; }
       const { data } = await supabase
-        .from('royalty_splits')
-        .select('*')
-        .eq('track_id', trackId)
-        .eq('status', 'approved');
-      setSelectedTrackSplits(data || []);
+        .from('split_recipients').select('id, split_id, artist_id, percentage, status')
+        .eq('split_id', splitRow.id).eq('status', 'accepted');
+      setSelectedTrackSplits((data || []).map((r: any) => ({
+        id: r.id, track_id: trackId, artist_id: r.artist_id, percentage: r.percentage, status: r.status,
+      })));
     } catch {
       setSelectedTrackSplits([]);
     } finally {
@@ -136,13 +140,15 @@ const IncomeManagementTab: React.FC = () => {
       const track = tracks.find(t => t.id === selectedTrack);
       const platform = platforms.find(p => p.id === selectedPlatform);
 
-      const { data: splitData } = await supabase
-        .from('royalty_splits')
-        .select('artist_id')
-        .eq('track_id', selectedTrack);
-
+      const { data: splitRow2 } = await supabase
+        .from('splits').select('id').eq('track_id', selectedTrack)
+        .in('status', ['active','locked']).maybeSingle();
+      const { data: splitData } = splitRow2
+        ? await supabase.from('split_recipients').select('artist_id')
+            .eq('split_id', splitRow2.id).eq('status', 'accepted')
+        : { data: [] as any[] };
       const artistIds = splitData && splitData.length > 0
-        ? splitData.map(s => s.artist_id)
+        ? splitData.map((s: any) => s.artist_id).filter(Boolean)
         : [track?.primary_artist_id].filter(Boolean);
 
       supabase.functions.invoke('send-income-notification', {
@@ -190,11 +196,12 @@ const IncomeManagementTab: React.FC = () => {
 
   const loadSplits = async (trackId: string) => {
     setSplitTrackId(trackId);
-    const { data } = await supabase
-      .from('royalty_splits')
-      .select('*')
-      .eq('track_id', trackId);
-    setSplits(data || []);
+    const { data: splitRow } = await supabase.from('splits').select('id').eq('track_id', trackId).maybeSingle();
+    if (!splitRow) { setSplits([]); setSplitDialogOpen(true); return; }
+    const { data } = await supabase.from('split_recipients').select('*').eq('split_id', splitRow.id);
+    setSplits((data || []).map((r: any) => ({
+      id: r.id, track_id: trackId, artist_id: r.artist_id, percentage: r.percentage, status: r.status,
+    })));
     setSplitDialogOpen(true);
   };
 
@@ -204,20 +211,25 @@ const IncomeManagementTab: React.FC = () => {
       return;
     }
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { error } = await supabase.from('royalty_splits').insert({
-        track_id: splitTrackId,
-        artist_id: newSplitArtist,
-        percentage: Number(newSplitPercentage),
-        status: 'approved',
-        created_by: user?.id,
-        approved_by: user?.id,
-        approved_at: new Date().toISOString(),
-      });
+      const trk = tracks.find(t => t.id === splitTrackId);
+      let { data: splitRow } = await supabase.from('splits').select('id, status').eq('track_id', splitTrackId).maybeSingle();
+      if (splitRow?.status === 'locked') { toast.error('Split is locked (track has earnings).'); return; }
+      if (!splitRow) {
+        const { data: created, error } = await supabase.from('splits').insert([{
+          track_id: splitTrackId, owner_artist_id: trk?.primary_artist_id, status: 'active',
+        }]).select('id').single();
+        if (error) throw error;
+        splitRow = created;
+      }
+      const { data: artistRow } = await supabase.from('artists').select('email').eq('id', newSplitArtist).maybeSingle();
+      const { error } = await supabase.from('split_recipients').insert([{
+        split_id: splitRow!.id, artist_id: newSplitArtist, email: artistRow?.email,
+        percentage: Number(newSplitPercentage), role: 'collaborator',
+        status: 'accepted', accepted_at: new Date().toISOString(),
+      }]);
       if (error) throw error;
       toast.success('Split added');
-      setNewSplitArtist('');
-      setNewSplitPercentage('');
+      setNewSplitArtist(''); setNewSplitPercentage('');
       loadSplits(splitTrackId);
     } catch (err: any) {
       toast.error(err.message || 'Failed to add split');
@@ -226,9 +238,9 @@ const IncomeManagementTab: React.FC = () => {
 
   const handleDeleteSplit = async (splitId: string) => {
     try {
-      const { error } = await supabase.from('royalty_splits').delete().eq('id', splitId);
+      const { error } = await supabase.from('split_recipients').delete().eq('id', splitId);
       if (error) throw error;
-      toast.success('Split removed');
+      toast.success('Recipient removed');
       loadSplits(splitTrackId);
     } catch (err: any) {
       toast.error(err.message || 'Failed to remove split');
