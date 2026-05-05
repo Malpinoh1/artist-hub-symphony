@@ -418,7 +418,27 @@ const IncomeManagementTab: React.FC = () => {
               </Dialog>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-2">
+                {tracks.map(track => (
+                  <div key={track.id} className="border rounded-lg p-3 bg-card">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{track.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getArtistName(track.primary_artist_id)}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(track.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="min-h-[44px] shrink-0" onClick={() => loadSplits(track.id)}>
+                        <Users className="h-3 w-3 mr-1" />Splits
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {tracks.length === 0 && <div className="text-center text-muted-foreground py-8">No tracks yet</div>}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
