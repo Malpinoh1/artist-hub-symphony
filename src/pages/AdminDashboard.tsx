@@ -228,11 +228,11 @@ const AdminDashboard = () => {
   ];
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-3 sm:px-4">
           <AnimatedCard>
-            <div className="mb-6">
-              <h1 className="text-3xl font-display font-bold text-black">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-2">Manage your distribution platform</p>
+            <div className="mb-4 sm:mb-6">
+              <h1 className="text-xl sm:text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
+              <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your distribution platform</p>
             </div>
             
             <DashboardStats 
@@ -244,21 +244,21 @@ const AdminDashboard = () => {
               pendingWithdrawalsAmount={pendingWithdrawalsAmount}
             />
             
-            <div className="border-b border-gray-200 mb-6">
+            <div className="border-b border-border mb-4 sm:mb-6 -mx-3 sm:mx-0 px-3 sm:px-0">
               <div className="flex overflow-x-auto space-x-1 pb-1 -mb-px scrollbar-thin">
                 {tabs.map((tab) => (
                   <button 
                     key={tab.id}
                     onClick={() => handleTabChange(tab.id)}
-                    className={`px-3 py-2 border-b-2 whitespace-nowrap flex items-center text-sm ${
+                    className={`min-h-[44px] px-3 py-2 border-b-2 whitespace-nowrap flex items-center text-sm ${
                       activeTab === tab.id
-                        ? 'border-blue-500 text-blue-600 font-medium'
-                        : 'border-transparent hover:text-blue-500'
+                        ? 'border-primary text-primary font-medium'
+                        : 'border-transparent text-muted-foreground hover:text-primary'
                     }`}
                   >
                     <span>{tab.label}</span>
                     {tab.badge && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-red-100 text-red-700">
+                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-destructive/15 text-destructive">
                         {tab.badge}
                       </span>
                     )}
@@ -267,7 +267,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="glass-panel p-3 sm:p-6">
+            <div className="glass-panel p-2 sm:p-6">
               {renderActiveTabContent()}
             </div>
           </AnimatedCard>
