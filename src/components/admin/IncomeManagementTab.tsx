@@ -418,7 +418,27 @@ const IncomeManagementTab: React.FC = () => {
               </Dialog>
             </CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-2">
+                {tracks.map(track => (
+                  <div key={track.id} className="border rounded-lg p-3 bg-card">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="font-medium truncate">{track.title}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getArtistName(track.primary_artist_id)}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(track.created_at).toLocaleDateString()}</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="min-h-[44px] shrink-0" onClick={() => loadSplits(track.id)}>
+                        <Users className="h-3 w-3 mr-1" />Splits
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {tracks.length === 0 && <div className="text-center text-muted-foreground py-8">No tracks yet</div>}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -522,7 +542,29 @@ const IncomeManagementTab: React.FC = () => {
           <Card>
             <CardHeader><CardTitle>Income History</CardTitle></CardHeader>
             <CardContent>
-              <div className="overflow-x-auto">
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-2">
+                {incomes.map(inc => (
+                  <div key={inc.id} className="border rounded-lg p-3 bg-card space-y-1">
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground">{new Date(inc.date).toLocaleDateString()}</div>
+                        <div className="font-medium truncate">{getTrackTitle(inc.track_id)}</div>
+                        <div className="text-xs text-muted-foreground truncate">{getPlatformName(inc.platform_id)}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className="font-semibold text-green-600">${Number(inc.amount).toFixed(2)}</div>
+                        {getStatusBadge(inc.workflow_status)}
+                      </div>
+                    </div>
+                    {inc.description && <div className="text-xs text-muted-foreground truncate">{inc.description}</div>}
+                  </div>
+                ))}
+                {incomes.length === 0 && <div className="text-center text-muted-foreground py-8">No income records yet</div>}
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow>

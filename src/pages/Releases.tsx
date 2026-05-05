@@ -30,18 +30,18 @@ const ReleasesContent = () => {
 
   return (
     <div>
-      <section className="container mx-auto px-4 py-8 max-w-6xl">
-          <div className="flex justify-between items-center mb-8">
+      <section className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-6xl">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-1 sm:mb-2">
                 Your Releases
               </h1>
-              <p className="text-muted-foreground text-lg">
+              <p className="text-muted-foreground text-sm sm:text-lg">
                 Manage and track all your music releases
               </p>
             </div>
             {canManage && (
-              <Button asChild className="gap-2">
+              <Button asChild className="gap-2 w-full sm:w-auto min-h-[44px]">
                 <Link to="/new-release">  
                   <Plus className="w-4 h-4" />
                   New Release
