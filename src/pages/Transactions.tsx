@@ -114,66 +114,66 @@ const Transactions = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 px-1 sm:px-0">
       <div>
-        <h1 className="text-2xl font-bold">Transaction History</h1>
-        <p className="text-muted-foreground">View all your income and transaction records</p>
+        <h1 className="text-xl sm:text-2xl font-bold">Transaction History</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">View all your income and transaction records</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
         <AnimatedCard>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="h-4 w-4 text-primary" />
                 <span className="text-xs text-muted-foreground">Balance</span>
               </div>
-              <p className="text-lg font-bold">${currentBalance.toFixed(2)}</p>
+              <p className="text-base sm:text-lg font-bold">${currentBalance.toFixed(2)}</p>
             </CardContent>
           </Card>
         </AnimatedCard>
         <AnimatedCard>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <TrendingUp className="h-4 w-4 text-green-500" />
                 <span className="text-xs text-muted-foreground">Total Earned</span>
               </div>
-              <p className="text-lg font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
+              <p className="text-base sm:text-lg font-bold text-green-600">${totalEarnings.toFixed(2)}</p>
             </CardContent>
           </Card>
         </AnimatedCard>
         <AnimatedCard>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <ArrowDownRight className="h-4 w-4 text-red-500" />
                 <span className="text-xs text-muted-foreground">Withdrawn</span>
               </div>
-              <p className="text-lg font-bold text-red-600">${totalWithdrawn.toFixed(2)}</p>
+              <p className="text-base sm:text-lg font-bold text-red-600">${totalWithdrawn.toFixed(2)}</p>
             </CardContent>
           </Card>
         </AnimatedCard>
         <AnimatedCard>
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <DollarSign className="h-4 w-4 text-yellow-500" />
                 <span className="text-xs text-muted-foreground">Pending</span>
               </div>
-              <p className="text-lg font-bold">${pendingBalance.toFixed(2)}</p>
+              <p className="text-base sm:text-lg font-bold">${pendingBalance.toFixed(2)}</p>
             </CardContent>
           </Card>
         </AnimatedCard>
-        <AnimatedCard>
+        <AnimatedCard className="col-span-2 md:col-span-1">
           <Card>
-            <CardContent className="p-4">
+            <CardContent className="p-3 sm:p-4">
               <div className="flex items-center gap-2 mb-1">
                 <Receipt className="h-4 w-4 text-purple-500" />
                 <span className="text-xs text-muted-foreground">Transactions</span>
               </div>
-              <p className="text-lg font-bold">{txCount}</p>
+              <p className="text-base sm:text-lg font-bold">{txCount}</p>
             </CardContent>
           </Card>
         </AnimatedCard>
@@ -181,24 +181,24 @@ const Transactions = () => {
 
       {/* Filters */}
       <Card>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <CardContent className="p-3 sm:p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
             <Select value={filterTrack} onValueChange={setFilterTrack}>
-              <SelectTrigger><SelectValue placeholder="All Tracks" /></SelectTrigger>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="All Tracks" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Tracks</SelectItem>
                 {tracks.map(t => <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterPlatform} onValueChange={setFilterPlatform}>
-              <SelectTrigger><SelectValue placeholder="All Platforms" /></SelectTrigger>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="All Platforms" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Platforms</SelectItem>
                 {platforms.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={filterType} onValueChange={setFilterType}>
-              <SelectTrigger><SelectValue placeholder="All Types" /></SelectTrigger>
+              <SelectTrigger className="min-h-[44px]"><SelectValue placeholder="All Types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="income">Income</SelectItem>
@@ -207,58 +207,83 @@ const Transactions = () => {
                 <SelectItem value="withdrawal">Withdrawal</SelectItem>
               </SelectContent>
             </Select>
-            <Input type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="From" />
-            <Input type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} placeholder="To" />
+            <Input className="min-h-[44px]" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="From" />
+            <Input className="min-h-[44px]" type="date" value={filterDateTo} onChange={e => setFilterDateTo(e.target.value)} placeholder="To" />
           </div>
         </CardContent>
       </Card>
 
-      {/* Transaction Table */}
+      {/* Transaction Table / Cards */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+        <CardHeader className="p-4 sm:p-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
             <History className="h-5 w-5" />
             Transactions ({filtered.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Track</TableHead>
-                  <TableHead>Platform</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Balance</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+        <CardContent className="p-2 sm:p-6 sm:pt-0">
+          {filtered.length === 0 ? (
+            <div className="text-center text-muted-foreground py-12">No transactions found</div>
+          ) : (
+            <>
+              {/* Mobile cards */}
+              <div className="block md:hidden space-y-2">
                 {filtered.map(tx => (
-                  <TableRow key={tx.id}>
-                    <TableCell className="whitespace-nowrap">{new Date(tx.created_at).toLocaleDateString()}</TableCell>
-                    <TableCell>{getTrackTitle(tx.track_id)}</TableCell>
-                    <TableCell>{getPlatformName(tx.platform_id)}</TableCell>
-                    <TableCell className="max-w-[200px] truncate">{tx.description || '—'}</TableCell>
-                    <TableCell>{getTypeBadge(tx.type)}</TableCell>
-                    <TableCell className={`text-right font-medium ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                      {tx.amount >= 0 ? '+' : ''}${Number(tx.amount).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">${Number(tx.balance_after).toFixed(2)}</TableCell>
-                  </TableRow>
+                  <div key={tx.id} className="border rounded-lg p-3 bg-card">
+                    <div className="flex justify-between items-start gap-2 mb-2">
+                      <div className="min-w-0">
+                        <div className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString()}</div>
+                        <div className="font-medium truncate">{getTrackTitle(tx.track_id)}</div>
+                        <div className="text-xs text-muted-foreground truncate">{getPlatformName(tx.platform_id)}</div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <div className={`font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {tx.amount >= 0 ? '+' : ''}${Number(tx.amount).toFixed(2)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">Bal ${Number(tx.balance_after).toFixed(2)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      {getTypeBadge(tx.type)}
+                      {tx.description && <span className="text-xs text-muted-foreground truncate max-w-[60%]">{tx.description}</span>}
+                    </div>
+                  </div>
                 ))}
-                {filtered.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-12">
-                      No transactions found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+              </div>
+
+              {/* Desktop table */}
+              <div className="hidden md:block overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Track</TableHead>
+                      <TableHead>Platform</TableHead>
+                      <TableHead>Description</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="text-right">Balance</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map(tx => (
+                      <TableRow key={tx.id}>
+                        <TableCell className="whitespace-nowrap">{new Date(tx.created_at).toLocaleDateString()}</TableCell>
+                        <TableCell>{getTrackTitle(tx.track_id)}</TableCell>
+                        <TableCell>{getPlatformName(tx.platform_id)}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{tx.description || '—'}</TableCell>
+                        <TableCell>{getTypeBadge(tx.type)}</TableCell>
+                        <TableCell className={`text-right font-medium ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {tx.amount >= 0 ? '+' : ''}${Number(tx.amount).toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">${Number(tx.balance_after).toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
