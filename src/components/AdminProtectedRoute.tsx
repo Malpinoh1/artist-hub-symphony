@@ -60,11 +60,11 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
       setIsAdmin(admin);
       setChecking(false);
     };
-    check();
+    if (!isLoading) check();
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, isLoading]);
 
   if (isLoading || checking) {
     return (
