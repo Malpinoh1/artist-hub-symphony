@@ -16,9 +16,13 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 
   useEffect(() => {
     let active = true;
+    setChecking(true);
     const check = async () => {
       if (!user) {
-        if (active) setChecking(false);
+        if (active) {
+          setIsAdmin(false);
+          setChecking(false);
+        }
         return;
       }
 
