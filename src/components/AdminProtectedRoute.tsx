@@ -51,15 +51,22 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
   if (!user) return <Navigate to="/auth" replace />;
 
   if (!isAdmin) {
+    return <NotAdminRedirect />;
+  }
+
+  return <>{children}</>;
+};
+
+const NotAdminRedirect = () => {
+  const { toast } = useToast();
+  useEffect(() => {
     toast({
       title: 'Access denied',
       description: 'Admin privileges required.',
       variant: 'destructive',
     });
-    return <Navigate to="/dashboard" replace />;
-  }
-
-  return <>{children}</>;
+  }, []);
+  return <Navigate to="/dashboard" replace />;
 };
 
 export default AdminProtectedRoute;
