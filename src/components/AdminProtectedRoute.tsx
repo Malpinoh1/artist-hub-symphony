@@ -21,13 +21,39 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
         if (active) setChecking(false);
         return;
       }
-      const { data, error } = await supabase.rpc('user_is_admin', { user_id: user.id });
+
+      // Ensure the supabase client has the active session before checking
+      const { data: sessionData } = await supabase.auth.getSession();
       if (!active) return;
-      if (error) {
-        console.error('Admin check failed:', error);
+
+      let admin = false;
+
+      // Primary: RPC using auth.uid() default (most reliable when session is attached)
+      const rpcDefault = await supabase.rpc('user_is_admin');
+      if (rpcDefault.data === true) admin = true;
+      if (rpcDefault.error) console.warn('[AdminProtectedRoute] rpc default error:', rpcDefault.error);
+
+      // Secondary: RPC with explicit user_id
+      if (!admin) {
+        const rpcExplicit = await supabase.rpc('user_is_admin', { user_id: user.id });
+        if (rpcExplicit.data === true) admin = true;
+        if (rpcExplicit.error) console.warn('[AdminProtectedRoute] rpc explicit error:', rpcExplicit.error);
       }
-      console.log('[AdminProtectedRoute] user_is_admin result:', data, 'for', user.id);
-      setIsAdmin(data === true);
+
+      // Fallback: direct query
+      if (!admin) {
+        const { data: rows, error: rowsErr } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', user.id)
+          .eq('role', 'admin');
+        if (rowsErr) console.warn('[AdminProtectedRoute] direct query error:', rowsErr);
+        if (rows && rows.length > 0) admin = true;
+      }
+
+      if (!active) return;
+      console.log('[AdminProtectedRoute] final isAdmin:', admin, 'for', user.id, 'session?', !!sessionData.session);
+      setIsAdmin(admin);
       setChecking(false);
     };
     check();
