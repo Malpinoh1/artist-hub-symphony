@@ -16,9 +16,13 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 
   useEffect(() => {
     let active = true;
+    setChecking(true);
     const check = async () => {
       if (!user) {
-        if (active) setChecking(false);
+        if (active) {
+          setIsAdmin(false);
+          setChecking(false);
+        }
         return;
       }
 
@@ -56,11 +60,11 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
       setIsAdmin(admin);
       setChecking(false);
     };
-    check();
+    if (!isLoading) check();
     return () => {
       active = false;
     };
-  }, [user]);
+  }, [user, isLoading]);
 
   if (isLoading || checking) {
     return (
