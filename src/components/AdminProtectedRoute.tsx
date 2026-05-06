@@ -21,17 +21,13 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
         if (active) setChecking(false);
         return;
       }
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('user_is_admin', { user_id: user.id });
       if (!active) return;
       if (error) {
         console.error('Admin check failed:', error);
       }
-      setIsAdmin(!!data);
+      console.log('[AdminProtectedRoute] user_is_admin result:', data, 'for', user.id);
+      setIsAdmin(data === true);
       setChecking(false);
     };
     check();
