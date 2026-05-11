@@ -42,6 +42,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -51,6 +52,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data }) => setProfile(data));
+      supabase.rpc('user_is_admin', { user_id: user.id }).then(({ data }) => setIsAdmin(data === true));
     }
   }, [user]);
 
