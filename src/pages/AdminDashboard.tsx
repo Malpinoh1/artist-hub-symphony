@@ -230,9 +230,19 @@ const AdminDashboard = () => {
   return (
     <div className="container mx-auto px-3 sm:px-4">
           <AnimatedCard>
-            <div className="mb-4 sm:mb-6">
-              <h1 className="text-xl sm:text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
-              <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your distribution platform</p>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h1 className="text-xl sm:text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your distribution platform</p>
+              </div>
+              <a
+                href="/dashboard"
+                className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-600/10 hover:from-primary/20 hover:to-purple-600/20 text-sm font-medium text-foreground transition-all shadow-sm hover:shadow-md"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Switch to Artist Portal
+                <span aria-hidden>→</span>
+              </a>
             </div>
             
             <DashboardStats 
