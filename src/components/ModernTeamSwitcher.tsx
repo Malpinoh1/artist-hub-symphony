@@ -17,9 +17,10 @@ const roleMeta: Record<string, { label: string; icon: React.ComponentType<{ clas
 };
 
 const ModernTeamSwitcher: React.FC = () => {
-  const { currentUserId, currentAccountId, teamAccounts, switchAccount, isLoading } = useAccount();
+  const { currentUser, currentAccountId, teamAccounts, switchAccount, isLoading } = useAccount();
   const [open, setOpen] = useState(false);
 
+  const currentUserId = currentUser?.id;
   if (isLoading || !currentUserId) return null;
 
   const isPersonal = currentAccountId === currentUserId;
