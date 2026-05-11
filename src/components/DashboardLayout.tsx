@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import TeamSwitcher from './TeamSwitcher';
+import ModernTeamSwitcher from './ModernTeamSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +42,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -51,6 +52,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data }) => setProfile(data));
+      supabase.rpc('user_is_admin', { user_id: user.id }).then(({ data }) => setIsAdmin(data === true));
     }
   }, [user]);
 
@@ -115,7 +117,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* User Section */}
         <div className="px-3 py-4 border-t border-border">
-          {user && <TeamSwitcher currentUserId={user.id} />}
+          <ModernTeamSwitcher />
           <div className="mt-3 flex items-center gap-3 px-3 py-2">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
@@ -159,6 +161,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </Button>
+        </div>
+        <div className="px-3 pt-3">
+          <ModernTeamSwitcher />
         </div>
         <nav className="px-3 py-4 space-y-1">
           {sidebarNav.map((item) => {
@@ -204,6 +209,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Button>
 
           <div className="flex-1" />
+
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-600/10 hover:from-primary/20 hover:to-purple-600/20 text-xs font-medium text-foreground transition-all"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Admin Panel
+            </Link>
+          )}
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
