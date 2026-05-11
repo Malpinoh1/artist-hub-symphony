@@ -10,7 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
-import TeamSwitcher from './TeamSwitcher';
+import ModernTeamSwitcher from './ModernTeamSwitcher';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -115,7 +115,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* User Section */}
         <div className="px-3 py-4 border-t border-border">
-          {user && <TeamSwitcher currentUserId={user.id} />}
+          <ModernTeamSwitcher />
           <div className="mt-3 flex items-center gap-3 px-3 py-2">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
@@ -159,6 +159,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </Button>
+        </div>
+        <div className="px-3 pt-3">
+          <ModernTeamSwitcher />
         </div>
         <nav className="px-3 py-4 space-y-1">
           {sidebarNav.map((item) => {
