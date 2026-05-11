@@ -210,6 +210,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
           <div className="flex-1" />
 
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-600/10 hover:from-primary/20 hover:to-purple-600/20 text-xs font-medium text-foreground transition-all"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Admin Panel
+            </Link>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="h-9 w-9 rounded-full p-0">
