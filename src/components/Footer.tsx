@@ -26,10 +26,10 @@ const Footer = () => {
               Your music, everywhere. Independent music distribution with a personal touch.
             </p>
             <div className="flex gap-4 mt-6">
-              <SocialLink href="https://instagram.com/malpinohdistro" icon={<Instagram className="w-4 h-4" />} />
-              <SocialLink href="https://twitter.com/malpinohdistro" icon={<Twitter className="w-4 h-4" />} />
-              <SocialLink href="https://facebook.com/malpinohdistro" icon={<Facebook className="w-4 h-4" />} />
-              <SocialLink href="mailto:contact@malpinoh.com.ng" icon={<Mail className="w-4 h-4" />} />
+              <SocialLink href="https://instagram.com/malpinohdistro" label="MALPINOHdistro on Instagram" icon={<Instagram className="w-4 h-4" />} />
+              <SocialLink href="https://twitter.com/malpinohdistro" label="MALPINOHdistro on Twitter" icon={<Twitter className="w-4 h-4" />} />
+              <SocialLink href="https://facebook.com/malpinohdistro" label="MALPINOHdistro on Facebook" icon={<Facebook className="w-4 h-4" />} />
+              <SocialLink href="mailto:contact@malpinoh.com.ng" label="Email MALPINOHdistro" icon={<Mail className="w-4 h-4" />} />
             </div>
           </div>
           
@@ -90,11 +90,12 @@ const FooterLink = ({ to, children }: { to: string; children: React.ReactNode })
   </li>
 );
 
-const SocialLink = ({ href, icon }: { href: string; icon: React.ReactNode }) => (
-  <a 
-    href={href} 
-    target="_blank" 
+const SocialLink = ({ href, icon, label }: { href: string; icon: React.ReactNode; label: string }) => (
+  <a
+    href={href}
+    target="_blank"
     rel="noopener noreferrer"
+    aria-label={label}
     className="w-8 h-8 rounded-full bg-muted hover:bg-accent flex items-center justify-center text-muted-foreground hover:text-accent-foreground transition-colors"
   >
     {icon}

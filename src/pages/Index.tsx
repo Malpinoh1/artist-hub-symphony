@@ -85,7 +85,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-background">
       <Navbar />
       <SiteNoticePopup />
-      
+
+      <main>
       {/* Hero Section */}
       <section className="pt-24 pb-16 px-4 overflow-hidden">
         <div className="max-w-7xl mx-auto">
@@ -305,6 +306,7 @@ const Index = () => {
           </AnimatedCard>
         </div>
       </section>
+      </main>
 
       <Footer />
     </div>

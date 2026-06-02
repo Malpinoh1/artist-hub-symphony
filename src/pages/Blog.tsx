@@ -104,8 +104,11 @@ const Blog = () => {
                           </div>
                         </div>
                         
-                        <button className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors">
-                          Read More
+                        <button
+                          aria-label={`Read the full article: ${post.title}`}
+                          className="flex items-center gap-2 text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          Read the full article
                           <ArrowRight className="w-4 h-4" />
                         </button>
                       </div>

@@ -154,11 +154,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="flex items-center justify-between px-4 h-16 border-b border-border">
           <Link to="/dashboard" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
             <div className="w-8 h-8 rounded-xl overflow-hidden">
-              <img src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" alt="Logo" className="w-full h-full object-contain" />
+              <img src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" alt="MALPINOHdistro Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-display font-bold text-foreground">MALPINOHdistro</span>
           </Link>
-          <Button variant="ghost" size="sm" onClick={() => setSidebarOpen(false)}>
+          <Button variant="ghost" size="sm" aria-label="Close menu" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </Button>
         </div>
@@ -202,6 +202,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <Button
             variant="ghost"
             size="sm"
+            aria-label="Open menu"
             className="lg:hidden"
             onClick={() => setSidebarOpen(true)}
           >
@@ -222,7 +223,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-9 w-9 rounded-full p-0">
+              <Button variant="ghost" aria-label="Open user profile menu" className="h-9 w-9 rounded-full p-0">
                 <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <User className="h-4 w-4 text-primary" />
                 </div>

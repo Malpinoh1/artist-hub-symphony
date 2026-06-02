@@ -221,6 +221,8 @@ const Navbar = () => {
             <Button
               variant="ghost"
               size="sm"
+              aria-label={isOpen ? "Close menu" : "Open menu"}
+              aria-expanded={isOpen}
               onClick={() => setIsOpen(!isOpen)}
               className="p-2"
             >

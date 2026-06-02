@@ -1,0 +1,25 @@
+# MALPINOHdistro
+
+> Independent global music distribution service. Distribute your music to 150+ streaming platforms worldwide while keeping 100% of your royalties.
+
+MALPINOHdistro helps independent artists release music on Spotify, Apple Music, YouTube Music, and more, with analytics, royalty tracking, team management, and content protection.
+
+## Pages
+
+- [Home](/): Overview of MALPINOHdistro's distribution platform.
+- [About](/about): The story and mission behind MALPINOHdistro.
+- [Services](/services): Music distribution, analytics, and royalty services we offer.
+- [Pricing](/pricing): Subscription plans and pricing details.
+- [Blog](/blog): Industry insights, tips, and platform updates.
+- [Resources](/resources): Artist guides and educational resources.
+- [Marketing Guide](/resources/marketing-guide): How to promote your music releases.
+- [Partners](/partners): Streaming platforms and partner integrations.
+- [FAQ](/faq): Frequently asked questions about distribution and payouts.
+- [Contact](/contact): Get in touch with our team.
+
+## Optional
+
+- [Terms of Service](/terms)
+- [Privacy Policy](/privacy)
+- [Copyright Info](/copyright)
+- [Cookie Policy](/cookies)
