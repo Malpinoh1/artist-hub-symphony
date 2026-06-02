@@ -14,8 +14,8 @@ const ServiceCard = ({ icon, title, description }) => {
       </div>
       <h3 className="text-xl font-semibold mb-2">{title}</h3>
       <p className="text-slate-600 mb-4">{description}</p>
-      <Link to="/auth" className="mt-auto text-blue-600 font-medium hover:text-blue-700">
-        Learn more →
+      <Link to="/auth" className="mt-auto text-blue-600 font-medium hover:text-blue-700" aria-label={`Explore ${title}`}>
+        Explore {title} →
       </Link>
     </div>
   );
