@@ -216,6 +216,7 @@ const AdminDashboard = () => {
     { id: 'royalty-statements', label: 'Royalty Statements' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'subscriptions', label: 'Subscriptions' },
+    { id: 'payments', label: 'Payments & Revenue' },
     { id: 'marketing', label: 'Marketing Emails' },
     { id: 'site-notices', label: 'Site Notices' },
     { id: 'support', label: 'Support Tickets' },
