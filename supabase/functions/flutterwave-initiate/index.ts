@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     if (currency === "NGN") {
       const { data: fx } = await admin
         .from("exchange_rates").select("rate")
-        .eq("base_currency", "USD").eq("target_currency", "NGN")
+        .eq("base", "USD").eq("quote", "NGN")
         .order("fetched_at", { ascending: false }).limit(1).maybeSingle();
       fxRate = Number(fx?.rate ?? 1250);
       amountCharged = Math.round(plan.price_usd * fxRate * 100) / 100;
