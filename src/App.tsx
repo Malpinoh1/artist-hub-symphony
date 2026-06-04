@@ -50,6 +50,8 @@ const Support = React.lazy(() => import("./pages/Support"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
 const ArtistRoyaltySplits = React.lazy(() => import("./pages/ArtistRoyaltySplits"));
 const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
+const PaymentCallback = React.lazy(() => import("./pages/PaymentCallback"));
+const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -103,6 +105,7 @@ const AppContent = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="/accept-split" element={<AcceptSplit />} />
+        <Route path="/payment/callback" element={<PaymentCallback />} />
 
         {/* Protected dashboard routes — wrapped in DashboardLayout */}
         <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />
@@ -119,6 +122,8 @@ const AppContent = () => {
         <Route path="/support" element={<DashboardPage><Support /></DashboardPage>} />
         <Route path="/transactions" element={<DashboardPage><Transactions /></DashboardPage>} />
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
+        <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
+        <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/admin" element={<AdminProtectedRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminProtectedRoute>} />
 
         <Route path="*" element={<NotFound />} />
