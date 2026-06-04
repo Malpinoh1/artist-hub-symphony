@@ -864,6 +864,71 @@ export type Database = {
           },
         ]
       }
+      payments: {
+        Row: {
+          amount_charged: number
+          amount_usd: number
+          created_at: string
+          currency: string
+          customer_email: string | null
+          flutterwave_transaction_id: string | null
+          flutterwave_tx_ref: string
+          fx_rate: number | null
+          id: string
+          payment_method: string | null
+          plan_id: string | null
+          raw_response: Json | null
+          receipt_url: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_charged: number
+          amount_usd: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          flutterwave_transaction_id?: string | null
+          flutterwave_tx_ref: string
+          fx_rate?: number | null
+          id?: string
+          payment_method?: string | null
+          plan_id?: string | null
+          raw_response?: Json | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_charged?: number
+          amount_usd?: number
+          created_at?: string
+          currency?: string
+          customer_email?: string | null
+          flutterwave_transaction_id?: string | null
+          flutterwave_tx_ref?: string
+          fx_rate?: number | null
+          id?: string
+          payment_method?: string | null
+          plan_id?: string | null
+          raw_response?: Json | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       performance_statistics: {
         Row: {
           apple_music_streams: number
@@ -907,6 +972,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      plans: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          duration_days: number
+          features: Json
+          id: string
+          is_active: boolean
+          name: string
+          price_usd: number
+          release_limit: number | null
+          sort_order: number
+          supports_auto_renew: boolean
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          duration_days: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name: string
+          price_usd: number
+          release_limit?: number | null
+          sort_order?: number
+          supports_auto_renew?: boolean
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          features?: Json
+          id?: string
+          is_active?: boolean
+          name?: string
+          price_usd?: number
+          release_limit?: number | null
+          sort_order?: number
+          supports_auto_renew?: boolean
+          updated_at?: string
+        }
+        Relationships: []
       }
       platform_analytics: {
         Row: {
@@ -2063,6 +2176,66 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      subscriptions: {
+        Row: {
+          auto_renew: boolean
+          cancelled_at: string | null
+          created_at: string
+          end_date: string
+          flutterwave_card_token: string | null
+          id: string
+          last_payment_id: string | null
+          plan_id: string
+          start_date: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          end_date: string
+          flutterwave_card_token?: string | null
+          id?: string
+          last_payment_id?: string | null
+          plan_id: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          auto_renew?: boolean
+          cancelled_at?: string | null
+          created_at?: string
+          end_date?: string
+          flutterwave_card_token?: string | null
+          id?: string
+          last_payment_id?: string | null
+          plan_id?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscriptions_last_payment_id_fkey"
+            columns: ["last_payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscriptions_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       support_ticket_messages: {
         Row: {

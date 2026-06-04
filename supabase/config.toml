@@ -23,3 +23,12 @@ verify_jwt = false
 
 [functions.check-artist-email]
 verify_jwt = false
+
+[functions.flutterwave-webhook]
+verify_jwt = false
+
+[functions.flutterwave-verify]
+verify_jwt = false
+
+[functions.subscription-maintenance]
+verify_jwt = false

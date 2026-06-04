@@ -26,6 +26,7 @@ import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
@@ -199,6 +200,8 @@ const AdminDashboard = () => {
         return <RoyaltySplitRequestsTab />;
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
+      case 'payments':
+        return <PaymentsAnalyticsTab />;
       default:
         return null;
     }
@@ -213,6 +216,7 @@ const AdminDashboard = () => {
     { id: 'royalty-statements', label: 'Royalty Statements' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'subscriptions', label: 'Subscriptions' },
+    { id: 'payments', label: 'Payments & Revenue' },
     { id: 'marketing', label: 'Marketing Emails' },
     { id: 'site-notices', label: 'Site Notices' },
     { id: 'support', label: 'Support Tickets' },
