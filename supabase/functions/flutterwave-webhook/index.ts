@@ -1,6 +1,5 @@
-// Flutterwave webhook handler. Verifies signature, delegates to verification.
+// Flutterwave webhook handler. Verifies signature & processes payment.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import { processVerification } from "../flutterwave-verify/index.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,13 +19,19 @@ Deno.serve(async (req) => {
 
   try {
     const event = await req.json();
-    console.log("webhook event", event?.event, event?.data?.tx_ref);
     const txRef = event?.data?.tx_ref;
     const txId = event?.data?.id ? String(event.data.id) : undefined;
-
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
-    const result = await processVerification(admin, txId, txRef);
-    console.log("webhook result", result);
+
+    // Delegate verification by calling verify endpoint
+    const verifyUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/flutterwave-verify`;
+    const r = await fetch(verifyUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}` },
+      body: JSON.stringify({ transaction_id: txId, tx_ref: txRef }),
+    });
+    const result = await r.json();
+    console.log("webhook->verify result", result);
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
