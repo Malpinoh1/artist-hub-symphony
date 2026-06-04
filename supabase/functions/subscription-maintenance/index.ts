@@ -62,8 +62,8 @@ Deno.serve(async (req) => {
     try {
       const plan: any = (s as any).plans;
       const { data: fx } = await admin.from("exchange_rates").select("rate")
-        .eq("base_currency","USD").eq("target_currency","NGN")
-        .order("updated_at",{ascending:false}).limit(1).maybeSingle();
+        .eq("base", "USD").eq("quote", "NGN")
+        .order("fetched_at",{ascending:false}).limit(1).maybeSingle();
       const fxRate = Number(fx?.rate ?? 1250);
       const amount = Math.round(plan.price_usd * fxRate * 100) / 100;
       const txRef = `MDH-AR-${s.user_id.slice(0,8)}-${Date.now()}`;
