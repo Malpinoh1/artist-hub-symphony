@@ -26,6 +26,7 @@ import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
