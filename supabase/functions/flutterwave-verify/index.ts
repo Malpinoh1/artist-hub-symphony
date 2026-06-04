@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
   }
 });
 
-export async function processVerification(admin: any, transactionId?: string, txRef?: string) {
+async function processVerification(admin: any, transactionId?: string, txRef?: string) {
   const secret = Deno.env.get("FLUTTERWAVE_SECRET_KEY")!;
   let url = "";
   if (transactionId) url = `https://api.flutterwave.com/v3/transactions/${transactionId}/verify`;
