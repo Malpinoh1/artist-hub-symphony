@@ -200,6 +200,8 @@ const AdminDashboard = () => {
         return <RoyaltySplitRequestsTab />;
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
+      case 'payments':
+        return <PaymentsAnalyticsTab />;
       default:
         return null;
     }
