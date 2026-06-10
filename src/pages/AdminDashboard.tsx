@@ -162,6 +162,15 @@ const AdminDashboard = () => {
   
   // Render active tab content
   const renderActiveTabContent = () => {
+    if (!canAccessTab(activeTab)) {
+      return (
+        <div className="text-center py-16">
+          <ShieldAlert className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-lg font-semibold mb-2">No Access</h2>
+          <p className="text-sm text-muted-foreground">Your admin role doesn't have permission to view this section.</p>
+        </div>
+      );
+    }
     switch (activeTab) {
       case 'releases':
         return (
@@ -227,7 +236,7 @@ const AdminDashboard = () => {
     }
   };
 
-  const tabs = [
+  const allTabs = [
     { id: 'releases', label: 'Releases' },
     { id: 'withdrawals', label: 'Withdrawals' },
     { id: 'artists', label: 'Artists' },
@@ -244,12 +253,21 @@ const AdminDashboard = () => {
     { id: 'income-management', label: 'Income & Royalties' },
     { id: 'split-requests', label: 'Split Requests' },
     { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
-    { 
-      id: 'takedown', 
+    {
+      id: 'takedown',
       label: 'Take Down Requests',
-      badge: takeDownRequestsCount > 0 ? takeDownRequestsCount : null
+      badge: takeDownRequestsCount > 0 ? takeDownRequestsCount : null,
     },
   ];
+
+  const tabs = allTabs.filter(t => canAccessTab(t.id));
+
+  // Ensure active tab is always one the user can access
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.find(t => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
 
   return (
     <div className="container mx-auto px-3 sm:px-4">
