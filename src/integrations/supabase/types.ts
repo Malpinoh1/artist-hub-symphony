@@ -2579,6 +2579,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_release_submission_allowed: { Args: { uid: string }; Returns: Json }
       has_account_access: {
         Args: {
           required_role?: Database["public"]["Enums"]["account_role"]
@@ -2616,6 +2617,9 @@ export type Database = {
         Args: { user_id?: string }
         Returns: boolean
       }
+      user_has_any_admin_role: { Args: { uid?: string }; Returns: boolean }
+      user_has_distribution_role: { Args: { uid?: string }; Returns: boolean }
+      user_has_finance_role: { Args: { uid?: string }; Returns: boolean }
       user_is_admin: { Args: { user_id?: string }; Returns: boolean }
     }
     Enums: {
