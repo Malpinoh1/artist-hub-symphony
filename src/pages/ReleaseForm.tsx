@@ -67,6 +67,7 @@ const ReleaseForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<any>({ step: 'idle' });
+  const [gateOpen, setGateOpen] = useState(false);
 
   // Distribution preferences state
   const [storeSelections, setStoreSelections] = useState<Record<string, { name: string; enabled: boolean; status: 'pending' | 'incomplete' | 'delivered' }>>({});
