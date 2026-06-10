@@ -12,6 +12,7 @@ import { StepTrackUpload } from '@/components/release-wizard/StepTrackUpload';
 import { StepAlbumArtwork } from '@/components/release-wizard/StepAlbumArtwork';
 import { StepDistributionPreferences } from '@/components/release-wizard/StepDistributionPreferences';
 import { StepPreviewDistribute } from '@/components/release-wizard/StepPreviewDistribute';
+import ReleaseSubmissionGateModal from '@/components/ReleaseSubmissionGateModal';
 
 interface ArtistAccount {
   id: string;
