@@ -369,6 +369,7 @@ const ReleaseForm = () => {
           </Card>
         </div>
       </AnimatedCard>
+      <ReleaseSubmissionGateModal open={gateOpen} onOpenChange={setGateOpen} />
     </div>
   );
 };
