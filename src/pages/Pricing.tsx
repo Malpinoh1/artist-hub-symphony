@@ -92,7 +92,7 @@ const Pricing = () => {
                         <div className="mt-4 mb-6">
                           <span className="text-4xl font-bold">${plan.price_usd}</span>
                           <span className="text-muted-foreground ml-1 text-sm">
-                            / {plan.duration_days === 365 ? 'year' : `${plan.duration_days} days`}
+                            / {plan.duration_days === 0 ? 'release' : plan.duration_days === 365 ? 'year' : `${plan.duration_days} days`}
                           </span>
                           {ngn && (
                             <div className="text-xs text-muted-foreground mt-1">≈ ₦{ngn} at today's rate</div>
