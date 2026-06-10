@@ -12,6 +12,7 @@ import { StepTrackUpload } from '@/components/release-wizard/StepTrackUpload';
 import { StepAlbumArtwork } from '@/components/release-wizard/StepAlbumArtwork';
 import { StepDistributionPreferences } from '@/components/release-wizard/StepDistributionPreferences';
 import { StepPreviewDistribute } from '@/components/release-wizard/StepPreviewDistribute';
+import ReleaseSubmissionGateModal from '@/components/ReleaseSubmissionGateModal';
 
 interface ArtistAccount {
   id: string;
@@ -66,6 +67,7 @@ const ReleaseForm = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<any>({ step: 'idle' });
+  const [gateOpen, setGateOpen] = useState(false);
 
   // Distribution preferences state
   const [storeSelections, setStoreSelections] = useState<Record<string, { name: string; enabled: boolean; status: 'pending' | 'incomplete' | 'delivered' }>>({});
@@ -116,11 +118,21 @@ const ReleaseForm = () => {
   const prevStep = () => { setCurrentStep(prev => prev - 1); window.scrollTo(0, 0); };
 
   const handleSubmit = async () => {
+    // Pre-flight payment gate check (server-side enforced too)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate('/auth'); return; }
+    try {
+      const { data: gate } = await supabase.rpc('check_release_submission_allowed', { uid: session.user.id });
+      if (gate && (gate as any).allowed === false) {
+        setGateOpen(true);
+        return;
+      }
+    } catch (e) {
+      console.warn('Gate pre-check failed (will let server decide):', e);
+    }
+
     setIsSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate('/auth'); return; }
-
       const userId = session.user.id;
       const userEmail = session.user.email!;
 
@@ -291,7 +303,13 @@ const ReleaseForm = () => {
       setCurrentStep(6); // Success step
     } catch (error) {
       console.error('Submit error:', error);
-      toast({ title: "Upload Failed", description: error instanceof Error ? error.message : 'Failed to submit release', variant: "destructive" });
+      const msg = error instanceof Error ? error.message : 'Failed to submit release';
+      // Server-side gate trigger fallback
+      if (msg.toLowerCase().includes('release submission requires payment')) {
+        setGateOpen(true);
+      } else {
+        toast({ title: "Upload Failed", description: msg, variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
       setUploadProgress({ step: 'idle' });
@@ -351,6 +369,7 @@ const ReleaseForm = () => {
           </Card>
         </div>
       </AnimatedCard>
+      <ReleaseSubmissionGateModal open={gateOpen} onOpenChange={setGateOpen} />
     </div>
   );
 };

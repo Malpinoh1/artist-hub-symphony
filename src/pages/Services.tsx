@@ -188,28 +188,12 @@ const Services = () => {
           
           {/* Payment Info */}
           <AnimatedCard>
-            <div className="glass-panel p-8 mb-16">
-              <h2 className="text-2xl font-semibold mb-4">Payment Information</h2>
-              <p className="mb-6">
-                All payments should be made via bank transfer to our account. Once your payment is confirmed, we'll begin processing your release.
+            <div className="glass-panel p-8 mb-16 text-center">
+              <h2 className="text-2xl font-semibold mb-3">Secure Online Payments</h2>
+              <p className="mb-2 text-muted-foreground">
+                All payments are processed securely through Flutterwave. Pay with debit/credit card, bank transfer, USSD, or mobile money — your release is unlocked the moment payment succeeds.
               </p>
-              
-              <div className="bg-white p-6 rounded-lg border border-slate-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-500">Account Name</h3>
-                    <p className="font-semibold">ABDULKADIR IBRAHIM OLUWASHINA</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-500">Account Number</h3>
-                    <p className="font-semibold">8168940582</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-medium text-slate-500">Bank</h3>
-                    <p className="font-semibold">OPAY DIGITAL BANK</p>
-                  </div>
-                </div>
-              </div>
+              <p className="text-xs text-muted-foreground">No manual bank deposits. No waiting.</p>
             </div>
           </AnimatedCard>
           

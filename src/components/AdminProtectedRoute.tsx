@@ -32,17 +32,10 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
 
       let admin = false;
 
-      // Primary: RPC using auth.uid() default (most reliable when session is attached)
-      const rpcDefault = await supabase.rpc('user_is_admin');
-      if (rpcDefault.data === true) admin = true;
-      if (rpcDefault.error) console.warn('[AdminProtectedRoute] rpc default error:', rpcDefault.error);
-
-      // Secondary: RPC with explicit user_id
-      if (!admin) {
-        const rpcExplicit = await supabase.rpc('user_is_admin', { user_id: user.id });
-        if (rpcExplicit.data === true) admin = true;
-        if (rpcExplicit.error) console.warn('[AdminProtectedRoute] rpc explicit error:', rpcExplicit.error);
-      }
+      // Check for ANY admin role (admin, finance_manager, distribution_manager)
+      const rpcAny = await supabase.rpc('user_has_any_admin_role');
+      if (rpcAny.data === true) admin = true;
+      if (rpcAny.error) console.warn('[AdminProtectedRoute] rpc any error:', rpcAny.error);
 
       // Fallback: direct query
       if (!admin) {
@@ -50,7 +43,7 @@ const AdminProtectedRoute = ({ children }: AdminProtectedRouteProps) => {
           .from('user_roles')
           .select('role')
           .eq('user_id', user.id)
-          .eq('role', 'admin');
+          .in('role', ['admin', 'finance_manager', 'distribution_manager']);
         if (rowsErr) console.warn('[AdminProtectedRoute] direct query error:', rowsErr);
         if (rows && rows.length > 0) admin = true;
       }
