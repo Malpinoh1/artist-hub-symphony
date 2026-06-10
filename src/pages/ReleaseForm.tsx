@@ -303,7 +303,13 @@ const ReleaseForm = () => {
       setCurrentStep(6); // Success step
     } catch (error) {
       console.error('Submit error:', error);
-      toast({ title: "Upload Failed", description: error instanceof Error ? error.message : 'Failed to submit release', variant: "destructive" });
+      const msg = error instanceof Error ? error.message : 'Failed to submit release';
+      // Server-side gate trigger fallback
+      if (msg.toLowerCase().includes('release submission requires payment')) {
+        setGateOpen(true);
+      } else {
+        toast({ title: "Upload Failed", description: msg, variant: "destructive" });
+      }
     } finally {
       setIsSubmitting(false);
       setUploadProgress({ step: 'idle' });
