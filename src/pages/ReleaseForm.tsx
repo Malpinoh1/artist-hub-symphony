@@ -118,11 +118,21 @@ const ReleaseForm = () => {
   const prevStep = () => { setCurrentStep(prev => prev - 1); window.scrollTo(0, 0); };
 
   const handleSubmit = async () => {
+    // Pre-flight payment gate check (server-side enforced too)
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate('/auth'); return; }
+    try {
+      const { data: gate } = await supabase.rpc('check_release_submission_allowed', { uid: session.user.id });
+      if (gate && (gate as any).allowed === false) {
+        setGateOpen(true);
+        return;
+      }
+    } catch (e) {
+      console.warn('Gate pre-check failed (will let server decide):', e);
+    }
+
     setIsSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate('/auth'); return; }
-
       const userId = session.user.id;
       const userEmail = session.user.email!;
 
