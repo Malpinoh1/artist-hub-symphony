@@ -68,8 +68,20 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     raw_response: tx,
   }).eq("id", payment.id);
 
-  // Activate or extend subscription
   const plan = payment.plans;
+
+  // PAY-PER-RELEASE: grant a single-use release credit, no subscription change
+  if (plan.code === "per_release") {
+    await admin.from("release_credits").insert({
+      user_id: payment.user_id,
+      payment_id: payment.id,
+      status: "available",
+    });
+    await notifyUser(admin, payment.user_id, "successful", { ...payment, plans: plan });
+    return { ok: true, payment_id: payment.id, kind: "credit" };
+  }
+
+  // SUBSCRIPTION FLOW
   const now = new Date();
   const { data: existing } = await admin
     .from("subscriptions").select("*").eq("user_id", payment.user_id)
