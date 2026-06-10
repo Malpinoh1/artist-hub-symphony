@@ -1403,6 +1403,44 @@ export type Database = {
           },
         ]
       }
+      release_credits: {
+        Row: {
+          consumed_at: string | null
+          consumed_release_id: string | null
+          created_at: string
+          id: string
+          payment_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          consumed_at?: string | null
+          consumed_release_id?: string | null
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          consumed_at?: string | null
+          consumed_release_id?: string | null
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_credits_payment_id_fkey"
+            columns: ["payment_id"]
+            isOneToOne: false
+            referencedRelation: "payments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       release_edit_requests: {
         Row: {
           admin_response: string | null
@@ -1491,6 +1529,21 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      release_gate_config: {
+        Row: {
+          cutoff_at: string
+          id: boolean
+        }
+        Insert: {
+          cutoff_at?: string
+          id?: boolean
+        }
+        Update: {
+          cutoff_at?: string
+          id?: boolean
+        }
+        Relationships: []
       }
       release_store_selections: {
         Row: {
@@ -2576,7 +2629,7 @@ export type Database = {
         | "TakeDownRequested"
       split_recipient_status: "pending" | "accepted" | "declined"
       split_status: "draft" | "active" | "locked"
-      user_role: "user" | "admin"
+      user_role: "user" | "admin" | "finance_manager" | "distribution_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2715,7 +2768,7 @@ export const Constants = {
       ],
       split_recipient_status: ["pending", "accepted", "declined"],
       split_status: ["draft", "active", "locked"],
-      user_role: ["user", "admin"],
+      user_role: ["user", "admin", "finance_manager", "distribution_manager"],
     },
   },
 } as const
