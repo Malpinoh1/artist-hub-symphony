@@ -53,7 +53,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data }) => setProfile(data));
-      supabase.rpc('user_is_admin', { user_id: user.id }).then(({ data }) => setIsAdmin(data === true));
+      supabase.rpc('user_has_any_admin_role', { uid: user.id }).then(({ data }) => setIsAdmin(data === true));
     }
   }, [user]);
 
