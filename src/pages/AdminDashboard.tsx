@@ -27,6 +27,18 @@ import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
+import { useAdminRole } from '@/hooks/useAdminRole';
+import { ShieldAlert } from 'lucide-react';
+
+// Tabs each sub-role may access (admin sees all)
+const FINANCE_TABS = new Set([
+  'withdrawals', 'support', 'royalty-upload', 'marketing',
+  'subscriptions', 'artists', 'payments', 'credit-balance',
+  'earnings', 'platform-earnings', 'royalty-statements', 'income-management',
+]);
+const DISTRIBUTION_TABS = new Set([
+  'releases', 'artists', 'support', 'takedown', 'split-requests',
+]);
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
