@@ -48,6 +48,14 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('releases');
   const [loading, setLoading] = useState(true);
   const [takeDownRequestsCount, setTakeDownRequestsCount] = useState(0);
+  const { isAdmin, isFinance, isDistribution } = useAdminRole();
+
+  const canAccessTab = (tabId: string): boolean => {
+    if (isAdmin) return true;
+    if (isDistribution && DISTRIBUTION_TABS.has(tabId)) return true;
+    if (isFinance && FINANCE_TABS.has(tabId)) return true;
+    return false;
+  };
 
   const fetchDashboardData = async () => {
     setLoading(true);
