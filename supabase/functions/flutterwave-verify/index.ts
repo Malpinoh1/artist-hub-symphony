@@ -1,6 +1,6 @@
 // Verifies a Flutterwave transaction (called after redirect or as fallback to webhook).
 // Idempotent: safe to call multiple times.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
