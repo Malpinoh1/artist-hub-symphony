@@ -24,12 +24,13 @@ Deno.serve(async (req) => {
     const userClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: claims, error: authErr } = await userClient.auth.getClaims(
-      authHeader.replace("Bearer ", "")
-    );
-    if (authErr || !claims?.claims?.sub) return json({ error: "Unauthorized" }, 401);
-    const userId = claims.claims.sub as string;
-    const email = (claims.claims.email as string) || "user@malpinohdistro.com.ng";
+    const { data: userData, error: authErr } = await userClient.auth.getUser();
+    if (authErr || !userData?.user?.id) {
+      console.error("auth failed", authErr);
+      return json({ error: "Unauthorized" }, 401);
+    }
+    const userId = userData.user.id;
+    const email = userData.user.email || "user@malpinohdistro.com.ng";
 
     const { plan_code, auto_renew = true, currency: requestedCurrency } = await req.json();
     if (!plan_code) return json({ error: "plan_code required" }, 400);
