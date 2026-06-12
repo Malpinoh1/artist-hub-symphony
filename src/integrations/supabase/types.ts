@@ -1639,6 +1639,7 @@ export type Database = {
           audio_file_url: string | null
           copyright_info: string | null
           cover_art_url: string | null
+          created_at: string
           description: string | null
           explicit_content: boolean | null
           genre: string | null
@@ -1672,6 +1673,7 @@ export type Database = {
           audio_file_url?: string | null
           copyright_info?: string | null
           cover_art_url?: string | null
+          created_at?: string
           description?: string | null
           explicit_content?: boolean | null
           genre?: string | null
@@ -1705,6 +1707,7 @@ export type Database = {
           audio_file_url?: string | null
           copyright_info?: string | null
           cover_art_url?: string | null
+          created_at?: string
           description?: string | null
           explicit_content?: boolean | null
           genre?: string | null
