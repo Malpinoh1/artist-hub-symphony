@@ -294,15 +294,15 @@ const Auth = () => {
   
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
-    
-    const { data: roleData } = await supabase
+
+    // Any admin-level role (admin, finance_manager, distribution_manager) goes to the admin panel
+    const { data: roleRows } = await supabase
       .from('user_roles')
-      .select('*')
+      .select('role')
       .eq('user_id', user.id)
-      .eq('role', 'admin')
-      .maybeSingle();
-      
-    if (roleData) {
+      .in('role', ['admin', 'finance_manager', 'distribution_manager']);
+
+    if (roleRows && roleRows.length > 0) {
       navigate('/admin');
     } else {
       navigate('/dashboard');

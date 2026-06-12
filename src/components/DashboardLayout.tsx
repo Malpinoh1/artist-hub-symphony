@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import AccountNameMigrationModal from './AccountNameMigrationModal';
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 const sidebarNav = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -32,6 +33,11 @@ const sidebarNav = [
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
+// Staff roles (finance/distribution managers) only see the admin panel
+const staffNav = [
+  { name: 'Admin Panel', href: '/admin', icon: LayoutDashboard },
+];
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -43,7 +49,11 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { isAdmin: isFullAdmin, hasAnyAdminRole } = useAdminRole();
+
+  // finance_manager / distribution_manager without full admin → admin panel only
+  const staffOnly = hasAnyAdminRole && !isFullAdmin;
+  const nav = staffOnly ? staffNav : sidebarNav;
 
   useEffect(() => {
     if (user) {
@@ -53,7 +63,6 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         .eq('user_id', user.id)
         .maybeSingle()
         .then(({ data }) => setProfile(data));
-      supabase.rpc('user_has_any_admin_role', { uid: user.id }).then(({ data }) => setIsAdmin(data === true));
     }
   }, [user]);
 
@@ -95,7 +104,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {sidebarNav.map((item) => {
+          {nav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
@@ -118,7 +127,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* User Section */}
         <div className="px-3 py-4 border-t border-border">
-          <ModernTeamSwitcher />
+          {!staffOnly && <ModernTeamSwitcher />}
           <div className="mt-3 flex items-center gap-3 px-3 py-2">
             <div className="h-8 w-8 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
               <User className="h-4 w-4 text-primary" />
@@ -164,10 +173,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </Button>
         </div>
         <div className="px-3 pt-3">
-          <ModernTeamSwitcher />
+          {!staffOnly && <ModernTeamSwitcher />}
         </div>
         <nav className="px-3 py-4 space-y-1">
-          {sidebarNav.map((item) => {
+          {nav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
             return (
@@ -212,7 +221,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
           <div className="flex-1" />
 
-          {isAdmin && (
+          {hasAnyAdminRole && (
             <Link
               to="/admin"
               className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-600/10 hover:from-primary/20 hover:to-purple-600/20 text-xs font-medium text-foreground transition-all"

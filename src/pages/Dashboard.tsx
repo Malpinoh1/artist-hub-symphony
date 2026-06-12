@@ -119,19 +119,11 @@ const DashboardContent = () => {
         <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-6">
           <Lock className="w-10 h-10 text-muted-foreground" />
         </div>
-              <h1 className="text-2xl font-bold text-foreground mb-4">
-                {!hasSubscription ? 'Subscription Required' : 'Access Denied'}
-              </h1>
+              <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                {!hasSubscription 
-                  ? 'You need an active subscription to access the dashboard and its features. Please contact support or upgrade your account.'
-                  : 'You don\'t have access to this account. Please contact the account owner.'
-                }
+                You don't have access to this account. Please contact the account owner.
               </p>
               <div className="flex gap-4 justify-center">
-                <Button asChild>
-                  <Link to="/pricing">View Pricing</Link>
-                </Button>
                 <Button variant="outline" asChild>
                   <Link to="/contact">Contact Support</Link>
                 </Button>

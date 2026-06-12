@@ -56,22 +56,8 @@ export const SubscriptionGate: React.FC<SubscriptionGateProps> = ({
     );
   }
 
-  if (!isWebsiteAdmin && !hasSubscription) {
-    return (
-      <GateFallback
-        icon={<Lock className="w-8 h-8 text-muted-foreground" />}
-        title="Subscription Required"
-        description={fallbackMessage}
-        actions={
-          <>
-            <Button asChild size="sm"><Link to="/pricing">View Pricing</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link to="/contact">Contact Support</Link></Button>
-          </>
-        }
-      />
-    );
-  }
-
+  // Note: the dashboard is open to all logged-in users — no subscription
+  // requirement here. Only release submission is payment-gated.
   if (!hasAccess) {
     return (
       <GateFallback

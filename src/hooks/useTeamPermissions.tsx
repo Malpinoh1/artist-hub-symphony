@@ -111,8 +111,10 @@ export const useTeamPermissions = (): TeamPermissions => {
     const isManager = role === 'manager';
     const isViewer = role === 'viewer';
     
-    // Website admins bypass all checks
-    const hasAccess = isWebsiteAdmin || (hasSubscription && role !== null);
+    // Website admins bypass all checks.
+    // Dashboard access no longer requires a subscription — only release
+    // submission is payment-gated (enforced server-side).
+    const hasAccess = isWebsiteAdmin || role !== null;
     
     // Permission levels
     const canView = hasAccess && (isOwner || isAdmin || isManager || isViewer);
@@ -121,7 +123,7 @@ export const useTeamPermissions = (): TeamPermissions => {
 
     const checkPermission = (requiredRole: AccountRole | 'owner'): boolean => {
       if (isWebsiteAdmin) return true;
-      if (!hasSubscription || !role) return false;
+      if (!role) return false;
       
       const userRoleLevel = roleHierarchy[role] || 0;
       const requiredRoleLevel = roleHierarchy[requiredRole] || 0;

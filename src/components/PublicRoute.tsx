@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 interface PublicRouteProps {
   children: React.ReactNode;
@@ -8,8 +9,9 @@ interface PublicRouteProps {
 
 const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) => {
   const { user, isLoading } = useAuth();
+  const { loading: roleLoading, hasAnyAdminRole } = useAdminRole();
 
-  if (isLoading) {
+  if (isLoading || (user && roleLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -21,7 +23,7 @@ const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) 
   }
 
   if (user) {
-    return <Navigate to={redirectTo} replace />;
+    return <Navigate to={hasAnyAdminRole ? '/admin' : redirectTo} replace />;
   }
 
   return <>{children}</>;
