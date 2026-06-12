@@ -1,5 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminRole } from '@/hooks/useAdminRole';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -7,9 +8,10 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
+  const { loading: roleLoading, isAdmin, hasAnyAdminRole } = useAdminRole();
   const location = useLocation();
 
-  if (isLoading) {
+  if (isLoading || (user && roleLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -22,6 +24,12 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
   if (!user) {
     return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  // Staff roles (finance_manager / distribution_manager without full admin)
+  // only use the admin panel — no artist portal access.
+  if (hasAnyAdminRole && !isAdmin) {
+    return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;
