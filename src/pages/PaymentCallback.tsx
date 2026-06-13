@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 
 const PaymentCallback = () => {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
   const [message, setMessage] = useState('');
+  const [hasDraft, setHasDraft] = useState(false);
 
   useEffect(() => {
     const status_q = params.get('status');
@@ -25,15 +27,28 @@ const PaymentCallback = () => {
         if (error || !data?.ok) {
           setStatus('failed');
           setMessage(data?.error || 'Could not verify payment. If you were charged, contact support.');
-        } else {
-          setStatus('success');
-          setMessage('Your subscription is now active.');
+          return;
+        }
+        setStatus('success');
+        setMessage('Payment verified — your account is unlocked.');
+
+        // Check for an in-progress release draft → if present, auto-resume.
+        const { data: sessionData } = await supabase.auth.getSession();
+        const uid = sessionData.session?.user?.id;
+        if (uid) {
+          const { data: draft } = await supabase
+            .from('release_drafts').select('id').eq('user_id', uid)
+            .order('updated_at', { ascending: false }).limit(1).maybeSingle();
+          if (draft) {
+            setHasDraft(true);
+            setTimeout(() => navigate('/release-form?resume=1', { replace: true }), 1500);
+          }
         }
       } catch (e: any) {
         setStatus('failed'); setMessage(e.message || 'Verification error');
       }
     })();
-  }, [params]);
+  }, [params, navigate]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -53,8 +68,15 @@ const PaymentCallback = () => {
                 <CheckCircle2 className="h-16 w-16 text-emerald-500 mx-auto" />
                 <h1 className="text-2xl font-semibold mt-6">Payment Successful 🎉</h1>
                 <p className="text-muted-foreground mt-2">{message}</p>
+                {hasDraft && (
+                  <p className="text-xs text-primary mt-3">Resuming your release draft…</p>
+                )}
                 <div className="flex flex-col gap-3 mt-8">
-                  <Link to="/dashboard" className="bg-primary text-primary-foreground py-3 rounded-lg font-medium">Go to Dashboard</Link>
+                  {hasDraft ? (
+                    <Link to="/release-form?resume=1" className="bg-primary text-primary-foreground py-3 rounded-lg font-medium">Resume release</Link>
+                  ) : (
+                    <Link to="/dashboard" className="bg-primary text-primary-foreground py-3 rounded-lg font-medium">Go to Dashboard</Link>
+                  )}
                   <Link to="/settings/payments" className="text-sm text-muted-foreground underline">View payment history</Link>
                 </div>
               </>
@@ -78,3 +100,4 @@ const PaymentCallback = () => {
 };
 
 export default PaymentCallback;
+

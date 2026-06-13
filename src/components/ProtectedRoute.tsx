@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
-  const { loading: roleLoading, isAdmin, hasAnyAdminRole } = useAdminRole();
+  const { loading: roleLoading, isAdmin, isFinance, isDistribution, hasAnyAdminRole } = useAdminRole();
   const location = useLocation();
 
   if (isLoading || (user && roleLoading)) {
@@ -26,13 +26,15 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
-  // Staff roles (finance_manager / distribution_manager without full admin)
-  // only use the admin panel — no artist portal access.
+  // Staff-only roles (without full admin) have no artist portal — bounce to their dashboard.
   if (hasAnyAdminRole && !isAdmin) {
+    if (isDistribution) return <Navigate to="/admin/distribution" replace />;
+    if (isFinance) return <Navigate to="/admin/finance" replace />;
     return <Navigate to="/admin" replace />;
   }
 
   return <>{children}</>;
 };
+
 
 export default ProtectedRoute;

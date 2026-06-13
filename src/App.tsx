@@ -30,6 +30,9 @@ const ReleaseForm = React.lazy(() => import("./pages/ReleaseForm"));
 const Earnings = React.lazy(() => import("./pages/Earnings"));
 const Settings = React.lazy(() => import("./pages/Settings"));
 const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
+const AdminDistribution = React.lazy(() => import("./pages/AdminDistribution"));
+const AdminFinance = React.lazy(() => import("./pages/AdminFinance"));
+
 const About = React.lazy(() => import("./pages/About"));
 const Services = React.lazy(() => import("./pages/Services"));
 const Resources = React.lazy(() => import("./pages/Resources"));
@@ -125,6 +128,9 @@ const AppContent = () => {
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/admin" element={<AdminProtectedRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminProtectedRoute>} />
+        <Route path="/admin/distribution" element={<AdminProtectedRoute><DashboardLayout><AdminDistribution /></DashboardLayout></AdminProtectedRoute>} />
+        <Route path="/admin/finance" element={<AdminProtectedRoute><DashboardLayout><AdminFinance /></DashboardLayout></AdminProtectedRoute>} />
+
 
         <Route path="*" element={<NotFound />} />
       </Routes>

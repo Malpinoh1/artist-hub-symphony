@@ -9,7 +9,7 @@ interface PublicRouteProps {
 
 const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) => {
   const { user, isLoading } = useAuth();
-  const { loading: roleLoading, hasAnyAdminRole } = useAdminRole();
+  const { loading: roleLoading, isAdmin, isFinance, isDistribution } = useAdminRole();
 
   if (isLoading || (user && roleLoading)) {
     return (
@@ -23,7 +23,11 @@ const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) 
   }
 
   if (user) {
-    return <Navigate to={hasAnyAdminRole ? '/admin' : redirectTo} replace />;
+    // Super admin keeps full panel; sub-roles land on their dedicated dashboard.
+    if (isAdmin) return <Navigate to="/admin" replace />;
+    if (isDistribution) return <Navigate to="/admin/distribution" replace />;
+    if (isFinance) return <Navigate to="/admin/finance" replace />;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return <>{children}</>;
