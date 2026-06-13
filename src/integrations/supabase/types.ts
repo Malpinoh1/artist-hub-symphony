@@ -1441,6 +1441,42 @@ export type Database = {
           },
         ]
       }
+      release_drafts: {
+        Row: {
+          audio_file_urls: string[]
+          cover_art_url: string | null
+          created_at: string
+          current_step: number
+          data: Json
+          id: string
+          selected_artist_account: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_file_urls?: string[]
+          cover_art_url?: string | null
+          created_at?: string
+          current_step?: number
+          data?: Json
+          id?: string
+          selected_artist_account?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_file_urls?: string[]
+          cover_art_url?: string | null
+          created_at?: string
+          current_step?: number
+          data?: Json
+          id?: string
+          selected_artist_account?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       release_edit_requests: {
         Row: {
           admin_response: string | null
