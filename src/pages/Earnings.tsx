@@ -157,7 +157,7 @@ const EarningsContent = () => {
 
 const Earnings = () => {
   return (
-    <SubscriptionGate fallbackMessage="You need an active subscription to access earnings.">
+    <SubscriptionGate fallbackMessage="You don't have permission to view earnings on this account.">
       <EarningsContent />
     </SubscriptionGate>
   );

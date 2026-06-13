@@ -1281,7 +1281,7 @@ const Team = () => {
 // Wrap with subscription gate - requires subscription to access team management
 const TeamPage = () => {
   return (
-    <SubscriptionGate fallbackMessage="You need an active subscription to manage team access.">
+    <SubscriptionGate fallbackMessage="You don't have permission to manage team access on this account.">
       <Team />
     </SubscriptionGate>
   );

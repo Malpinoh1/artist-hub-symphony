@@ -32,16 +32,17 @@ const TeamGuide = () => {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5 text-primary" />
-                  Overview: Team Access System (Subscription Required)
+                  Overview: Team Access System
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    <strong>Subscription Required:</strong> Only users with active subscriptions can access dashboard features including analytics, earnings, and team management. Website admins have full control regardless of subscription status.
+                    <strong>Open dashboard access:</strong> Every registered artist can use the full dashboard — analytics, earnings, releases, and team management — regardless of subscription status. Payment is only required when submitting a new release.
                   </AlertDescription>
                 </Alert>
+
                 <p className="text-muted-foreground">
                   MALPINOHdistro's comprehensive team access system allows seamless collaboration while maintaining security. As the account owner, you have complete control over who can access your distribution account and what they can do.
                 </p>

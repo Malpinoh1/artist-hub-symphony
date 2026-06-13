@@ -342,7 +342,7 @@ const AnalyticsContent = () => {
 // Wrap with subscription gate
 const Analytics = () => {
   return (
-    <SubscriptionGate fallbackMessage="You need an active subscription to access analytics.">
+    <SubscriptionGate fallbackMessage="You don't have permission to view analytics on this account.">
       <AnalyticsContent />
     </SubscriptionGate>
   );

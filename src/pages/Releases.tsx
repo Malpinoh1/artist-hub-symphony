@@ -90,7 +90,7 @@ const ReleasesContent = () => {
 
 const Releases = () => {
   return (
-    <SubscriptionGate fallbackMessage="You need an active subscription to view releases.">
+    <SubscriptionGate fallbackMessage="You don't have permission to view releases on this account.">
       <ReleasesContent />
     </SubscriptionGate>
   );
