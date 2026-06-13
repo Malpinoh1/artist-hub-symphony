@@ -295,19 +295,20 @@ const Auth = () => {
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
 
-    // Any admin-level role (admin, finance_manager, distribution_manager) goes to the admin panel
+    // Route by role: super admin → /admin, distribution → /admin/distribution, finance → /admin/finance
     const { data: roleRows } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', user.id)
       .in('role', ['admin', 'finance_manager', 'distribution_manager']);
 
-    if (roleRows && roleRows.length > 0) {
-      navigate('/admin');
-    } else {
-      navigate('/dashboard');
-    }
+    const roles = (roleRows || []).map((r: any) => r.role);
+    if (roles.includes('admin')) navigate('/admin');
+    else if (roles.includes('distribution_manager')) navigate('/admin/distribution');
+    else if (roles.includes('finance_manager')) navigate('/admin/finance');
+    else navigate('/dashboard');
   };
+
 
   const handle2FAVerificationSuccess = async () => {
     // After 2FA succeeds, ask user to re-enter password (no password stored).
