@@ -80,6 +80,12 @@ const DashboardPage = ({ children }: { children: React.ReactNode }) => (
   </ProtectedRoute>
 );
 
+const AdminPage = ({ children }: { children: React.ReactNode }) => (
+  <AdminProtectedRoute>
+    <DashboardLayout>{children}</DashboardLayout>
+  </AdminProtectedRoute>
+);
+
 const AppContent = () => {
   const { user } = useAuth();
 
@@ -127,9 +133,11 @@ const AppContent = () => {
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
-        <Route path="/admin" element={<AdminProtectedRoute><DashboardLayout><AdminDashboard /></DashboardLayout></AdminProtectedRoute>} />
-        <Route path="/admin/distribution" element={<AdminProtectedRoute><DashboardLayout><AdminDistribution /></DashboardLayout></AdminProtectedRoute>} />
-        <Route path="/admin/finance" element={<AdminProtectedRoute><DashboardLayout><AdminFinance /></DashboardLayout></AdminProtectedRoute>} />
+        <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
+        <Route path="/admin/distribution" element={<AdminPage><AdminDistribution /></AdminPage>} />
+        <Route path="/admin/distribution/*" element={<AdminPage><AdminDistribution /></AdminPage>} />
+        <Route path="/admin/finance" element={<AdminPage><AdminFinance /></AdminPage>} />
+        <Route path="/admin/finance/*" element={<AdminPage><AdminFinance /></AdminPage>} />
 
 
         <Route path="*" element={<NotFound />} />
