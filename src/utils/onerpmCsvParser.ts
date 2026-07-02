@@ -39,6 +39,38 @@ const pickKey = (row: Record<string, any>, candidates: string[]): string => {
   return '';
 };
 
+/**
+ * Parse a "Net" cell as a floating-point number.
+ * - Empty/null/invalid → 0
+ * - Strips currency symbols and whitespace
+ * - Handles both US (1,234.56) and EU (1.234,56 / 0,0158) decimal formats
+ * - Never inflates values by stripping decimal separators
+ */
+export function parseNetValue(raw: unknown): number {
+  if (raw === null || raw === undefined) return 0;
+  if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
+  let s = String(raw).trim();
+  if (!s) return 0;
+  // Remove everything except digits, separators, and sign
+  s = s.replace(/[^\d.,\-]/g, '');
+  if (!s) return 0;
+  const hasDot = s.includes('.');
+  const hasComma = s.includes(',');
+  if (hasDot && hasComma) {
+    // Assume the last-occurring separator is the decimal
+    if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+      s = s.replace(/\./g, '').replace(',', '.');
+    } else {
+      s = s.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    // Only commas: treat as decimal separator (EU format like "0,0158")
+    s = s.replace(/,/g, '.');
+  }
+  const n = parseFloat(s);
+  return Number.isFinite(n) ? n : 0;
+}
+
 export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
   return new Promise((resolve, reject) => {
     Papa.parse<Record<string, any>>(file, {
@@ -57,7 +89,7 @@ export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
             const idKey = pickKey(r, ['ID', 'Track ID', 'ISRC']);
 
             const raw_artists = String(r[artistsKey] ?? '').trim();
-            const net_amount = parseFloat(String(r[netKey] ?? '0').replace(/[^0-9.\-]/g, '')) || 0;
+            const net_amount = parseNetValue(r[netKey]);
             if (!raw_artists && !r[titleKey]) continue;
 
             rows.push({

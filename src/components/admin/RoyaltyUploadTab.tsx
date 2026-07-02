@@ -132,7 +132,10 @@ const RoyaltyUploadTab: React.FC = () => {
     }
   };
 
-  const totalNet = preview.reduce((s, r) => s + r.net_amount, 0);
+  const totalNet = preview.reduce((s, r) => {
+    const v = Number(r.net_amount);
+    return s + (Number.isFinite(v) ? v : 0);
+  }, 0);
   const yearOptions = Array.from({ length: 6 }, (_, i) => now.getFullYear() - i);
 
   return (
