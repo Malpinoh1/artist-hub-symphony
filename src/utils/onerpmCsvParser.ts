@@ -57,7 +57,7 @@ export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
             const idKey = pickKey(r, ['ID', 'Track ID', 'ISRC']);
 
             const raw_artists = String(r[artistsKey] ?? '').trim();
-            const net_amount = parseFloat(String(r[netKey] ?? '0').replace(/[^0-9.\-]/g, '')) || 0;
+            const net_amount = parseNetValue(r[netKey]);
             if (!raw_artists && !r[titleKey]) continue;
 
             rows.push({
