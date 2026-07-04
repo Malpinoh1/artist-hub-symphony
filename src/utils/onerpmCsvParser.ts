@@ -42,6 +42,7 @@ const pickKey = (row: Record<string, any>, candidates: string[]): string => {
 /**
  * Parse a "Net" cell as a floating-point number.
  * - Empty/null/invalid → 0
+ * - Supports scientific notation exported by Excel/ONErpm (e.g. 5.1127E-05)
  * - Strips currency symbols and whitespace
  * - Handles both US (1,234.56) and EU (1.234,56 / 0,0158) decimal formats
  * - Never inflates values by stripping decimal separators
@@ -49,8 +50,15 @@ const pickKey = (row: Record<string, any>, candidates: string[]): string => {
 export function parseNetValue(raw: unknown): number {
   if (raw === null || raw === undefined) return 0;
   if (typeof raw === 'number') return Number.isFinite(raw) ? raw : 0;
-  let s = String(raw).trim();
+  let s = String(raw).trim().replace(/^\uFEFF/, '');
   if (!s) return 0;
+
+  const isParenthesizedNegative = /^\(.*\)$/.test(s);
+  if (isParenthesizedNegative) s = s.slice(1, -1);
+
+  const direct = Number(s.replace(/[$£€₦\s]/g, '').replace(/,/g, ''));
+  if (Number.isFinite(direct)) return isParenthesizedNegative ? -direct : direct;
+
   // Remove everything except digits, separators, and sign
   s = s.replace(/[^\d.,\-]/g, '');
   if (!s) return 0;
@@ -68,7 +76,7 @@ export function parseNetValue(raw: unknown): number {
     s = s.replace(/,/g, '.');
   }
   const n = parseFloat(s);
-  return Number.isFinite(n) ? n : 0;
+  return Number.isFinite(n) ? (isParenthesizedNegative ? -n : n) : 0;
 }
 
 export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
@@ -83,10 +91,14 @@ export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
             const titleKey = pickKey(r, ['Title', 'Track Title', 'Song']);
             const artistsKey = pickKey(r, ['Artists', 'Artist']);
             const qtyKey = pickKey(r, ['Quantity', 'Streams', 'Plays']);
-            const netKey = pickKey(r, ['Net', 'Net Amount', 'Earnings', 'Amount']);
+            const netKey = pickKey(r, ['Net']);
             const curKey = pickKey(r, ['Currency']);
             const salesKey = pickKey(r, ['Sales Type', 'Type']);
             const idKey = pickKey(r, ['ID', 'Track ID', 'ISRC']);
+
+            if (!netKey) {
+              throw new Error('CSV is missing the required Net column.');
+            }
 
             const raw_artists = String(r[artistsKey] ?? '').trim();
             const net_amount = parseNetValue(r[netKey]);
