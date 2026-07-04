@@ -86,7 +86,7 @@ const ReleaseForm = () => {
     if (draft.audio_file_urls?.length) {
       audioFileUrlsRef.current = draft.audio_file_urls;
     }
-    if (draft.current_step) setCurrentStep(draft.current_step);
+    if (draft.current_step) setCurrentStep(Math.min(draft.current_step, 5));
     if (draft.selected_artist_account) setSelectedArtistAccount(draft.selected_artist_account);
     setResumed(true);
     if (isResumeIntent) {
@@ -97,6 +97,7 @@ const ReleaseForm = () => {
   // Auto-save (debounced)
   useEffect(() => {
     if (!draftLoaded || !user) return;
+    if (currentStep >= 6) return; // Don't save the success screen as a draft
     scheduleSave({
       data: { formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted },
       cover_art_url: coverArtUrlRef.current,
