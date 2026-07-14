@@ -73,6 +73,10 @@ const EarningsContent = () => {
                   <span className="hidden xs:inline">Overview</span>
                   <span className="xs:hidden">Stats</span>
                 </TabsTrigger>
+                <TabsTrigger value="streams" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  Streams
+                </TabsTrigger>
                 <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                   Activity
