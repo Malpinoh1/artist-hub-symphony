@@ -366,6 +366,29 @@ const RoyaltyUploadTab: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={duplicateDialog.open} onOpenChange={(o) => !o && setDuplicateDialog({ open: false, existing: [] })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This month's royalty statement has already been imported</AlertDialogTitle>
+            <AlertDialogDescription>
+              {MONTHS[month - 1]} {year} already has {duplicateDialog.existing.length} upload
+              {duplicateDialog.existing.length > 1 ? 's' : ''}. Choose <strong>Replace Existing Month</strong> to remove them and import this new file, or cancel.
+              <ul className="mt-3 text-xs space-y-1 list-disc pl-4">
+                {duplicateDialog.existing.map((e) => (
+                  <li key={e.id}>{e.file_name} — ${Number(e.total_amount).toFixed(2)} — {new Date(e.created_at).toLocaleDateString()}</li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel Upload</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReplaceMonth} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Replace Existing Month
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
