@@ -488,6 +488,12 @@ const ReleaseDetails = () => {
                   )}
                 </AnimatedCard>
               )}
+
+              {release.status === 'approved' && (
+                <AnimatedCard delay={300}>
+                  <ReleaseMonthlyStreams releaseId={release.id} />
+                </AnimatedCard>
+              )}
             </div>
           ) : (
             <Card className="p-6 sm:p-8 text-center">
