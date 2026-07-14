@@ -73,19 +73,11 @@ const RoyaltyUploadTab: React.FC = () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!file || preview.length === 0) {
-      toast.error('Please select a CSV file');
-      return;
-    }
+  const runUpload = async () => {
+    if (!file) return;
     setUploading(true);
     try {
-      const res = await createUploadAndProcess({
-        fileName: file.name,
-        year,
-        month,
-        rows: preview,
-      });
+      const res = await createUploadAndProcess({ fileName: file.name, year, month, rows: preview });
       toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched. Artist notifications sent.`);
       setFile(null);
       setPreview([]);
@@ -94,6 +86,49 @@ const RoyaltyUploadTab: React.FC = () => {
       toast.error(e.message || 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file || preview.length === 0) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+    try {
+      const existing = await checkMonthImported(year, month);
+      if (existing.length > 0) {
+        setDuplicateDialog({ open: true, existing });
+        return;
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Duplicate check failed');
+      return;
+    }
+    await runUpload();
+  };
+
+  const confirmReplaceMonth = async () => {
+    setDuplicateDialog({ open: false, existing: [] });
+    setUploading(true);
+    try {
+      await deleteMonthUploads(year, month);
+      toast.success('Previous month replaced');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to remove previous month');
+      setUploading(false);
+      return;
+    }
+    setUploading(false);
+    await runUpload();
+  };
+
+  const reprocess = async (id: string) => {
+    try {
+      await reprocessUpload(id);
+      toast.success('Reprocessed');
+      loadAll();
+    } catch (e: any) {
+      toast.error(e.message || 'Reprocess failed');
     }
   };
 
