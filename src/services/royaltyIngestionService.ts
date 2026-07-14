@@ -63,9 +63,12 @@ export async function createUploadAndProcess(params: {
       performer_names: r.performer_names,
       track_external_id: r.track_external_id,
       quantity: r.quantity,
+      downloads: r.downloads ?? 0,
       net_amount: r.net_amount,
       currency: r.currency,
       sales_type: r.sales_type,
+      dsp_name: r.dsp_name || null,
+      country: r.country || null,
     }));
     const { error } = await supabase.from('royalty_upload_rows').insert(chunk);
     if (error) throw error;
