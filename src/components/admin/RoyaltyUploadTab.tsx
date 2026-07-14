@@ -41,6 +41,7 @@ const RoyaltyUploadTab: React.FC = () => {
   const [activeUpload, setActiveUpload] = useState<string | null>(null);
   const [unmatched, setUnmatched] = useState<any[]>([]);
   const [artists, setArtists] = useState<{ id: string; name: string; account_name: string | null }[]>([]);
+  const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; existing: Array<{ id: string; file_name: string; created_at: string; total_amount: number }> }>({ open: false, existing: [] });
 
   const loadAll = async () => {
     setLoading(true);
