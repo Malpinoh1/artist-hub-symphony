@@ -2,13 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bookmark, Calendar, FileText } from 'lucide-react';
+import { Bookmark, Calendar, FileText, BarChart3 } from 'lucide-react';
 import StatsCards from '../components/earnings/StatsCards';
 import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
 import MonthlyTrendChart from '../components/earnings/MonthlyTrendChart';
+import StreamAnalytics from '../components/earnings/StreamAnalytics';
 import StatementGeneratorCard from '../components/earnings/StatementGeneratorCard';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
