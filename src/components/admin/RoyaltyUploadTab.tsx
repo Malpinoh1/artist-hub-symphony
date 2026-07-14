@@ -304,6 +304,9 @@ const RoyaltyUploadTab: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => reprocess(u.id)} title="Reprocess this upload">
+                            <RotateCw className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => notify(u.id)} title="Resend artist notifications">
                             <Mail className="h-4 w-4" />
                           </Button>
