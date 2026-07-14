@@ -2,13 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent } from '@/components/ui/card';
-import { Bookmark, Calendar, FileText } from 'lucide-react';
+import { Bookmark, Calendar, FileText, BarChart3 } from 'lucide-react';
 import StatsCards from '../components/earnings/StatsCards';
 import WithdrawalPanel from '../components/earnings/WithdrawalPanel';
 import ActivityPanel from '../components/earnings/ActivityPanel';
 import LoadingState from '../components/earnings/LoadingState';
 import RoyaltyStatementsSection from '../components/earnings/RoyaltyStatementsSection';
 import MonthlyTrendChart from '../components/earnings/MonthlyTrendChart';
+import StreamAnalytics from '../components/earnings/StreamAnalytics';
 import StatementGeneratorCard from '../components/earnings/StatementGeneratorCard';
 import { useToast } from '../hooks/use-toast';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
@@ -72,6 +73,10 @@ const EarningsContent = () => {
                   <span className="hidden xs:inline">Overview</span>
                   <span className="xs:hidden">Stats</span>
                 </TabsTrigger>
+                <TabsTrigger value="streams" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
+                  <BarChart3 className="w-3 h-3 sm:w-4 sm:h-4" />
+                  Streams
+                </TabsTrigger>
                 <TabsTrigger value="activity" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                   <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                   Activity
@@ -114,6 +119,15 @@ const EarningsContent = () => {
                   </Card>
                 </div>
               </TabsContent>
+
+              <TabsContent value="streams">
+                {effectiveAccountId ? (
+                  <StreamAnalytics artistId={effectiveAccountId} />
+                ) : (
+                  <Card><CardContent className="p-8 text-center text-muted-foreground">No artist selected.</CardContent></Card>
+                )}
+              </TabsContent>
+
 
               <TabsContent value="activity">
                 <Card className="p-4 sm:p-6">

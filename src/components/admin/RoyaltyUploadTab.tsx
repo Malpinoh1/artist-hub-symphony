@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2, Mail, RotateCw } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { parseOnerpmCsv, type OnerpmRow } from '@/utils/onerpmCsvParser';
 import {
@@ -17,6 +18,9 @@ import {
   assignRowToArtist,
   deleteUpload,
   notifyArtistsForUpload,
+  checkMonthImported,
+  deleteMonthUploads,
+  reprocessUpload,
   type RoyaltyUpload,
 } from '@/services/royaltyIngestionService';
 import { supabase } from '@/integrations/supabase/client';
@@ -37,6 +41,7 @@ const RoyaltyUploadTab: React.FC = () => {
   const [activeUpload, setActiveUpload] = useState<string | null>(null);
   const [unmatched, setUnmatched] = useState<any[]>([]);
   const [artists, setArtists] = useState<{ id: string; name: string; account_name: string | null }[]>([]);
+  const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; existing: Array<{ id: string; file_name: string; created_at: string; total_amount: number }> }>({ open: false, existing: [] });
 
   const loadAll = async () => {
     setLoading(true);
@@ -68,19 +73,11 @@ const RoyaltyUploadTab: React.FC = () => {
     }
   };
 
-  const handleUpload = async () => {
-    if (!file || preview.length === 0) {
-      toast.error('Please select a CSV file');
-      return;
-    }
+  const runUpload = async () => {
+    if (!file) return;
     setUploading(true);
     try {
-      const res = await createUploadAndProcess({
-        fileName: file.name,
-        year,
-        month,
-        rows: preview,
-      });
+      const res = await createUploadAndProcess({ fileName: file.name, year, month, rows: preview });
       toast.success(`Processed: ${res.matched} matched, ${res.unmatched} unmatched. Artist notifications sent.`);
       setFile(null);
       setPreview([]);
@@ -89,6 +86,49 @@ const RoyaltyUploadTab: React.FC = () => {
       toast.error(e.message || 'Upload failed');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file || preview.length === 0) {
+      toast.error('Please select a CSV file');
+      return;
+    }
+    try {
+      const existing = await checkMonthImported(year, month);
+      if (existing.length > 0) {
+        setDuplicateDialog({ open: true, existing });
+        return;
+      }
+    } catch (e: any) {
+      toast.error(e.message || 'Duplicate check failed');
+      return;
+    }
+    await runUpload();
+  };
+
+  const confirmReplaceMonth = async () => {
+    setDuplicateDialog({ open: false, existing: [] });
+    setUploading(true);
+    try {
+      await deleteMonthUploads(year, month);
+      toast.success('Previous month replaced');
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to remove previous month');
+      setUploading(false);
+      return;
+    }
+    setUploading(false);
+    await runUpload();
+  };
+
+  const reprocess = async (id: string) => {
+    try {
+      await reprocessUpload(id);
+      toast.success('Reprocessed');
+      loadAll();
+    } catch (e: any) {
+      toast.error(e.message || 'Reprocess failed');
     }
   };
 
@@ -264,6 +304,9 @@ const RoyaltyUploadTab: React.FC = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" onClick={() => reprocess(u.id)} title="Reprocess this upload">
+                            <RotateCw className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="sm" onClick={() => notify(u.id)} title="Resend artist notifications">
                             <Mail className="h-4 w-4" />
                           </Button>
@@ -323,6 +366,29 @@ const RoyaltyUploadTab: React.FC = () => {
           </CardContent>
         </Card>
       )}
+
+      <AlertDialog open={duplicateDialog.open} onOpenChange={(o) => !o && setDuplicateDialog({ open: false, existing: [] })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>This month's royalty statement has already been imported</AlertDialogTitle>
+            <AlertDialogDescription>
+              {MONTHS[month - 1]} {year} already has {duplicateDialog.existing.length} upload
+              {duplicateDialog.existing.length > 1 ? 's' : ''}. Choose <strong>Replace Existing Month</strong> to remove them and import this new file, or cancel.
+              <ul className="mt-3 text-xs space-y-1 list-disc pl-4">
+                {duplicateDialog.existing.map((e) => (
+                  <li key={e.id}>{e.file_name} — ${Number(e.total_amount).toFixed(2)} — {new Date(e.created_at).toLocaleDateString()}</li>
+                ))}
+              </ul>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel Upload</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmReplaceMonth} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Replace Existing Month
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

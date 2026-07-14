@@ -6,9 +6,12 @@ export interface OnerpmRow {
   performer_names: string[];
   track_external_id: string;
   quantity: number;
+  downloads: number;
   net_amount: number;
   currency: string;
   sales_type: string;
+  dsp_name: string;
+  country: string;
 }
 
 /**
@@ -95,6 +98,9 @@ export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
             const curKey = pickKey(r, ['Currency']);
             const salesKey = pickKey(r, ['Sales Type', 'Type']);
             const idKey = pickKey(r, ['ID', 'Track ID', 'ISRC']);
+            const dspKey = pickKey(r, ['Store', 'DSP', 'Retailer', 'Platform', 'Shop']);
+            const countryKey = pickKey(r, ['Country', 'Territory', 'Region']);
+            const downloadsKey = pickKey(r, ['Downloads', 'Download']);
 
             if (!netKey) {
               throw new Error('CSV is missing the required Net column.');
@@ -110,9 +116,12 @@ export function parseOnerpmCsv(file: File): Promise<OnerpmRow[]> {
               performer_names: extractPerformers(raw_artists),
               track_external_id: String(r[idKey] ?? '').trim(),
               quantity: parseInt(String(r[qtyKey] ?? '0').replace(/[^0-9\-]/g, ''), 10) || 0,
+              downloads: downloadsKey ? (parseInt(String(r[downloadsKey] ?? '0').replace(/[^0-9\-]/g, ''), 10) || 0) : 0,
               net_amount,
               currency: String(r[curKey] ?? 'USD').trim() || 'USD',
               sales_type: String(r[salesKey] ?? '').trim(),
+              dsp_name: dspKey ? String(r[dspKey] ?? '').trim() : '',
+              country: countryKey ? String(r[countryKey] ?? '').trim() : '',
             });
           }
           resolve(rows);

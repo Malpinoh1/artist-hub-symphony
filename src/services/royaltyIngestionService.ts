@@ -63,9 +63,12 @@ export async function createUploadAndProcess(params: {
       performer_names: r.performer_names,
       track_external_id: r.track_external_id,
       quantity: r.quantity,
+      downloads: r.downloads ?? 0,
       net_amount: r.net_amount,
       currency: r.currency,
       sales_type: r.sales_type,
+      dsp_name: r.dsp_name || null,
+      country: r.country || null,
     }));
     const { error } = await supabase.from('royalty_upload_rows').insert(chunk);
     if (error) throw error;
@@ -167,3 +170,71 @@ export async function fetchArtistTrackBreakdown(artistId: string, year?: number,
   if (error) throw error;
   return data || [];
 }
+
+// ---------- Monthly stream analytics helpers ----------
+
+export async function checkMonthImported(year: number, month: number) {
+  const { data, error } = await supabase.rpc('check_month_already_imported', {
+    p_year: year,
+    p_month: month,
+  });
+  if (error) throw error;
+  return (data || []) as Array<{ id: string; file_name: string; total_rows: number; total_amount: number; created_at: string }>;
+}
+
+export async function deleteMonthUploads(year: number, month: number) {
+  const { data, error } = await supabase.rpc('delete_month_uploads', { p_year: year, p_month: month });
+  if (error) throw error;
+  return data as number;
+}
+
+export async function reprocessUpload(uploadId: string) {
+  const { data, error } = await supabase.rpc('process_royalty_upload', { p_upload_id: uploadId });
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchArtistStreamSummary(artistId: string) {
+  const { data, error } = await supabase.rpc('get_artist_stream_summary', { p_artist_id: artistId });
+  if (error) throw error;
+  return (data || {}) as {
+    lifetime_streams: number;
+    lifetime_revenue: number;
+    this_month_streams: number;
+    previous_month_streams: number;
+    growth_pct: number | null;
+    top_track: string | null;
+    top_dsp: string | null;
+    top_country: string | null;
+    monthly_revenue: number;
+    avg_streams_per_release: number;
+  };
+}
+
+export async function fetchArtistMonthlyStreams(artistId: string) {
+  const { data, error } = await supabase
+    .from('monthly_stream_stats')
+    .select('period_year, period_month, streams, revenue, dsp_name, country, track_title, track_id, release_id')
+    .eq('artist_id', artistId);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchTrackMonthlyStreams(trackId: string) {
+  const { data, error } = await supabase
+    .from('monthly_stream_stats')
+    .select('period_year, period_month, streams, revenue, dsp_name, country')
+    .eq('track_id', trackId);
+  if (error) throw error;
+  return data || [];
+}
+
+export async function fetchReleaseMonthlyStreams(releaseId: string) {
+  const { data, error } = await supabase
+    .from('monthly_stream_stats')
+    .select('period_year, period_month, streams, revenue, dsp_name, country, track_title')
+    .eq('release_id', releaseId);
+  if (error) throw error;
+  return data || [];
+}
+
