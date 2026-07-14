@@ -11,6 +11,7 @@ import StreamingLinksSection from '../components/release/StreamingLinksSection';
 import PerformanceStatsSection from '../components/release/PerformanceStatsSection';
 import TakeDownSection from '../components/release/TakeDownSection';
 import TakeDownRequestStatus from '../components/release/TakeDownRequestStatus';
+import ReleaseMonthlyStreams from '../components/release/ReleaseMonthlyStreams';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
