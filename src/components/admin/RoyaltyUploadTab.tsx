@@ -7,7 +7,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
+import { Loader2, Upload, FileText, Trash2, AlertTriangle, CheckCircle2, Mail, RotateCw } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
 import { parseOnerpmCsv, type OnerpmRow } from '@/utils/onerpmCsvParser';
 import {
@@ -17,6 +18,9 @@ import {
   assignRowToArtist,
   deleteUpload,
   notifyArtistsForUpload,
+  checkMonthImported,
+  deleteMonthUploads,
+  reprocessUpload,
   type RoyaltyUpload,
 } from '@/services/royaltyIngestionService';
 import { supabase } from '@/integrations/supabase/client';
