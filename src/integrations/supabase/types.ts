@@ -864,6 +864,92 @@ export type Database = {
           },
         ]
       }
+      monthly_stream_stats: {
+        Row: {
+          artist_id: string
+          country: string | null
+          created_at: string
+          currency: string
+          downloads: number
+          dsp_name: string | null
+          id: string
+          period_month: number
+          period_year: number
+          quantity: number
+          release_id: string | null
+          revenue: number
+          streams: number
+          track_id: string | null
+          track_title: string | null
+          upload_id: string
+        }
+        Insert: {
+          artist_id: string
+          country?: string | null
+          created_at?: string
+          currency?: string
+          downloads?: number
+          dsp_name?: string | null
+          id?: string
+          period_month: number
+          period_year: number
+          quantity?: number
+          release_id?: string | null
+          revenue?: number
+          streams?: number
+          track_id?: string | null
+          track_title?: string | null
+          upload_id: string
+        }
+        Update: {
+          artist_id?: string
+          country?: string | null
+          created_at?: string
+          currency?: string
+          downloads?: number
+          dsp_name?: string | null
+          id?: string
+          period_month?: number
+          period_year?: number
+          quantity?: number
+          release_id?: string | null
+          revenue?: number
+          streams?: number
+          track_id?: string | null
+          track_title?: string | null
+          upload_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "monthly_stream_stats_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_stream_stats_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_stream_stats_track_id_fkey"
+            columns: ["track_id"]
+            isOneToOne: false
+            referencedRelation: "tracks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_stream_stats_upload_id_fkey"
+            columns: ["upload_id"]
+            isOneToOne: false
+            referencedRelation: "royalty_uploads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_charged: number
@@ -1902,8 +1988,11 @@ export type Database = {
       royalty_upload_rows: {
         Row: {
           assigned_amount_per_artist: number
+          country: string | null
           created_at: string
           currency: string
+          downloads: number
+          dsp_name: string | null
           id: string
           match_status: string
           matched_artist_ids: string[]
@@ -1918,8 +2007,11 @@ export type Database = {
         }
         Insert: {
           assigned_amount_per_artist?: number
+          country?: string | null
           created_at?: string
           currency?: string
+          downloads?: number
+          dsp_name?: string | null
           id?: string
           match_status?: string
           matched_artist_ids?: string[]
@@ -1934,8 +2026,11 @@ export type Database = {
         }
         Update: {
           assigned_amount_per_artist?: number
+          country?: string | null
           created_at?: string
           currency?: string
+          downloads?: number
+          dsp_name?: string | null
           id?: string
           match_status?: string
           matched_artist_ids?: string[]
@@ -2618,7 +2713,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_month_already_imported: {
+        Args: { p_month: number; p_year: number }
+        Returns: {
+          created_at: string
+          file_name: string
+          id: string
+          total_amount: number
+          total_rows: number
+        }[]
+      }
       check_release_submission_allowed: { Args: { uid: string }; Returns: Json }
+      delete_month_uploads: {
+        Args: { p_month: number; p_year: number }
+        Returns: number
+      }
+      get_artist_stream_summary: {
+        Args: { p_artist_id: string }
+        Returns: Json
+      }
       has_account_access: {
         Args: {
           required_role?: Database["public"]["Enums"]["account_role"]
