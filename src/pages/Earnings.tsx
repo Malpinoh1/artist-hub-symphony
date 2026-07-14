@@ -120,6 +120,15 @@ const EarningsContent = () => {
                 </div>
               </TabsContent>
 
+              <TabsContent value="streams">
+                {effectiveAccountId ? (
+                  <StreamAnalytics artistId={effectiveAccountId} />
+                ) : (
+                  <Card><CardContent className="p-8 text-center text-muted-foreground">No artist selected.</CardContent></Card>
+                )}
+              </TabsContent>
+
+
               <TabsContent value="activity">
                 <Card className="p-4 sm:p-6">
                   <ActivityPanel 
