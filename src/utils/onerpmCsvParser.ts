@@ -6,9 +6,12 @@ export interface OnerpmRow {
   performer_names: string[];
   track_external_id: string;
   quantity: number;
+  downloads: number;
   net_amount: number;
   currency: string;
   sales_type: string;
+  dsp_name: string;
+  country: string;
 }
 
 /**
