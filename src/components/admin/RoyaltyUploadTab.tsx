@@ -43,6 +43,21 @@ const RoyaltyUploadTab: React.FC = () => {
   const [unmatched, setUnmatched] = useState<any[]>([]);
   const [artists, setArtists] = useState<{ id: string; name: string; account_name: string | null }[]>([]);
   const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; existing: Array<{ id: string; file_name: string; created_at: string; total_amount: number }> }>({ open: false, existing: [] });
+  const [rebuilding, setRebuilding] = useState(false);
+
+  const handleRebuild = async () => {
+    if (!confirm('Rebuild all historical stream statistics from existing royalty uploads? This may take a moment but is safe to run.')) return;
+    setRebuilding(true);
+    try {
+      const res = await rebuildAllStreamStats();
+      toast.success(`Rebuild complete: ${res.reprocessed} uploads reprocessed${res.failed ? `, ${res.failed} failed` : ''}`);
+      loadAll();
+    } catch (e: any) {
+      toast.error(e.message || 'Rebuild failed');
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const loadAll = async () => {
     setLoading(true);
