@@ -135,6 +135,7 @@ const AdminFinance: React.FC = () => {
             <WithdrawalsTab withdrawals={withdrawals} loading={loading} onWithdrawalUpdate={handleWithdrawalUpdate} />
           )}
           {activeTab === 'royalty-upload' && <RoyaltyUploadTab />}
+          {activeTab === 'stream-analytics' && <PlatformStreamAnalytics />}
           {activeTab === 'royalty-statements' && <RoyaltyStatementsTab onStatementUpdate={refresh} />}
           {activeTab === 'platform-earnings' && <PlatformEarningsTab onGenerateStatement={refresh} />}
           {activeTab === 'earnings' && (
