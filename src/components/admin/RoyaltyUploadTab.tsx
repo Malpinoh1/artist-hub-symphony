@@ -21,6 +21,7 @@ import {
   checkMonthImported,
   deleteMonthUploads,
   reprocessUpload,
+  rebuildAllStreamStats,
   type RoyaltyUpload,
 } from '@/services/royaltyIngestionService';
 import { supabase } from '@/integrations/supabase/client';
