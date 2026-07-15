@@ -194,6 +194,29 @@ export async function reprocessUpload(uploadId: string) {
   return data;
 }
 
+export async function rebuildAllStreamStats() {
+  const { data, error } = await supabase.rpc('rebuild_all_stream_stats');
+  if (error) throw error;
+  return data as { reprocessed: number; failed: number; errors: any[] };
+}
+
+export async function fetchPlatformStreamAnalytics(year?: number, month?: number) {
+  const { data, error } = await supabase.rpc('get_platform_stream_analytics', {
+    p_year: year ?? null,
+    p_month: month ?? null,
+  });
+  if (error) throw error;
+  return (data || {}) as {
+    total_streams: number;
+    total_revenue: number;
+    by_month: Array<{ period_year: number; period_month: number; streams: number; revenue: number }>;
+    by_dsp: Array<{ dsp_name: string; streams: number; revenue: number }>;
+    top_artists: Array<{ artist_id: string; name: string | null; account_name: string | null; streams: number; revenue: number }>;
+    top_tracks: Array<{ track_title: string; streams: number; revenue: number }>;
+    by_release: Array<{ release_id: string; title: string | null; streams: number; revenue: number }>;
+  };
+}
+
 export async function fetchArtistStreamSummary(artistId: string) {
   const { data, error } = await supabase.rpc('get_artist_stream_summary', { p_artist_id: artistId });
   if (error) throw error;
