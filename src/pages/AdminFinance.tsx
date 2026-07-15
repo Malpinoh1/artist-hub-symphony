@@ -22,6 +22,7 @@ import { Navigate, Link } from 'react-router-dom';
 const TABS = [
   { id: 'withdrawals', label: 'Withdrawals' },
   { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+  { id: 'stream-analytics', label: 'Stream Analytics' },
   { id: 'royalty-statements', label: 'Royalty Statements' },
   { id: 'platform-earnings', label: 'Platform Earnings' },
   { id: 'earnings', label: 'Artist Earnings' },
