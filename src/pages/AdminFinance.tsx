@@ -11,6 +11,7 @@ import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
+import PlatformStreamAnalytics from '@/components/admin/PlatformStreamAnalytics';
 import {
   fetchAdminWithdrawals,
   fetchArtistsEarningSummary,
@@ -21,6 +22,7 @@ import { Navigate, Link } from 'react-router-dom';
 const TABS = [
   { id: 'withdrawals', label: 'Withdrawals' },
   { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+  { id: 'stream-analytics', label: 'Stream Analytics' },
   { id: 'royalty-statements', label: 'Royalty Statements' },
   { id: 'platform-earnings', label: 'Platform Earnings' },
   { id: 'earnings', label: 'Artist Earnings' },
@@ -133,6 +135,7 @@ const AdminFinance: React.FC = () => {
             <WithdrawalsTab withdrawals={withdrawals} loading={loading} onWithdrawalUpdate={handleWithdrawalUpdate} />
           )}
           {activeTab === 'royalty-upload' && <RoyaltyUploadTab />}
+          {activeTab === 'stream-analytics' && <PlatformStreamAnalytics />}
           {activeTab === 'royalty-statements' && <RoyaltyStatementsTab onStatementUpdate={refresh} />}
           {activeTab === 'platform-earnings' && <PlatformEarningsTab onGenerateStatement={refresh} />}
           {activeTab === 'earnings' && (

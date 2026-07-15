@@ -21,6 +21,7 @@ import {
   checkMonthImported,
   deleteMonthUploads,
   reprocessUpload,
+  rebuildAllStreamStats,
   type RoyaltyUpload,
 } from '@/services/royaltyIngestionService';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +43,21 @@ const RoyaltyUploadTab: React.FC = () => {
   const [unmatched, setUnmatched] = useState<any[]>([]);
   const [artists, setArtists] = useState<{ id: string; name: string; account_name: string | null }[]>([]);
   const [duplicateDialog, setDuplicateDialog] = useState<{ open: boolean; existing: Array<{ id: string; file_name: string; created_at: string; total_amount: number }> }>({ open: false, existing: [] });
+  const [rebuilding, setRebuilding] = useState(false);
+
+  const handleRebuild = async () => {
+    if (!confirm('Rebuild all historical stream statistics from existing royalty uploads? This may take a moment but is safe to run.')) return;
+    setRebuilding(true);
+    try {
+      const res = await rebuildAllStreamStats();
+      toast.success(`Rebuild complete: ${res.reprocessed} uploads reprocessed${res.failed ? `, ${res.failed} failed` : ''}`);
+      loadAll();
+    } catch (e: any) {
+      toast.error(e.message || 'Rebuild failed');
+    } finally {
+      setRebuilding(false);
+    }
+  };
 
   const loadAll = async () => {
     setLoading(true);
@@ -259,10 +275,14 @@ const RoyaltyUploadTab: React.FC = () => {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" /> Upload History
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={handleRebuild} disabled={rebuilding} title="Reprocess every past upload to rebuild historical stream stats (safe & idempotent)">
+            {rebuilding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCw className="h-4 w-4 mr-2" />}
+            Rebuild Historical Streams
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (

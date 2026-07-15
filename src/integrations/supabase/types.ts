@@ -2732,6 +2732,10 @@ export type Database = {
         Args: { p_artist_id: string }
         Returns: Json
       }
+      get_platform_stream_analytics: {
+        Args: { p_month?: number; p_year?: number }
+        Returns: Json
+      }
       has_account_access: {
         Args: {
           required_role?: Database["public"]["Enums"]["account_role"]
@@ -2765,6 +2769,7 @@ export type Database = {
         Returns: string
       }
       process_royalty_upload: { Args: { p_upload_id: string }; Returns: Json }
+      rebuild_all_stream_stats: { Args: never; Returns: Json }
       user_has_active_subscription: {
         Args: { user_id?: string }
         Returns: boolean
