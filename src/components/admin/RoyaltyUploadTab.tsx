@@ -275,10 +275,14 @@ const RoyaltyUploadTab: React.FC = () => {
       </Card>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" /> Upload History
           </CardTitle>
+          <Button variant="outline" size="sm" onClick={handleRebuild} disabled={rebuilding} title="Reprocess every past upload to rebuild historical stream stats (safe & idempotent)">
+            {rebuilding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RotateCw className="h-4 w-4 mr-2" />}
+            Rebuild Historical Streams
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
