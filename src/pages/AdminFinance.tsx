@@ -11,6 +11,7 @@ import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
+import PlatformStreamAnalytics from '@/components/admin/PlatformStreamAnalytics';
 import {
   fetchAdminWithdrawals,
   fetchArtistsEarningSummary,
