@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mail, 
   Lock, 
@@ -26,6 +26,12 @@ import { sendWelcomeEmail } from '../services/emailService';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = (() => {
+    const n = searchParams.get('next');
+    if (n && n.startsWith('/') && !n.startsWith('//')) return n;
+    return null;
+  })();
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -65,7 +71,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}${nextParam ?? '/dashboard'}`
         }
       });
       
@@ -294,6 +300,11 @@ const Auth = () => {
   
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
+
+    if (nextParam) {
+      navigate(nextParam);
+      return;
+    }
 
     // Route by role: super admin → /admin, distribution → /admin/distribution, finance → /admin/finance
     const { data: roleRows } = await supabase

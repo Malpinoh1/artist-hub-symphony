@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAdminRole } from '@/hooks/useAdminRole';
 
@@ -10,6 +10,9 @@ interface PublicRouteProps {
 const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) => {
   const { user, isLoading } = useAuth();
   const { loading: roleLoading, isAdmin, isFinance, isDistribution } = useAdminRole();
+  const [searchParams] = useSearchParams();
+  const next = searchParams.get('next');
+  const safeNext = next && next.startsWith('/') && !next.startsWith('//') ? next : null;
 
   if (isLoading || (user && roleLoading)) {
     return (
@@ -23,6 +26,7 @@ const PublicRoute = ({ children, redirectTo = '/dashboard' }: PublicRouteProps) 
   }
 
   if (user) {
+    if (safeNext) return <Navigate to={safeNext} replace />;
     // Super admin keeps full panel; sub-roles land on their dedicated dashboard.
     if (isAdmin) return <Navigate to="/admin" replace />;
     if (isDistribution) return <Navigate to="/admin/distribution" replace />;

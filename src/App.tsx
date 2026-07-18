@@ -55,6 +55,7 @@ const ArtistRoyaltySplits = React.lazy(() => import("./pages/ArtistRoyaltySplits
 const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
 const PaymentCallback = React.lazy(() => import("./pages/PaymentCallback"));
 const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
+const OAuthConsent = React.lazy(() => import("./pages/OAuthConsent"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -115,6 +116,7 @@ const AppContent = () => {
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="/accept-split" element={<AcceptSplit />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
+        <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
         {/* Protected dashboard routes — wrapped in DashboardLayout */}
         <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />
