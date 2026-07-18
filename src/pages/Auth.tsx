@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Mail, 
   Lock, 
@@ -26,6 +26,12 @@ import { sendWelcomeEmail } from '../services/emailService';
 
 const Auth = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextParam = (() => {
+    const n = searchParams.get('next');
+    if (n && n.startsWith('/') && !n.startsWith('//')) return n;
+    return null;
+  })();
   const { toast } = useToast();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
