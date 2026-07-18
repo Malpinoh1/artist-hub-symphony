@@ -301,6 +301,11 @@ const Auth = () => {
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
 
+    if (nextParam) {
+      navigate(nextParam);
+      return;
+    }
+
     // Route by role: super admin → /admin, distribution → /admin/distribution, finance → /admin/finance
     const { data: roleRows } = await supabase
       .from('user_roles')
