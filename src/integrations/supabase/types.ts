@@ -567,6 +567,33 @@ export type Database = {
           },
         ]
       }
+      distributors: {
+        Row: {
+          code: string
+          created_at: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       earnings: {
         Row: {
           amount: number
@@ -870,6 +897,7 @@ export type Database = {
           country: string | null
           created_at: string
           currency: string
+          distributor_code: string | null
           downloads: number
           dsp_name: string | null
           id: string
@@ -888,6 +916,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           downloads?: number
           dsp_name?: string | null
           id?: string
@@ -906,6 +935,7 @@ export type Database = {
           country?: string | null
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           downloads?: number
           dsp_name?: string | null
           id?: string
@@ -926,6 +956,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "artists"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "monthly_stream_stats_distributor_code_fkey"
+            columns: ["distributor_code"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["code"]
           },
           {
             foreignKeyName: "monthly_stream_stats_release_id_fkey"
@@ -1987,63 +2024,94 @@ export type Database = {
       }
       royalty_upload_rows: {
         Row: {
+          album_title: string | null
+          artist_share: number | null
           assigned_amount_per_artist: number
           country: string | null
           created_at: string
           currency: string
+          distributor_code: string | null
           downloads: number
           dsp_name: string | null
+          final_royalty: number | null
+          gross_revenue: number | null
           id: string
+          isrc: string | null
           match_status: string
           matched_artist_ids: string[]
           net_amount: number
           performer_names: string[]
           quantity: number
           raw_artists: string | null
+          royalty_type: string | null
           sales_type: string | null
           track_external_id: string | null
           track_title: string | null
+          upc: string | null
           upload_id: string
         }
         Insert: {
+          album_title?: string | null
+          artist_share?: number | null
           assigned_amount_per_artist?: number
           country?: string | null
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           downloads?: number
           dsp_name?: string | null
+          final_royalty?: number | null
+          gross_revenue?: number | null
           id?: string
+          isrc?: string | null
           match_status?: string
           matched_artist_ids?: string[]
           net_amount?: number
           performer_names?: string[]
           quantity?: number
           raw_artists?: string | null
+          royalty_type?: string | null
           sales_type?: string | null
           track_external_id?: string | null
           track_title?: string | null
+          upc?: string | null
           upload_id: string
         }
         Update: {
+          album_title?: string | null
+          artist_share?: number | null
           assigned_amount_per_artist?: number
           country?: string | null
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           downloads?: number
           dsp_name?: string | null
+          final_royalty?: number | null
+          gross_revenue?: number | null
           id?: string
+          isrc?: string | null
           match_status?: string
           matched_artist_ids?: string[]
           net_amount?: number
           performer_names?: string[]
           quantity?: number
           raw_artists?: string | null
+          royalty_type?: string | null
           sales_type?: string | null
           track_external_id?: string | null
           track_title?: string | null
+          upc?: string | null
           upload_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "royalty_upload_rows_distributor_code_fkey"
+            columns: ["distributor_code"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["code"]
+          },
           {
             foreignKeyName: "royalty_upload_rows_upload_id_fkey"
             columns: ["upload_id"]
@@ -2057,6 +2125,7 @@ export type Database = {
         Row: {
           created_at: string
           currency: string
+          distributor_code: string | null
           error_message: string | null
           file_name: string
           id: string
@@ -2074,6 +2143,7 @@ export type Database = {
         Insert: {
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           error_message?: string | null
           file_name: string
           id?: string
@@ -2091,6 +2161,7 @@ export type Database = {
         Update: {
           created_at?: string
           currency?: string
+          distributor_code?: string | null
           error_message?: string | null
           file_name?: string
           id?: string
@@ -2105,7 +2176,15 @@ export type Database = {
           updated_at?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "royalty_uploads_distributor_code_fkey"
+            columns: ["distributor_code"]
+            isOneToOne: false
+            referencedRelation: "distributors"
+            referencedColumns: ["code"]
+          },
+        ]
       }
       site_notices: {
         Row: {
@@ -2723,9 +2802,24 @@ export type Database = {
           total_rows: number
         }[]
       }
+      check_month_imported_for_distributor: {
+        Args: { p_distributor: string; p_month: number; p_year: number }
+        Returns: {
+          created_at: string
+          distributor_code: string
+          file_name: string
+          id: string
+          total_amount: number
+          total_rows: number
+        }[]
+      }
       check_release_submission_allowed: { Args: { uid: string }; Returns: Json }
       delete_month_uploads: {
         Args: { p_month: number; p_year: number }
+        Returns: number
+      }
+      delete_month_uploads_for_distributor: {
+        Args: { p_distributor: string; p_month: number; p_year: number }
         Returns: number
       }
       get_artist_stream_summary: {
