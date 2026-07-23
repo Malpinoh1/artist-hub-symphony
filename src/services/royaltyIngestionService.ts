@@ -1,5 +1,8 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { OnerpmRow } from '@/utils/onerpmCsvParser';
+import type { NormalizedRoyaltyRow, DistributorCode } from '@/utils/royalty-parsers';
+
+// Re-export for legacy imports
+export type { NormalizedRoyaltyRow as OnerpmRow } from '@/utils/royalty-parsers';
 
 export interface RoyaltyUpload {
   id: string;
@@ -14,6 +17,7 @@ export interface RoyaltyUpload {
   total_amount: number;
   currency: string;
   status: string;
+  distributor_code: string | null;
   error_message: string | null;
   created_at: string;
 }
@@ -22,11 +26,11 @@ export async function createUploadAndProcess(params: {
   fileName: string;
   year: number;
   month: number;
-  rows: OnerpmRow[];
+  rows: NormalizedRoyaltyRow[];
+  distributorCode: DistributorCode;
   skipZero?: boolean;
 }): Promise<{ uploadId: string; matched: number; unmatched: number }> {
-  // Always include zero-net rows (they're stored & flagged as zero_revenue)
-  const { fileName, year, month, rows } = params;
+  const { fileName, year, month, rows, distributorCode } = params;
   const filtered = rows;
 
   const totalAmount = filtered.reduce((s, r) => s + r.net_amount, 0);
@@ -48,16 +52,17 @@ export async function createUploadAndProcess(params: {
       total_amount: totalAmount,
       currency,
       status: 'processing',
-    })
+      distributor_code: distributorCode,
+    } as any)
     .select('id')
     .single();
   if (uErr) throw uErr;
 
-  // Insert rows in chunks to avoid payload limits
   const chunkSize = 500;
   for (let i = 0; i < filtered.length; i += chunkSize) {
     const chunk = filtered.slice(i, i + chunkSize).map((r) => ({
       upload_id: upload.id,
+      distributor_code: distributorCode,
       track_title: r.track_title,
       raw_artists: r.raw_artists,
       performer_names: r.performer_names,
@@ -69,7 +74,14 @@ export async function createUploadAndProcess(params: {
       sales_type: r.sales_type,
       dsp_name: r.dsp_name || null,
       country: r.country || null,
-    }));
+      isrc: r.isrc || null,
+      upc: r.upc || null,
+      album_title: r.album_title || null,
+      royalty_type: r.royalty_type || null,
+      gross_revenue: r.gross_revenue ?? null,
+      artist_share: r.artist_share ?? null,
+      final_royalty: r.final_royalty ?? null,
+    })) as any;
     const { error } = await supabase.from('royalty_upload_rows').insert(chunk);
     if (error) throw error;
   }
@@ -81,7 +93,6 @@ export async function createUploadAndProcess(params: {
 
   const r = (result as any) || {};
 
-  // Notify artists of their new earnings (best-effort)
   try {
     await supabase.functions.invoke('send-royalty-upload-notification', {
       body: { upload_id: upload.id },
@@ -107,7 +118,7 @@ export async function fetchUploads(): Promise<RoyaltyUpload[]> {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data || []) as RoyaltyUpload[];
+  return (data || []) as any as RoyaltyUpload[];
 }
 
 export async function fetchUnmatchedRows(uploadId: string) {
@@ -122,7 +133,6 @@ export async function fetchUnmatchedRows(uploadId: string) {
 }
 
 export async function assignRowToArtist(rowId: string, artistId: string) {
-  // Set matched_artist_ids and re-run aggregation by reprocessing the parent upload
   const { data: row, error: rErr } = await supabase
     .from('royalty_upload_rows')
     .select('id, upload_id, net_amount')
@@ -139,7 +149,6 @@ export async function assignRowToArtist(rowId: string, artistId: string) {
     })
     .eq('id', rowId);
 
-  // Re-run aggregation for the entire upload (simplest correct path)
   await supabase.rpc('process_royalty_upload', { p_upload_id: row.upload_id });
 }
 
@@ -173,6 +182,21 @@ export async function fetchArtistTrackBreakdown(artistId: string, year?: number,
 
 // ---------- Monthly stream analytics helpers ----------
 
+/**
+ * Check whether a period already has an upload for a specific distributor.
+ * Same-month uploads from *different* distributors are allowed and won't collide.
+ */
+export async function checkMonthImportedForDistributor(year: number, month: number, distributorCode: DistributorCode) {
+  const { data, error } = await supabase.rpc('check_month_imported_for_distributor', {
+    p_year: year,
+    p_month: month,
+    p_distributor: distributorCode,
+  });
+  if (error) throw error;
+  return (data || []) as Array<{ id: string; file_name: string; total_rows: number; total_amount: number; distributor_code: string; created_at: string }>;
+}
+
+/** @deprecated Use `checkMonthImportedForDistributor` — the old function ignored distributor. */
 export async function checkMonthImported(year: number, month: number) {
   const { data, error } = await supabase.rpc('check_month_already_imported', {
     p_year: year,
@@ -180,6 +204,16 @@ export async function checkMonthImported(year: number, month: number) {
   });
   if (error) throw error;
   return (data || []) as Array<{ id: string; file_name: string; total_rows: number; total_amount: number; created_at: string }>;
+}
+
+export async function deleteMonthUploadsForDistributor(year: number, month: number, distributorCode: DistributorCode) {
+  const { data, error } = await supabase.rpc('delete_month_uploads_for_distributor', {
+    p_year: year,
+    p_month: month,
+    p_distributor: distributorCode,
+  });
+  if (error) throw error;
+  return data as number;
 }
 
 export async function deleteMonthUploads(year: number, month: number) {
@@ -260,4 +294,3 @@ export async function fetchReleaseMonthlyStreams(releaseId: string) {
   if (error) throw error;
   return data || [];
 }
-
