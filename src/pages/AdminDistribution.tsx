@@ -7,6 +7,7 @@ import ArtistsTab from '@/components/admin/ArtistsTab';
 import SupportTicketsTab from '@/components/admin/SupportTicketsTab';
 import TakeDownRequestsTab from '@/components/TakeDownRequestsTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
+import OACRequestsTab from '@/components/admin/OACRequestsTab';
 import {
   fetchAdminReleases,
   fetchAdminArtists,
@@ -20,6 +21,7 @@ const TABS = [
   { id: 'artists', label: 'Artists' },
   { id: 'takedown', label: 'Take Down Requests' },
   { id: 'split-requests', label: 'Split Requests' },
+  { id: 'oac', label: 'YouTube OAC' },
   { id: 'support', label: 'Support Tickets' },
 ];
 
@@ -125,6 +127,7 @@ const AdminDistribution: React.FC = () => {
           )}
           {activeTab === 'takedown' && <TakeDownRequestsTab />}
           {activeTab === 'split-requests' && <RoyaltySplitRequestsTab />}
+          {activeTab === 'oac' && <OACRequestsTab />}
           {activeTab === 'support' && <SupportTicketsTab />}
         </div>
       </AnimatedCard>
