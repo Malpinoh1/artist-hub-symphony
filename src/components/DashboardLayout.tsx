@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Disc3, BarChart3, DollarSign,
   Wallet, Settings, LogOut, User, ChevronDown, Menu, X,
-  Users, HelpCircle, Bell, History, GitBranch, CreditCard
+  Users, HelpCircle, Bell, History, GitBranch, CreditCard, BadgeCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +29,7 @@ const sidebarNav = [
   { name: 'Royalties', href: '/earnings', icon: DollarSign },
   { name: 'Transactions', href: '/transactions', icon: History },
   { name: 'Royalty Splits', href: '/royalty-splits', icon: GitBranch },
+  { name: 'Artist Hub', href: '/artist-hub', icon: BadgeCheck },
   { name: 'Billing', href: '/billing', icon: CreditCard },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
