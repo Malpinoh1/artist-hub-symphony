@@ -987,6 +987,75 @@ export type Database = {
           },
         ]
       }
+      oac_requests: {
+        Row: {
+          admin_notes: string | null
+          artist_id: string
+          artist_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          release_id: string | null
+          status: string
+          submitted_at: string | null
+          topic_channel_url: string | null
+          updated_at: string
+          user_id: string
+          youtube_channel_url: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          artist_id: string
+          artist_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          release_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          topic_channel_url?: string | null
+          updated_at?: string
+          user_id: string
+          youtube_channel_url: string
+        }
+        Update: {
+          admin_notes?: string | null
+          artist_id?: string
+          artist_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          release_id?: string | null
+          status?: string
+          submitted_at?: string | null
+          topic_channel_url?: string | null
+          updated_at?: string
+          user_id?: string
+          youtube_channel_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "oac_requests_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "oac_requests_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payments: {
         Row: {
           amount_charged: number
