@@ -52,6 +52,7 @@ const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide
 const Support = React.lazy(() => import("./pages/Support"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
 const ArtistRoyaltySplits = React.lazy(() => import("./pages/ArtistRoyaltySplits"));
+const ArtistHub = React.lazy(() => import("./pages/ArtistHub"));
 const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
 const PaymentCallback = React.lazy(() => import("./pages/PaymentCallback"));
 const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
