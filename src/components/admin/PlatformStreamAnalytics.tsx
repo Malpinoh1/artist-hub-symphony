@@ -4,12 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, BarChart3, TrendingUp, Radio, Music } from 'lucide-react';
+import { Loader2, BarChart3, TrendingUp, Radio, Music, Truck } from 'lucide-react';
 import {
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { fetchPlatformStreamAnalytics } from '@/services/royaltyIngestionService';
+import { supabase } from '@/integrations/supabase/client';
 
 const MONTHS = ['All','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const COLORS = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6', '#EF4444', '#14B8A6', '#F97316'];
@@ -21,10 +22,25 @@ const PlatformStreamAnalytics: React.FC = () => {
   const now = new Date();
   const [year, setYear] = useState<number | undefined>(undefined);
   const [month, setMonth] = useState<number | undefined>(undefined);
+  const [distributor, setDistributor] = useState<string | undefined>(undefined);
+
+  const { data: distributors } = useQuery({
+    queryKey: ['distributors-active'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('distributors')
+        .select('code, name')
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 300_000,
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey: ['platform-stream-analytics', year, month],
-    queryFn: () => fetchPlatformStreamAnalytics(year, month),
+    queryKey: ['platform-stream-analytics', year, month, distributor],
+    queryFn: () => fetchPlatformStreamAnalytics(year, month, distributor),
     staleTime: 60_000,
   });
 
@@ -34,6 +50,7 @@ const PlatformStreamAnalytics: React.FC = () => {
     streams: Number(r.streams),
     revenue: Number(r.revenue),
   }));
+  const distributorRows = data?.by_distributor || [];
   const dspChart = (data?.by_dsp || []).slice(0, 8).map((r) => ({ name: r.dsp_name, streams: Number(r.streams) }));
 
   return (
@@ -60,6 +77,16 @@ const PlatformStreamAnalytics: React.FC = () => {
               <SelectContent>
                 <SelectItem value="all">All months</SelectItem>
                 {MONTHS.slice(1).map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label>Distributor</Label>
+            <Select value={distributor ?? 'all'} onValueChange={(v) => setDistributor(v === 'all' ? undefined : v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All distributors</SelectItem>
+                {(distributors || []).map((d) => <SelectItem key={d.code} value={d.code}>{d.name}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -157,6 +184,33 @@ const PlatformStreamAnalytics: React.FC = () => {
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader><CardTitle className="text-base flex items-center gap-2"><Truck className="h-4 w-4" /> Streams by Distributor</CardTitle></CardHeader>
+              <CardContent>
+                {distributorRows.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">No distributor data yet</p>
+                ) : (
+                  <Table>
+                    <TableHeader><TableRow><TableHead>Distributor</TableHead><TableHead className="text-right">Streams</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Share</TableHead></TableRow></TableHeader>
+                    <TableBody>
+                      {distributorRows.map((d) => {
+                        const total = distributorRows.reduce((s, r) => s + Number(r.streams || 0), 0);
+                        const share = total > 0 ? (Number(d.streams || 0) / total) * 100 : 0;
+                        return (
+                          <TableRow key={d.distributor_code}>
+                            <TableCell className="font-medium">{d.distributor_name}</TableCell>
+                            <TableCell className="text-right">{fmtNum(d.streams)}</TableCell>
+                            <TableCell className="text-right">{fmt$(d.revenue)}</TableCell>
+                            <TableCell className="text-right">{share.toFixed(1)}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
 
             <Card>
               <CardHeader><CardTitle className="text-base">Top 100 Tracks</CardTitle></CardHeader>
