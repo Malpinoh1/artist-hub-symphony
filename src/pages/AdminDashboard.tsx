@@ -230,6 +230,9 @@ const AdminDashboard = () => {
         return <IncomeManagementTab />;
       case 'split-requests':
         return <RoyaltySplitRequestsTab />;
+      case 'oac':
+        return <OACRequestsTab />;
+
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
       case 'payments':
