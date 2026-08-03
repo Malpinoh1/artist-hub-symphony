@@ -2896,7 +2896,7 @@ export type Database = {
         Returns: Json
       }
       get_platform_stream_analytics: {
-        Args: { p_month?: number; p_year?: number }
+        Args: { p_distributor?: string; p_month?: number; p_year?: number }
         Returns: Json
       }
       has_account_access: {
