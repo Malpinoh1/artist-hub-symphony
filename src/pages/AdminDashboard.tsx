@@ -25,7 +25,9 @@ import SupportTicketsTab from '@/components/admin/SupportTicketsTab';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
+import OACRequestsTab from '@/components/admin/OACRequestsTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { ShieldAlert } from 'lucide-react';
