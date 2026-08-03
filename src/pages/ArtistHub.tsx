@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Youtube, Music2, ExternalLink, Loader2, CheckCircle2, Clock, XCircle, Info } from 'lucide-react';
+import { ExternalLink, Loader2, CheckCircle2, Clock, XCircle, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import AnimatedCard from '../components/AnimatedCard';
+import { YouTubeLogo, TikTokLogo } from '../components/brand/BrandLogos';
 import { supabase } from '../integrations/supabase/client';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../hooks/use-toast';
@@ -123,63 +124,63 @@ const ArtistHub: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-5xl">
-      <div className="mb-8">
-        <h1 className="text-3xl md:text-4xl font-display font-bold mb-2">Artist Hub</h1>
-        <p className="text-muted-foreground">
+    <div className="container mx-auto px-3 sm:px-4 py-5 sm:py-8 max-w-5xl pb-24 md:pb-8">
+      <div className="mb-5 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold mb-1.5 sm:mb-2">Artist Hub</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Claim your official presence on YouTube and TikTok to unlock artist tags, music tabs and richer profiles.
         </p>
       </div>
 
       {/* YouTube OAC */}
       <AnimatedCard>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Youtube className="w-5 h-5 text-red-500" />
-              YouTube Official Artist Channel (OAC)
+        <Card className="mb-5 sm:mb-8">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+              <YouTubeLogo className="h-5 sm:h-6 w-auto flex-shrink-0" />
+              <span>YouTube Official Artist Channel</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Request an OAC and we'll merge your topic channel, music videos and releases into one verified channel.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <form onSubmit={submitOac} className="grid gap-4 sm:grid-cols-2">
-              <div className="sm:col-span-1">
-                <Label htmlFor="artist_name">Artist name *</Label>
-                <Input id="artist_name" value={form.artist_name}
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
+            <form onSubmit={submitOac} className="grid gap-3.5 sm:gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="artist_name" className="text-xs sm:text-sm">Artist name *</Label>
+                <Input id="artist_name" value={form.artist_name} inputMode="text"
                   onChange={e => setForm({ ...form, artist_name: e.target.value })}
                   placeholder="As it appears on streaming platforms" />
               </div>
-              <div className="sm:col-span-1">
-                <Label htmlFor="youtube_channel_url">YouTube channel link *</Label>
-                <Input id="youtube_channel_url" value={form.youtube_channel_url}
+              <div className="space-y-1.5">
+                <Label htmlFor="youtube_channel_url" className="text-xs sm:text-sm">YouTube channel link *</Label>
+                <Input id="youtube_channel_url" value={form.youtube_channel_url} inputMode="url" autoCapitalize="none"
                   onChange={e => setForm({ ...form, youtube_channel_url: e.target.value })}
                   placeholder="https://youtube.com/@yourchannel" />
               </div>
-              <div className="sm:col-span-1">
-                <Label htmlFor="topic_channel_url">Topic channel link (optional)</Label>
-                <Input id="topic_channel_url" value={form.topic_channel_url}
+              <div className="space-y-1.5">
+                <Label htmlFor="topic_channel_url" className="text-xs sm:text-sm">Topic channel link (optional)</Label>
+                <Input id="topic_channel_url" value={form.topic_channel_url} inputMode="url" autoCapitalize="none"
                   onChange={e => setForm({ ...form, topic_channel_url: e.target.value })}
                   placeholder="https://youtube.com/channel/UC..." />
               </div>
-              <div className="sm:col-span-1">
-                <Label htmlFor="release_id">Related release (optional)</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="release_id" className="text-xs sm:text-sm">Related release (optional)</Label>
                 <select id="release_id" value={form.release_id}
                   onChange={e => setForm({ ...form, release_id: e.target.value })}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  className="flex h-11 sm:h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                   <option value="">Select a release…</option>
                   {releases.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}
                 </select>
               </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="notes">Notes for our team (optional)</Label>
+              <div className="sm:col-span-2 space-y-1.5">
+                <Label htmlFor="notes" className="text-xs sm:text-sm">Notes for our team (optional)</Label>
                 <Textarea id="notes" rows={3} value={form.notes}
                   onChange={e => setForm({ ...form, notes: e.target.value })}
                   placeholder="Anything that helps us verify your channel ownership" />
               </div>
               <div className="sm:col-span-2">
-                <Button type="submit" disabled={saving}>
+                <Button type="submit" disabled={saving} className="w-full sm:w-auto min-h-[44px]">
                   {saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                   Submit OAC request
                 </Button>
@@ -191,13 +192,13 @@ const ArtistHub: React.FC = () => {
 
       {/* Request history */}
       <AnimatedCard delay={100}>
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Your OAC requests</CardTitle>
+        <Card className="mb-5 sm:mb-8">
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-xl">Your OAC requests</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
             {loading ? (
-              <div className="py-8 text-center text-muted-foreground">Loading…</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">Loading…</div>
             ) : requests.length === 0 ? (
               <p className="text-sm text-muted-foreground">No OAC requests yet.</p>
             ) : (
@@ -206,23 +207,23 @@ const ArtistHub: React.FC = () => {
                   const meta = statusMeta[r.status] || statusMeta.pending;
                   const Icon = meta.icon;
                   return (
-                    <div key={r.id} className="rounded-lg border border-border p-4">
+                    <div key={r.id} className="rounded-lg border border-border p-3 sm:p-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-medium">{r.artist_name}</div>
-                        <Badge className={meta.className} variant="secondary">
+                        <div className="font-medium text-sm sm:text-base break-words">{r.artist_name}</div>
+                        <Badge className={`${meta.className} text-[10px] sm:text-xs`} variant="secondary">
                           <Icon className="w-3 h-3 mr-1" />{meta.label}
                         </Badge>
                       </div>
                       <a href={r.youtube_channel_url} target="_blank" rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline break-all">
+                        className="text-xs sm:text-sm text-primary hover:underline break-all">
                         {r.youtube_channel_url}
                       </a>
                       {r.admin_notes && (
-                        <p className="text-sm text-muted-foreground mt-2">
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-2">
                           <span className="font-medium text-foreground">Team note: </span>{r.admin_notes}
                         </p>
                       )}
-                      <p className="text-xs text-muted-foreground mt-2">
+                      <p className="text-[11px] sm:text-xs text-muted-foreground mt-2">
                         Requested {new Date(r.created_at).toLocaleDateString()}
                       </p>
                     </div>
@@ -237,29 +238,29 @@ const ArtistHub: React.FC = () => {
       {/* TikTok Artist Hub */}
       <AnimatedCard delay={200}>
         <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Music2 className="w-5 h-5 text-primary" />
-              Claim your TikTok Artist Hub
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="flex items-center gap-2 text-base sm:text-xl">
+              <TikTokLogo className="h-5 sm:h-6 w-auto flex-shrink-0 text-foreground" />
+              <span>Claim your TikTok Artist Hub</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm">
               Get the TikTok Artist Tag and a dedicated Music Tab on your profile.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0 space-y-5 sm:space-y-6">
             <Alert>
               <Info className="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription className="text-xs sm:text-sm">
                 Open this link on your <strong>mobile device</strong> with the TikTok app installed and signed in — the
                 certification screen opens inside the app.
               </AlertDescription>
             </Alert>
 
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <a href={TIKTOK_CLAIM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2">
-                <Music2 className="w-4 h-4" />
-                Open TikTok Artist Certification
-                <ExternalLink className="w-4 h-4" />
+            <Button asChild size="lg" className="w-full sm:w-auto min-h-[48px]">
+              <a href={TIKTOK_CLAIM_URL} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 text-sm">
+                <TikTokLogo className="h-4 w-auto text-primary-foreground" />
+                <span>Open TikTok Certification</span>
+                <ExternalLink className="w-4 h-4 flex-shrink-0" />
               </a>
             </Button>
 
@@ -269,15 +270,15 @@ const ArtistHub: React.FC = () => {
                   <span className="flex-shrink-0 w-7 h-7 rounded-full bg-primary/15 text-primary text-sm font-semibold flex items-center justify-center">
                     {i + 1}
                   </span>
-                  <div>
-                    <h3 className="font-semibold text-foreground">{step.title}</h3>
-                    <p className="text-sm text-muted-foreground">{step.body}</p>
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-foreground text-sm sm:text-base">{step.title}</h3>
+                    <p className="text-xs sm:text-sm text-muted-foreground">{step.body}</p>
                   </div>
                 </li>
               ))}
             </ol>
 
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               Running into trouble with any of these steps?{' '}
               <a href="/support" className="text-primary hover:underline">Contact MALPINOHDISTRO support</a>.
             </p>

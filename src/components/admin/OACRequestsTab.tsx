@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { Youtube, ExternalLink, Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { YouTubeLogo } from '@/components/brand/BrandLogos';
 import { supabase } from '@/integrations/supabase/client';
 
 const STATUSES = ['pending', 'submitted', 'needs_info', 'approved', 'rejected'] as const;
@@ -68,18 +69,25 @@ const OACRequestsTab: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-2 mb-4">
-        {['all', ...STATUSES].map(s => (
-          <button key={s} onClick={() => setFilter(s)}
-            className={`px-3 py-1.5 rounded-full text-xs border ${
-              filter === s ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
-            }`}>
-            {s === 'all' ? 'All' : s.replace('_', ' ')}
-            <span className="ml-1 opacity-70">
-              {s === 'all' ? rows.length : rows.filter(r => r.status === s).length}
-            </span>
-          </button>
-        ))}
+      <div className="flex items-center gap-2 mb-3">
+        <YouTubeLogo className="h-5 w-auto" />
+        <h2 className="font-semibold text-sm sm:text-base">YouTube OAC submissions</h2>
+      </div>
+
+      <div className="-mx-1 px-1 mb-4 overflow-x-auto">
+        <div className="flex gap-2 w-max">
+          {['all', ...STATUSES].map(s => (
+            <button key={s} onClick={() => setFilter(s)}
+              className={`px-3 py-2 rounded-full text-xs border whitespace-nowrap ${
+                filter === s ? 'bg-primary text-primary-foreground border-primary' : 'border-border text-muted-foreground'
+              }`}>
+              {s === 'all' ? 'All' : s.replace('_', ' ')}
+              <span className="ml-1 opacity-70">
+                {s === 'all' ? rows.length : rows.filter(r => r.status === s).length}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {visible.length === 0 ? (
@@ -87,23 +95,23 @@ const OACRequestsTab: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {visible.map(r => (
-            <div key={r.id} className="rounded-xl border border-border p-4">
+            <div key={r.id} className="rounded-xl border border-border p-3 sm:p-4">
               <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
-                <div>
-                  <div className="flex items-center gap-2 font-medium">
-                    <Youtube className="w-4 h-4 text-red-500" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 font-medium text-sm sm:text-base break-words">
+                    <YouTubeLogo className="h-4 w-auto flex-shrink-0" />
                     {r.artist_name}
                   </div>
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">
                     Requested {new Date(r.created_at).toLocaleString()}
                   </p>
                 </div>
-                <Badge variant="secondary" className={statusClass[r.status] || ''}>
+                <Badge variant="secondary" className={`${statusClass[r.status] || ''} text-[10px] sm:text-xs`}>
                   {String(r.status).replace('_', ' ')}
                 </Badge>
               </div>
 
-              <div className="space-y-1 text-sm mb-3">
+              <div className="space-y-1 text-xs sm:text-sm mb-3">
                 <a href={r.youtube_channel_url} target="_blank" rel="noopener noreferrer"
                   className="text-primary hover:underline flex items-center gap-1 break-all">
                   {r.youtube_channel_url} <ExternalLink className="w-3 h-3 flex-shrink-0" />
@@ -114,17 +122,17 @@ const OACRequestsTab: React.FC = () => {
                     Topic: {r.topic_channel_url}
                   </a>
                 )}
-                {r.notes && <p className="text-muted-foreground">Artist note: {r.notes}</p>}
+                {r.notes && <p className="text-muted-foreground break-words">Artist note: {r.notes}</p>}
               </div>
 
               <Textarea rows={2} placeholder="Admin note visible to the artist…"
                 value={notes[r.id] ?? ''}
                 onChange={e => setNotes(prev => ({ ...prev, [r.id]: e.target.value }))}
-                className="mb-3" />
+                className="mb-3 text-sm" />
 
-              <div className="flex flex-wrap gap-2">
+              <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
                 {STATUSES.filter(s => s !== r.status).map(s => (
-                  <Button key={s} size="sm"
+                  <Button key={s} size="sm" className="min-h-[40px] text-xs"
                     variant={s === 'approved' ? 'default' : s === 'rejected' ? 'destructive' : 'outline'}
                     disabled={savingId === r.id}
                     onClick={() => updateRow(r.id, s)}>

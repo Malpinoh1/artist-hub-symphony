@@ -25,7 +25,9 @@ import SupportTicketsTab from '@/components/admin/SupportTicketsTab';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
+import OACRequestsTab from '@/components/admin/OACRequestsTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { ShieldAlert } from 'lucide-react';
@@ -37,8 +39,9 @@ const FINANCE_TABS = new Set([
   'earnings', 'platform-earnings', 'royalty-statements', 'income-management',
 ]);
 const DISTRIBUTION_TABS = new Set([
-  'releases', 'artists', 'support', 'takedown', 'split-requests',
+  'releases', 'artists', 'support', 'takedown', 'split-requests', 'oac',
 ]);
+
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
@@ -227,6 +230,9 @@ const AdminDashboard = () => {
         return <IncomeManagementTab />;
       case 'split-requests':
         return <RoyaltySplitRequestsTab />;
+      case 'oac':
+        return <OACRequestsTab />;
+
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
       case 'payments':
@@ -252,7 +258,9 @@ const AdminDashboard = () => {
     { id: 'credit-balance', label: 'Credit Balance' },
     { id: 'income-management', label: 'Income & Royalties' },
     { id: 'split-requests', label: 'Split Requests' },
+    { id: 'oac', label: 'YouTube OAC' },
     { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+
     {
       id: 'takedown',
       label: 'Take Down Requests',
