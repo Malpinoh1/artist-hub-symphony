@@ -234,17 +234,19 @@ export async function rebuildAllStreamStats() {
   return data as { reprocessed: number; failed: number; errors: any[] };
 }
 
-export async function fetchPlatformStreamAnalytics(year?: number, month?: number) {
+export async function fetchPlatformStreamAnalytics(year?: number, month?: number, distributor?: string) {
   const { data, error } = await supabase.rpc('get_platform_stream_analytics', {
     p_year: year ?? null,
     p_month: month ?? null,
-  });
+    p_distributor: distributor ?? null,
+  } as any);
   if (error) throw error;
   return (data || {}) as {
     total_streams: number;
     total_revenue: number;
     by_month: Array<{ period_year: number; period_month: number; streams: number; revenue: number }>;
     by_dsp: Array<{ dsp_name: string; streams: number; revenue: number }>;
+    by_distributor: Array<{ distributor_code: string; distributor_name: string; streams: number; revenue: number }>;
     top_artists: Array<{ artist_id: string; name: string | null; account_name: string | null; streams: number; revenue: number }>;
     top_tracks: Array<{ track_title: string; streams: number; revenue: number }>;
     by_release: Array<{ release_id: string; title: string | null; streams: number; revenue: number }>;
