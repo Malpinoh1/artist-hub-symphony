@@ -37,8 +37,9 @@ const FINANCE_TABS = new Set([
   'earnings', 'platform-earnings', 'royalty-statements', 'income-management',
 ]);
 const DISTRIBUTION_TABS = new Set([
-  'releases', 'artists', 'support', 'takedown', 'split-requests',
+  'releases', 'artists', 'support', 'takedown', 'split-requests', 'oac',
 ]);
+
 
 const AdminDashboard = () => {
   const [releases, setReleases] = useState([]);
