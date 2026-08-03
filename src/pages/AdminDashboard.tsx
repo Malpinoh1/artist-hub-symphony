@@ -258,7 +258,9 @@ const AdminDashboard = () => {
     { id: 'credit-balance', label: 'Credit Balance' },
     { id: 'income-management', label: 'Income & Royalties' },
     { id: 'split-requests', label: 'Split Requests' },
+    { id: 'oac', label: 'YouTube OAC' },
     { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+
     {
       id: 'takedown',
       label: 'Take Down Requests',
