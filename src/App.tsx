@@ -137,6 +137,8 @@ const AppContent = () => {
         <Route path="/transactions" element={<DashboardPage><Transactions /></DashboardPage>} />
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
         <Route path="/artist-hub" element={<DashboardPage><ArtistHub /></DashboardPage>} />
+        <Route path="/achievements" element={<DashboardPage><Achievements /></DashboardPage>} />
+
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
