@@ -57,9 +57,22 @@ const OACRequestsTab: React.FC = () => {
     } else {
       setRows(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
       toast.success(`Request marked as ${status.replace('_', ' ')}`);
+
+      // Notify the artist (in-app + branded email)
+      const { data, error: notifyError } = await supabase.functions.invoke(
+        'send-oac-status-notification',
+        { body: { request_id: id, notify_email: true } },
+      );
+      if (notifyError) {
+        console.error('OAC notification failed:', notifyError);
+        toast.error('Status saved, but the artist notification failed to send');
+      } else {
+        toast.success((data as any)?.emailed ? 'Artist notified by email and in-app' : 'Artist notified in-app');
+      }
     }
     setSavingId(null);
   };
+
 
   const visible = filter === 'all' ? rows : rows.filter(r => r.status === filter);
 
