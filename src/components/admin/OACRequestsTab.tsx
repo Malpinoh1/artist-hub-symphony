@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { YouTubeLogo } from '@/components/brand/BrandLogos';
 import { supabase } from '@/integrations/supabase/client';
 
-const STATUSES = ['pending', 'submitted', 'needs_info', 'approved', 'rejected'] as const;
+const STATUSES = ['pending', 'submitted', 'needs_info', 'approved', 'rejected', 'completed'] as const;
 
 const statusClass: Record<string, string> = {
   pending: 'bg-amber-500/15 text-amber-500',
@@ -15,7 +15,9 @@ const statusClass: Record<string, string> = {
   needs_info: 'bg-orange-500/15 text-orange-500',
   approved: 'bg-emerald-500/15 text-emerald-500',
   rejected: 'bg-destructive/15 text-destructive',
+  completed: 'bg-primary/15 text-primary',
 };
+
 
 const OACRequestsTab: React.FC = () => {
   const [rows, setRows] = useState<any[]>([]);
