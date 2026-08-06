@@ -207,6 +207,17 @@ const DashboardContent = () => {
             loading={loading}
           />
 
+          {/* Reported performance from processed royalty statements */}
+          <div className="mt-8 mb-8">
+            <h2 className="text-2xl font-display font-semibold text-foreground mb-4">
+              Reported Performance
+            </h2>
+            {(getEffectiveAccountId() || user?.id) && (
+              <ReportedPerformance artistId={(getEffectiveAccountId() || user!.id) as string} />
+            )}
+          </div>
+
+
           {/* Recent Releases */}
           <div className="mb-8">
             <div className="flex items-center justify-between mb-6">
