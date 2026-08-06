@@ -987,6 +987,42 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          message: string | null
+          metadata: Json
+          read: boolean
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string | null
+          metadata?: Json
+          read?: boolean
+          title: string
+          type?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string | null
+          metadata?: Json
+          read?: boolean
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       oac_requests: {
         Row: {
           admin_notes: string | null
@@ -2444,6 +2480,47 @@ export type Database = {
         }
         Relationships: []
       }
+      stream_achievements: {
+        Row: {
+          artist_id: string
+          awarded_at: string
+          created_at: string
+          id: string
+          milestone: number
+          notified_at: string | null
+          release_id: string | null
+          streams_at_award: number
+        }
+        Insert: {
+          artist_id: string
+          awarded_at?: string
+          created_at?: string
+          id?: string
+          milestone: number
+          notified_at?: string | null
+          release_id?: string | null
+          streams_at_award?: number
+        }
+        Update: {
+          artist_id?: string
+          awarded_at?: string
+          created_at?: string
+          id?: string
+          milestone?: number
+          notified_at?: string | null
+          release_id?: string | null
+          streams_at_award?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stream_achievements_release_id_fkey"
+            columns: ["release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       streaming_links: {
         Row: {
           created_at: string
@@ -2861,6 +2938,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      award_stream_achievements: { Args: never; Returns: Json }
       check_month_already_imported: {
         Args: { p_month: number; p_year: number }
         Returns: {
@@ -2891,12 +2969,20 @@ export type Database = {
         Args: { p_distributor: string; p_month: number; p_year: number }
         Returns: number
       }
+      get_artist_reported_snapshot: {
+        Args: { p_artist_id: string }
+        Returns: Json
+      }
       get_artist_stream_summary: {
         Args: { p_artist_id: string }
         Returns: Json
       }
       get_platform_stream_analytics: {
         Args: { p_distributor?: string; p_month?: number; p_year?: number }
+        Returns: Json
+      }
+      get_release_reported_stats: {
+        Args: { p_release_id: string }
         Returns: Json
       }
       has_account_access: {

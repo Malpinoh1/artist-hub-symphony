@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { YouTubeLogo } from '@/components/brand/BrandLogos';
 import { supabase } from '@/integrations/supabase/client';
 
-const STATUSES = ['pending', 'submitted', 'needs_info', 'approved', 'rejected'] as const;
+const STATUSES = ['pending', 'submitted', 'needs_info', 'approved', 'rejected', 'completed'] as const;
 
 const statusClass: Record<string, string> = {
   pending: 'bg-amber-500/15 text-amber-500',
@@ -15,7 +15,9 @@ const statusClass: Record<string, string> = {
   needs_info: 'bg-orange-500/15 text-orange-500',
   approved: 'bg-emerald-500/15 text-emerald-500',
   rejected: 'bg-destructive/15 text-destructive',
+  completed: 'bg-primary/15 text-primary',
 };
+
 
 const OACRequestsTab: React.FC = () => {
   const [rows, setRows] = useState<any[]>([]);
@@ -57,9 +59,22 @@ const OACRequestsTab: React.FC = () => {
     } else {
       setRows(prev => prev.map(r => (r.id === id ? { ...r, ...patch } : r)));
       toast.success(`Request marked as ${status.replace('_', ' ')}`);
+
+      // Notify the artist (in-app + branded email)
+      const { data, error: notifyError } = await supabase.functions.invoke(
+        'send-oac-status-notification',
+        { body: { request_id: id, notify_email: true } },
+      );
+      if (notifyError) {
+        console.error('OAC notification failed:', notifyError);
+        toast.error('Status saved, but the artist notification failed to send');
+      } else {
+        toast.success((data as any)?.emailed ? 'Artist notified by email and in-app' : 'Artist notified in-app');
+      }
     }
     setSavingId(null);
   };
+
 
   const visible = filter === 'all' ? rows : rows.filter(r => r.status === filter);
 

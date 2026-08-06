@@ -15,6 +15,8 @@ import { fetchUserStats } from '../services/releaseService';
 import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import { useAuth } from '../contexts/AuthContext';
 import SubscriptionGate from '../components/SubscriptionGate';
+import ReportedPerformance from '../components/dashboard/ReportedPerformance';
+
 
 const DashboardContent = () => {
   const { toast } = useToast();
@@ -206,6 +208,17 @@ const DashboardContent = () => {
             totalEarnings={stats.totalEarnings}
             loading={loading}
           />
+
+          {/* Reported performance from processed royalty statements */}
+          <div className="mt-8 mb-8">
+            <h2 className="text-2xl font-display font-semibold text-foreground mb-4">
+              Reported Performance
+            </h2>
+            {(getEffectiveAccountId() || user?.id) && (
+              <ReportedPerformance artistId={(getEffectiveAccountId() || user!.id) as string} />
+            )}
+          </div>
+
 
           {/* Recent Releases */}
           <div className="mb-8">

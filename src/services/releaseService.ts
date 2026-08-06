@@ -170,12 +170,24 @@ export async function fetchUserStats(userId: string) {
       return { ...defaultStats, totalReleases: totalReleases || 0, totalEarnings: artistData?.total_earnings || 0 };
     }
 
+    // Plays come from the latest processed royalty statements, never live data
+    let totalPlays = 0;
+    try {
+      const { data: snapshot } = await supabase.rpc('get_artist_reported_snapshot' as any, {
+        p_artist_id: userId,
+      } as any);
+      totalPlays = Number((snapshot as any)?.lifetime_plays || 0);
+    } catch (e) {
+      console.error('Error fetching reported plays:', e);
+    }
+
     return {
       totalReleases: totalReleases || 0,
       activeReleases: activeReleases || 0,
-      totalPlays: 0,
+      totalPlays,
       totalEarnings: artistData?.total_earnings || 0
     };
+
   } catch (error) {
     console.error("Unexpected error in fetchUserStats:", error);
     return defaultStats;
