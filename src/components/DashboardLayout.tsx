@@ -236,6 +236,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             </Link>
           )}
 
+          <NotificationBell />
+
+
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" aria-label="Open user profile menu" className="h-9 w-9 rounded-full p-0">
