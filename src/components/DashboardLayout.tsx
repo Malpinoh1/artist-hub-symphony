@@ -32,7 +32,9 @@ const sidebarNav = [
   { name: 'Transactions', href: '/transactions', icon: History },
   { name: 'Royalty Splits', href: '/royalty-splits', icon: GitBranch },
   { name: 'Artist Hub', href: '/artist-hub', icon: BadgeCheck },
+  { name: 'Achievements', href: '/achievements', icon: Trophy },
   { name: 'Billing', href: '/billing', icon: CreditCard },
+
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
