@@ -31,9 +31,11 @@ const StreamingLinksSection: React.FC<StreamingLinksSectionProps> = ({
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
             >
+              <DspLogo name={link.platform} size={18} />
               <span className="font-medium">{link.platform}</span>
             </a>
           ))}
+
         </div>
       ) : (
         <p className="text-slate-500 dark:text-slate-400">
