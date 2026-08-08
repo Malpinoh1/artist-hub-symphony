@@ -1,4 +1,6 @@
 import { Music, Radio, Headphones, Smartphone, Globe } from 'lucide-react';
+import { DspLogo, getDspEntry } from '@/components/brand/DspLogos';
+
 
 // SVG-based store icons using brand colors
 const storeIconMap: Record<string, { icon: React.ReactNode; color: string }> = {
