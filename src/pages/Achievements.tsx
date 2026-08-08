@@ -1,18 +1,21 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Trophy, Lock, Disc3, Sparkles } from 'lucide-react';
+import { Trophy, Lock, Disc3, Sparkles, Share2 } from 'lucide-react';
 import AnimatedCard from '@/components/AnimatedCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import MilestonePromoCard, { MilestoneCardData } from '@/components/achievements/MilestonePromoCard';
 import {
   useArtistAchievements, useArtistReportedSnapshot,
   MILESTONES, milestoneLabel, milestoneTier,
 } from '@/hooks/useReportedStats';
+
 
 const fmtNum = (n: number) => new Intl.NumberFormat().format(Math.round(n || 0));
 
@@ -44,6 +47,24 @@ const Achievements: React.FC = () => {
     },
     enabled: !!artistId,
   });
+
+  const { data: artist } = useQuery({
+    queryKey: ['achievement-artist-name', artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('artists')
+        .select('name')
+        .eq('id', artistId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!artistId,
+  });
+
+  const [shareCard, setShareCard] = useState<MilestoneCardData | null>(null);
+
+
 
   const releaseMap = useMemo(
     () => new Map(releases.map((r: any) => [r.id, r])),
@@ -153,8 +174,28 @@ const Achievements: React.FC = () => {
                           {new Date(a.awarded_at).toLocaleDateString()} · {fmtNum(Number(a.streams_at_award))} streams
                         </p>
                       </div>
-                      <Badge variant="secondary" className="shrink-0 text-[10px]">{tier}</Badge>
+                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                        <Badge variant="secondary" className="text-[10px]">{tier}</Badge>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="h-7 px-2 text-[11px]"
+                          onClick={() =>
+                            setShareCard({
+                              milestone: Number(a.milestone),
+                              streamsAtAward: Number(a.streams_at_award),
+                              awardedAt: a.awarded_at,
+                              releaseTitle: rel?.title || 'My catalogue',
+                              coverUrl: rel?.cover_art_url || null,
+                              artistName: artist?.name || 'MALPINOHDISTRO Artist',
+                            })
+                          }
+                        >
+                          <Share2 className="h-3 w-3 mr-1" /> Share
+                        </Button>
+                      </div>
                     </div>
+
                   );
                 })}
               </div>
@@ -201,7 +242,14 @@ const Achievements: React.FC = () => {
           </CardContent>
         </Card>
       </AnimatedCard>
+
+      <MilestonePromoCard
+        data={shareCard}
+        open={!!shareCard}
+        onOpenChange={(o) => !o && setShareCard(null)}
+      />
     </div>
+
   );
 };
 
