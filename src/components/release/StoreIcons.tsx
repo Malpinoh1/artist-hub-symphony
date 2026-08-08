@@ -1,4 +1,6 @@
 import { Music, Radio, Headphones, Smartphone, Globe } from 'lucide-react';
+import { DspLogo, getDspEntry } from '@/components/brand/DspLogos';
+
 
 // SVG-based store icons using brand colors
 const storeIconMap: Record<string, { icon: React.ReactNode; color: string }> = {
@@ -137,11 +139,18 @@ function GenericStoreIcon({ name }: { name: string }) {
 }
 
 export function getStoreIcon(storeName: string): React.ReactNode {
+  // Official brand marks first
+  if (getDspEntry(storeName)) return <DspLogo name={storeName} size={20} />;
+
   const entry = storeIconMap[storeName];
   if (entry) return entry.icon;
-  
-  // Special case mappings
+
   switch (storeName) {
+    case 'SoundExchange':
+      return <Radio className="w-5 h-5 text-muted-foreground" />;
+    case 'Claro Ringtones':
+    case 'Algar':
+      return <Smartphone className="w-5 h-5 text-muted-foreground" />;
     case 'KKBOX':
     case 'NetEase':
     case 'Tencent':
@@ -156,17 +165,11 @@ export function getStoreIcon(storeName: string): React.ReactNode {
     case 'Kuack':
     case 'Claro Música':
       return <GenericStoreIcon name={storeName} />;
-    case 'SoundExchange':
-      return <Radio className="w-5 h-5 text-muted-foreground" />;
-    case 'iTunes Ringtones':
-      return <Smartphone className="w-5 h-5 text-muted-foreground" />;
-    case 'Claro Ringtones':
-    case 'Algar':
-      return <Smartphone className="w-5 h-5 text-muted-foreground" />;
     default:
       return <Globe className="w-5 h-5 text-muted-foreground" />;
   }
 }
+
 
 export function StoreStatusBadge({ status }: { status: string }) {
   const colorMap: Record<string, string> = {
