@@ -1,6 +1,8 @@
 
 import React from 'react';
 import { Link2 } from 'lucide-react';
+import { DspLogo } from '@/components/brand/DspLogos';
+
 import { Button } from '@/components/ui/button';
 import { StreamingLink } from '@/services/streamingLinksService';
 
