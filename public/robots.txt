@@ -1,17 +1,43 @@
-
 User-agent: *
 Allow: /
 
-# Important pages for crawling
-Allow: /auth
-Allow: /pricing
+# Public pages
 Allow: /about
 Allow: /services
+Allow: /distribution
+Allow: /artists
+Allow: /pricing
 Allow: /contact
+Allow: /blog
 Allow: /resources
+Allow: /faq
+Allow: /partners
+Allow: /auth
+
+# Private / authenticated areas — do not index
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /releases
+Disallow: /release-form
+Disallow: /analytics
+Disallow: /earnings
+Disallow: /settings
+Disallow: /transactions
+Disallow: /royalty-splits
+Disallow: /artist-hub
+Disallow: /achievements
+Disallow: /team
+Disallow: /support
+Disallow: /billing
+Disallow: /help
+Disallow: /payment/
+Disallow: /password-reset
+Disallow: /reset-password
+Disallow: /confirm-subscription
+Disallow: /accept-split
+Disallow: /.lovable/
 
 # Sitemap location
 Sitemap: https://malpinohdistro.com.ng/sitemap.xml
 
-# Crawl-delay (optional, helps with server load)
 Crawl-delay: 1
