@@ -35,6 +35,9 @@ const AdminFinance = React.lazy(() => import("./pages/AdminFinance"));
 
 const About = React.lazy(() => import("./pages/About"));
 const Services = React.lazy(() => import("./pages/Services"));
+const Artists = React.lazy(() => import("./pages/Artists"));
+const Distribution = React.lazy(() => import("./pages/Distribution"));
+const BlogPost = React.lazy(() => import("./pages/BlogPost"));
 const Resources = React.lazy(() => import("./pages/Resources"));
 const Blog = React.lazy(() => import("./pages/Blog"));
 const Contact = React.lazy(() => import("./pages/Contact"));
