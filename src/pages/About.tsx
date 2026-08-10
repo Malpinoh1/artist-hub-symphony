@@ -1,71 +1,211 @@
-
 import React from 'react';
-import Navbar from '../components/Navbar';
-import Footer from '../components/Footer';
-import AnimatedCard from '../components/AnimatedCard';
+import { Link } from 'react-router-dom';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import Seo from '@/components/seo/Seo';
+import { COMPANY } from '@/lib/site';
+import { Music, Globe, BarChart3, Wallet, Users, ShieldCheck, Sparkles, FileText } from 'lucide-react';
+
+const pillars = [
+  {
+    icon: Music,
+    title: 'Global distribution',
+    text: 'Releases delivered to 150+ digital streaming platforms and stores through our distribution partners.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Reported analytics',
+    text: 'Streams, top tracks and monthly trends drawn from the statements we actually receive — never estimates.',
+  },
+  {
+    icon: Wallet,
+    title: 'Transparent royalties',
+    text: 'Earnings in USD, downloadable monthly statements, royalty splits for collaborators and withdrawals on request.',
+  },
+  {
+    icon: Users,
+    title: 'Teams and labels',
+    text: 'Invite managers and collaborators with tiered access, or run several artist accounts from one login.',
+  },
+];
+
+const values = [
+  'Artist empowerment — you keep ownership of your masters',
+  'Transparency in reporting and payouts',
+  'Support that answers, from real people',
+  'Built in Nigeria, delivering worldwide',
+];
 
 const About = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      <Navbar />
-      
-      <main className="flex-grow pt-24 pb-16">
-        <div className="container mx-auto px-4">
-          <AnimatedCard>
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-8">
-                <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 mb-4">About MALPINOHDISTRO</h1>
-                <p className="text-slate-600">Your trusted partner for music distribution in Nigeria and beyond</p>
+    <>
+      <Seo
+        title="About MALPINOHDISTRO | Independent Music Distribution Company"
+        description="MALPINOHDISTRO is an independent music distribution company founded in 2023 in Lagos, Nigeria, helping independent artists and labels release music worldwide with transparent royalties."
+        path="/about"
+        keywords="MALPINOHDISTRO, about, independent music distribution company, Nigeria music distribution, music distributor"
+        includeOrganization
+        breadcrumbs={[
+          { name: 'Home', path: '/' },
+          { name: 'About', path: '/about' },
+        ]}
+        schemas={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'AboutPage',
+            name: 'About MALPINOHDISTRO',
+            url: `${COMPANY.url}/about`,
+            mainEntity: { '@id': `${COMPANY.url}/#organization` },
+          },
+        ]}
+      />
+
+      <div className="min-h-screen flex flex-col bg-background">
+        <Navbar />
+
+        <main className="flex-grow pt-24 pb-16">
+          <div className="container mx-auto px-4 max-w-5xl">
+            <header className="mb-12 text-center">
+              <p className="text-xs font-semibold tracking-[0.2em] text-primary mb-3">
+                ABOUT THE COMPANY
+              </p>
+              <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+                About MALPINOHDISTRO
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                An independent music distribution company and artist platform — built in Lagos,
+                delivering music worldwide.
+              </p>
+            </header>
+
+            <section className="glass-card p-6 md:p-8 mb-8">
+              <h2 className="text-2xl font-semibold mb-4">Who we are</h2>
+              <div className="space-y-4 text-muted-foreground leading-relaxed">
+                <p>
+                  MALPINOHDISTRO is an independent digital music distribution company serving
+                  independent artists, producers and labels. We work with established third-party
+                  music aggregators and distribution partners to deliver releases to digital
+                  streaming platforms and stores around the world, and we run everything around that
+                  delivery ourselves: release review, catalogue management, royalty reporting,
+                  analytics, payouts and artist support.
+                </p>
+                <p>
+                  We do not own or operate the streaming services our clients' music appears on. Our
+                  role is to prepare, deliver and account for your music, and to give you a single
+                  dashboard where your releases, streams and earnings live together.
+                </p>
               </div>
-              
-              <div className="prose prose-slate max-w-none">
-                <p className="text-lg">
-                  MALPINOHDISTRO is a leading digital music distribution company based in Nigeria. We help independent artists and labels get their music on major streaming platforms and stores worldwide.
+            </section>
+
+            <div className="grid gap-6 md:grid-cols-2 mb-8">
+              <section className="glass-card p-6 md:p-8">
+                <h2 className="text-2xl font-semibold mb-3">Our mission</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  To make global music distribution simple, affordable and transparent for
+                  independent creators — so an artist without a label still has professional
+                  infrastructure behind every release.
                 </p>
-                
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Our Mission</h2>
-                <p>
-                  Our mission is to empower African artists by providing affordable and reliable music distribution services, helping them reach global audiences while retaining their independence and rights.
+              </section>
+              <section className="glass-card p-6 md:p-8">
+                <h2 className="text-2xl font-semibold mb-3">Our story</h2>
+                <p className="text-muted-foreground leading-relaxed">
+                  Founded on 7 June 2023 by {COMPANY.founder}, MALPINOHDISTRO was created to close a
+                  real gap: Nigerian and African artists needed affordable distribution with clear
+                  reporting and support they could actually reach. That is still the company we are
+                  building.
                 </p>
-                
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Our Story</h2>
-                <p>
-                  Founded on June 7th, 2023, MALPINOHDISTRO was created to address the challenges faced by Nigerian and African artists in distributing their music globally. Our founder, ABDULKADIR IBRAHIM OLUWASHINA, saw the gap in affordable distribution services for local artists and created a solution that caters to the unique needs of the African music market.
-                </p>
-                
-                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-8">
-                  <p className="italic">
-                    "We believe every artist deserves a chance to be heard, regardless of their budget or resources. Our goal is to level the playing field and give African musicians the tools they need to succeed globally."
-                  </p>
-                  <p className="font-semibold mt-2">— ABDULKADIR IBRAHIM OLUWASHINA, Founder</p>
-                </div>
-                
-                <h2 className="text-2xl font-semibold mt-8 mb-4">What Sets Us Apart</h2>
-                <ul className="list-disc pl-6 space-y-2">
-                  <li>Affordable distribution with transparent pricing</li>
-                  <li>Specialized knowledge of African music markets</li>
-                  <li>Personalized support for every artist</li>
-                  <li>Fast turnaround times for releases</li>
-                  <li>Clear reporting and timely payments</li>
-                </ul>
-                
-                <h2 className="text-2xl font-semibold mt-8 mb-4">Our Partners</h2>
-                <p>
-                  We work with all major streaming platforms including Spotify, Apple Music, Audiomack, Boomplay, YouTube Music, and many more to ensure your music reaches the widest possible audience.
-                </p>
-                
-                <div className="mt-10 text-center">
-                  <h3 className="font-semibold text-xl mb-4">Ready to distribute your music?</h3>
-                  <a href="/auth" className="btn-primary inline-block">Get Started Today</a>
-                </div>
-              </div>
+              </section>
             </div>
-          </AnimatedCard>
-        </div>
-      </main>
-      
-      <Footer />
-    </div>
+
+            <section className="mb-10">
+              <h2 className="text-2xl font-semibold mb-6">What we do today</h2>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {pillars.map((p) => (
+                  <div key={p.title} className="glass-card p-5 flex gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <p.icon className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold mb-1">{p.title}</h3>
+                      <p className="text-sm text-muted-foreground">{p.text}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="glass-card p-6 md:p-8 mb-10">
+              <h2 className="text-2xl font-semibold mb-4">What we stand for</h2>
+              <ul className="grid gap-3 sm:grid-cols-2">
+                {values.map((v) => (
+                  <li key={v} className="flex items-start gap-2 text-muted-foreground">
+                    <ShieldCheck className="w-4 h-4 text-primary mt-1 shrink-0" />
+                    <span>{v}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            <section className="glass-card p-6 md:p-8 mb-10">
+              <h2 className="text-2xl font-semibold mb-4">Beyond distribution</h2>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <Sparkles className="w-5 h-5 text-primary mb-2" />
+                  <h3 className="font-semibold mb-1">Artist Hub</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Guided help claiming a YouTube Official Artist Channel and TikTok artist
+                    certification.
+                  </p>
+                </div>
+                <div>
+                  <FileText className="w-5 h-5 text-primary mb-2" />
+                  <h3 className="font-semibold mb-1">Royalty statements</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Branded monthly PDF statements you can hand to a manager, label or accountant.
+                  </p>
+                </div>
+                <div>
+                  <Globe className="w-5 h-5 text-primary mb-2" />
+                  <h3 className="font-semibold mb-1">Milestones</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Streaming achievements unlock automatically, with shareable promo cards for
+                    socials.
+                  </p>
+                </div>
+              </div>
+            </section>
+
+            <section className="glass-panel p-6 md:p-8 text-center">
+              <h2 className="text-2xl font-semibold mb-3">Company information</h2>
+              <p className="text-muted-foreground mb-2">
+                {COMPANY.name} · {COMPANY.location} · Founded 2023
+              </p>
+              <p className="text-muted-foreground mb-6">
+                Official contact:{' '}
+                <a className="text-primary hover:underline" href={`mailto:${COMPANY.email}`}>
+                  {COMPANY.email}
+                </a>
+              </p>
+              <div className="flex flex-wrap gap-3 justify-center">
+                <Link to="/auth" className="btn-primary px-6 py-3">
+                  Start distributing
+                </Link>
+                <a
+                  href={COMPANY.companyProfileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-3 rounded-lg border border-border font-medium hover:bg-secondary transition-colors"
+                >
+                  View official company profile
+                </a>
+              </div>
+            </section>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    </>
   );
 };
 
