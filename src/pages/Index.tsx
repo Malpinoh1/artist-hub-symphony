@@ -20,6 +20,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import { SiteNoticePopup } from '@/components/SiteNoticePopup';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DspLogo } from '@/components/brand/DspLogos';
 
 const Index = () => {
   const features = [
@@ -158,7 +159,7 @@ const Index = () => {
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     {platforms.slice(0, 6).map((platform, index) => (
                       <div key={platform} className="text-center p-3 rounded-lg bg-white/20 backdrop-blur-sm">
-                        <Music className="w-6 h-6 mx-auto mb-2 text-primary" />
+                        <DspLogo name={platform} size={24} className="mx-auto mb-2" />
                         <div className="text-xs font-medium">{platform}</div>
                       </div>
                     ))}
@@ -219,7 +220,7 @@ const Index = () => {
             {platforms.map((platform, index) => (
               <AnimatedCard key={platform} delay={index * 50}>
                 <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
-                  <Music className="w-8 h-8 mx-auto mb-3 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  <DspLogo name={platform} size={32} className="mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <div className="font-medium text-sm">{platform}</div>
                 </div>
               </AnimatedCard>
