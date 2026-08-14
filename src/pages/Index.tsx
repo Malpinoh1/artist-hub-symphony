@@ -3,7 +3,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
   ArrowRight, 
-  Music, 
   Globe, 
   DollarSign, 
   BarChart3, 
@@ -20,6 +19,7 @@ import AnimatedCard from '../components/AnimatedCard';
 import { SiteNoticePopup } from '@/components/SiteNoticePopup';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { DspLogo } from '@/components/brand/DspLogos';
 
 const Index = () => {
   const features = [
@@ -158,7 +158,7 @@ const Index = () => {
                   <div className="grid grid-cols-3 gap-4 mb-6">
                     {platforms.slice(0, 6).map((platform, index) => (
                       <div key={platform} className="text-center p-3 rounded-lg bg-white/20 backdrop-blur-sm">
-                        <Music className="w-6 h-6 mx-auto mb-2 text-primary" />
+                        <DspLogo name={platform} size={24} className="mx-auto mb-2" />
                         <div className="text-xs font-medium">{platform}</div>
                       </div>
                     ))}
@@ -219,7 +219,7 @@ const Index = () => {
             {platforms.map((platform, index) => (
               <AnimatedCard key={platform} delay={index * 50}>
                 <div className="glass-card p-6 text-center group hover:scale-105 transition-all duration-300">
-                  <Music className="w-8 h-8 mx-auto mb-3 text-primary group-hover:scale-110 transition-transform duration-300" />
+                  <DspLogo name={platform} size={32} className="mx-auto mb-3 group-hover:scale-110 transition-transform duration-300" />
                   <div className="font-medium text-sm">{platform}</div>
                 </div>
               </AnimatedCard>
@@ -301,6 +301,14 @@ const Index = () => {
                     </Link>
                   </Button>
                 </div>
+                <nav aria-label="Explore MALPINOHdistro" className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                  <Link to="/distribution" className="text-muted-foreground hover:text-primary transition-colors">How music distribution works</Link>
+                  <Link to="/services" className="text-muted-foreground hover:text-primary transition-colors">Our distribution services</Link>
+                  <Link to="/artists" className="text-muted-foreground hover:text-primary transition-colors">Tools for artists</Link>
+                  <Link to="/pricing" className="text-muted-foreground hover:text-primary transition-colors">Distribution pricing</Link>
+                  <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">Music distribution blog</Link>
+                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">About our company</Link>
+                </nav>
               </div>
             </div>
           </AnimatedCard>

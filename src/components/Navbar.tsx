@@ -71,9 +71,12 @@ const Navbar = () => {
 
   const navigation = [
     { name: 'Home', href: '/' },
+    { name: 'Music Distribution', href: '/distribution' },
     { name: 'Services', href: '/services' },
+    { name: 'For Artists', href: '/artists' },
     { name: 'Pricing', href: '/pricing' },
-    { name: 'About', href: '/about' },
+    { name: 'Blog', href: '/blog' },
+    { name: 'About Us', href: '/about' },
     { name: 'Contact', href: '/contact' },
   ];
 
@@ -110,12 +113,13 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-1">
+          <div className="hidden lg:flex items-center space-x-0.5">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 to={item.href}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:bg-white/10 ${
+                aria-current={isActive(item.href) ? 'page' : undefined}
+                className={`px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all duration-200 hover:bg-white/10 ${
                   isActive(item.href)
                     ? 'text-primary bg-primary/10'
                     : 'text-foreground hover:text-primary'
@@ -127,7 +131,7 @@ const Navbar = () => {
           </div>
 
           {/* User Navigation & Auth */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-4">
           {user ? (
               <>
                 {/* Team Switcher */}
@@ -217,7 +221,7 @@ const Navbar = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="lg:hidden">
             <Button
               variant="ghost"
               size="sm"
@@ -233,13 +237,14 @@ const Navbar = () => {
 
         {/* Mobile Navigation */}
         {isOpen && (
-          <div className="md:hidden border-t border-white/10 mt-2 pt-4 pb-4">
+          <div className="lg:hidden border-t border-white/10 mt-2 pt-4 pb-4 max-h-[calc(100vh-5rem)] overflow-y-auto">
             <div className="space-y-2">
               {navigation.map((item) => (
                 <Link
                   key={item.name}
                   to={item.href}
                   onClick={() => setIsOpen(false)}
+                  aria-current={isActive(item.href) ? 'page' : undefined}
                   className={`block px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isActive(item.href)
                       ? 'text-primary bg-primary/10'

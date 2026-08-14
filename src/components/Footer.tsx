@@ -33,15 +33,16 @@ const Footer = () => {
             </div>
           </div>
           
-          {/* Quick Links */}
+          {/* Company */}
           <div className="md:col-span-1">
-            <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Quick Links</h3>
+            <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Company</h3>
             <ul className="space-y-2">
-              <FooterLink to="/dashboard">Dashboard</FooterLink>
-              <FooterLink to="/release/new">Submit Music</FooterLink>
-              <FooterLink to="/earnings">Earnings</FooterLink>
-              <FooterLink to="/help">Help Center</FooterLink>
-              <FooterLink to="/faq">FAQ</FooterLink>
+              <FooterLink to="/">Home</FooterLink>
+              <FooterLink to="/distribution">Music Distribution</FooterLink>
+              <FooterLink to="/services">Our Services</FooterLink>
+              <FooterLink to="/artists">For Artists</FooterLink>
+              <FooterLink to="/about">About MALPINOHdistro</FooterLink>
+              <FooterLink to="/contact">Contact Us</FooterLink>
             </ul>
           </div>
           
@@ -49,11 +50,12 @@ const Footer = () => {
           <div className="md:col-span-1">
             <h3 className="text-sm font-semibold text-foreground mb-4 uppercase tracking-wider">Resources</h3>
             <ul className="space-y-2">
-              <FooterLink to="/pricing">Pricing</FooterLink>
-              <FooterLink to="/blog">Blog</FooterLink>
-              <FooterLink to="/partners">Partners</FooterLink>
+              <FooterLink to="/pricing">Distribution Pricing</FooterLink>
+              <FooterLink to="/blog">Music Distribution Blog</FooterLink>
               <FooterLink to="/resources">Artist Resources</FooterLink>
-              <FooterLink to="/contact">Contact Us</FooterLink>
+              <FooterLink to="/partners">Partners</FooterLink>
+              <FooterLink to="/faq">FAQ</FooterLink>
+              <FooterLink to="/help">Help Center</FooterLink>
             </ul>
           </div>
           
@@ -67,6 +69,7 @@ const Footer = () => {
               <FooterLink to="/cookies">Cookie Policy</FooterLink>
             </ul>
           </div>
+
         </div>
         
         <div className="border-t border-border/50 mt-12 pt-8 flex flex-col md:flex-row items-center justify-between">
