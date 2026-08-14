@@ -301,6 +301,14 @@ const Index = () => {
                     </Link>
                   </Button>
                 </div>
+                <nav aria-label="Explore MALPINOHdistro" className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm">
+                  <Link to="/distribution" className="text-muted-foreground hover:text-primary transition-colors">How music distribution works</Link>
+                  <Link to="/services" className="text-muted-foreground hover:text-primary transition-colors">Our distribution services</Link>
+                  <Link to="/artists" className="text-muted-foreground hover:text-primary transition-colors">Tools for artists</Link>
+                  <Link to="/pricing" className="text-muted-foreground hover:text-primary transition-colors">Distribution pricing</Link>
+                  <Link to="/blog" className="text-muted-foreground hover:text-primary transition-colors">Music distribution blog</Link>
+                  <Link to="/about" className="text-muted-foreground hover:text-primary transition-colors">About our company</Link>
+                </nav>
               </div>
             </div>
           </AnimatedCard>
