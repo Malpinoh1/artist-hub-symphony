@@ -16,7 +16,7 @@ import { useTeamPermissions } from '../hooks/useTeamPermissions';
 import { useAuth } from '../contexts/AuthContext';
 import SubscriptionGate from '../components/SubscriptionGate';
 import ReportedPerformance from '../components/dashboard/ReportedPerformance';
-
+import { Analytics } from "@vercel/analytics/next"
 
 const DashboardContent = () => {
   const { toast } = useToast();
