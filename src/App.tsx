@@ -13,6 +13,7 @@ import PublicRoute from "./components/PublicRoute";
 import DashboardLayout from "./components/DashboardLayout";
 import MobileBottomNav from "./components/MobileBottomNav";
 import React, { Suspense } from "react";
+import { Analytics } from "@vercel/analytics/react";
 
 // Lazy-loaded pages
 const Index = React.lazy(() => import("./pages/Index"));
@@ -175,6 +176,7 @@ const App = () => {
               <BrowserRouter>
                 <AppContent />
               </BrowserRouter>
+              <Analytics />
             </TooltipProvider>
           </AccountProvider>
         </AuthProvider>
