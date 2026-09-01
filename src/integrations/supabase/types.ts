@@ -519,6 +519,266 @@ export type Database = {
           },
         ]
       }
+      collective_applications: {
+        Row: {
+          admin_notes: string | null
+          city: string | null
+          contribution: string
+          country: string
+          created_at: string
+          email: string
+          email_normalized: string | null
+          full_name: string
+          id: string
+          other_role: string | null
+          phone: string | null
+          referral_code: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          roles: string[]
+          social_links: Json
+          status: Database["public"]["Enums"]["collective_application_status"]
+          submitted_ip: string | null
+          updated_at: string
+          user_id: string | null
+          why_join: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          city?: string | null
+          contribution: string
+          country: string
+          created_at?: string
+          email: string
+          email_normalized?: string | null
+          full_name: string
+          id?: string
+          other_role?: string | null
+          phone?: string | null
+          referral_code?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          roles?: string[]
+          social_links?: Json
+          status?: Database["public"]["Enums"]["collective_application_status"]
+          submitted_ip?: string | null
+          updated_at?: string
+          user_id?: string | null
+          why_join: string
+        }
+        Update: {
+          admin_notes?: string | null
+          city?: string | null
+          contribution?: string
+          country?: string
+          created_at?: string
+          email?: string
+          email_normalized?: string | null
+          full_name?: string
+          id?: string
+          other_role?: string | null
+          phone?: string | null
+          referral_code?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          roles?: string[]
+          social_links?: Json
+          status?: Database["public"]["Enums"]["collective_application_status"]
+          submitted_ip?: string | null
+          updated_at?: string
+          user_id?: string | null
+          why_join?: string
+        }
+        Relationships: []
+      }
+      collective_email_events: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          member_id: string | null
+          recipient: string
+          status: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          member_id?: string | null
+          recipient: string
+          status?: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          member_id?: string | null
+          recipient?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_email_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "collective_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_email_events_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "collective_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collective_members: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          display_name: string
+          handle: string
+          id: string
+          member_since: string
+          points: number
+          roles: string[]
+          status: Database["public"]["Enums"]["collective_member_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          display_name: string
+          handle: string
+          id?: string
+          member_since?: string
+          points?: number
+          roles?: string[]
+          status?: Database["public"]["Enums"]["collective_member_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          display_name?: string
+          handle?: string
+          id?: string
+          member_since?: string
+          points?: number
+          roles?: string[]
+          status?: Database["public"]["Enums"]["collective_member_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_members_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "collective_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collective_referrals: {
+        Row: {
+          created_at: string
+          flag_reason: string | null
+          flagged: boolean
+          id: string
+          qualified_at: string | null
+          referred_application_id: string | null
+          referred_email_normalized: string
+          referred_user_id: string | null
+          referrer_member_id: string
+          source: string
+          status: Database["public"]["Enums"]["collective_referral_status"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          flag_reason?: string | null
+          flagged?: boolean
+          id?: string
+          qualified_at?: string | null
+          referred_application_id?: string | null
+          referred_email_normalized: string
+          referred_user_id?: string | null
+          referrer_member_id: string
+          source?: string
+          status?: Database["public"]["Enums"]["collective_referral_status"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          flag_reason?: string | null
+          flagged?: boolean
+          id?: string
+          qualified_at?: string | null
+          referred_application_id?: string | null
+          referred_email_normalized?: string
+          referred_user_id?: string | null
+          referrer_member_id?: string
+          source?: string
+          status?: Database["public"]["Enums"]["collective_referral_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_referrals_referred_application_id_fkey"
+            columns: ["referred_application_id"]
+            isOneToOne: false
+            referencedRelation: "collective_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_referrals_referrer_member_id_fkey"
+            columns: ["referrer_member_id"]
+            isOneToOne: false
+            referencedRelation: "collective_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collective_roles: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          label: string
+          slug: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          slug: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          slug?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -2977,6 +3237,12 @@ export type Database = {
         Args: { p_artist_id: string }
         Returns: Json
       }
+      get_collective_admin_stats: { Args: never; Returns: Json }
+      get_collective_public_profile: {
+        Args: { p_handle: string }
+        Returns: Json
+      }
+      get_my_collective_summary: { Args: never; Returns: Json }
       get_platform_stream_analytics: {
         Args: { p_distributor?: string; p_month?: number; p_year?: number }
         Returns: Json
@@ -3030,6 +3296,18 @@ export type Database = {
     }
     Enums: {
       account_role: "account_admin" | "manager" | "viewer"
+      collective_application_status:
+        | "pending"
+        | "under_review"
+        | "approved"
+        | "rejected"
+        | "needs_information"
+      collective_member_status: "active" | "suspended" | "inactive"
+      collective_referral_status:
+        | "registered"
+        | "verified"
+        | "qualified"
+        | "active"
       earnings_status: "Pending" | "Paid"
       release_status:
         | "Pending"
@@ -3168,6 +3446,20 @@ export const Constants = {
   public: {
     Enums: {
       account_role: ["account_admin", "manager", "viewer"],
+      collective_application_status: [
+        "pending",
+        "under_review",
+        "approved",
+        "rejected",
+        "needs_information",
+      ],
+      collective_member_status: ["active", "suspended", "inactive"],
+      collective_referral_status: [
+        "registered",
+        "verified",
+        "qualified",
+        "active",
+      ],
       earnings_status: ["Pending", "Paid"],
       release_status: [
         "Pending",
