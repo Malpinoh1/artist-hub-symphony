@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { attributeReferral } from "../_shared/collective-referral.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -28,7 +29,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     if (!body) return json({ error: "Invalid JSON body" }, 400);
 
-    // ---- Identify caller (optional) ----
+    // ---- Identify caller (REQUIRED: applications belong to a MALPINOHDISTRO account) ----
     let userId: string | null = null;
     let authEmail: string | null = null;
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -38,6 +39,12 @@ Deno.serve(async (req) => {
         userId = data.user.id;
         authEmail = data.user.email ?? null;
       }
+    }
+    if (!userId || !authEmail) {
+      return json(
+        { error: "Please sign in to your MALPINOHDISTRO account before applying.", code: "auth_required" },
+        401,
+      );
     }
 
     // ---- Server-side validation ----
@@ -117,40 +124,15 @@ Deno.serve(async (req) => {
       .single();
     if (insErr) throw insErr;
 
-    // ---- Referral attribution (server-side only) ----
+    // ---- Referral attribution (server-side only, idempotent) ----
     if (referral_code) {
-      const { data: referrer } = await admin
-        .from("collective_members")
-        .select("id, user_id, display_name")
-        .eq("handle", referral_code)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (referrer) {
-        let referrerEmail: string | null = null;
-        const { data: ru } = await admin.auth.admin.getUserById(referrer.user_id);
-        referrerEmail = ru?.user?.email?.toLowerCase() ?? null;
-
-        const selfReferral = referrer.user_id === userId || referrerEmail === email;
-        if (!selfReferral) {
-          const { error: refErr } = await admin.from("collective_referrals").insert({
-            referrer_member_id: referrer.id,
-            referred_user_id: userId,
-            referred_email_normalized: email,
-            referred_application_id: app.id,
-            source: "collective_link",
-            status: "registered",
-          });
-          if (!refErr && referrerEmail) {
-            await sendCollectiveEmail(admin, {
-              event: "referral_new",
-              to: referrerEmail,
-              name: referrer.display_name,
-              memberId: referrer.id,
-            });
-          }
-        }
-      }
+      await attributeReferral(admin, {
+        referralCode: referral_code,
+        referredUserId: userId,
+        referredEmail: email,
+        applicationId: app.id,
+        source: "collective_link",
+      });
     }
 
     await sendCollectiveEmail(admin, {
