@@ -26,6 +26,7 @@ import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
 import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
 import OACRequestsTab from '@/components/admin/OACRequestsTab';
+import CollectiveTab from '@/components/admin/CollectiveTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
 
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
@@ -232,6 +233,8 @@ const AdminDashboard = () => {
         return <RoyaltySplitRequestsTab />;
       case 'oac':
         return <OACRequestsTab />;
+      case 'collective':
+        return <CollectiveTab />;
 
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
@@ -259,6 +262,7 @@ const AdminDashboard = () => {
     { id: 'income-management', label: 'Income & Royalties' },
     { id: 'split-requests', label: 'Split Requests' },
     { id: 'oac', label: 'YouTube OAC' },
+    { id: 'collective', label: 'MDISTRO Collective' },
     { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
 
     {
