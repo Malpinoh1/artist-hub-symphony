@@ -1,5 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
 import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { attributeReferral } from "../_shared/collective-referral.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
