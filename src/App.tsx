@@ -62,6 +62,8 @@ const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
 const PaymentCallback = React.lazy(() => import("./pages/PaymentCallback"));
 const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
 const OAuthConsent = React.lazy(() => import("./pages/OAuthConsent"));
+const CollectiveApply = React.lazy(() => import("./pages/CollectiveApply"));
+const CollectiveCenter = React.lazy(() => import("./pages/CollectiveCenter"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -124,6 +126,7 @@ const AppContent = () => {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="/accept-split" element={<AcceptSplit />} />
+        <Route path="/collective" element={<CollectiveApply />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
@@ -144,6 +147,7 @@ const AppContent = () => {
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
         <Route path="/artist-hub" element={<DashboardPage><ArtistHub /></DashboardPage>} />
         <Route path="/achievements" element={<DashboardPage><Achievements /></DashboardPage>} />
+        <Route path="/collective/center" element={<DashboardPage><CollectiveCenter /></DashboardPage>} />
 
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
