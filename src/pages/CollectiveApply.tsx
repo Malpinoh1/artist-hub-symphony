@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Loader2, CheckCircle2, Users, Share2, Sparkles } from 'lucide-react';
+import { Loader2, CheckCircle2, Users, Share2, Sparkles, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -11,6 +11,11 @@ import Footer from '@/components/Footer';
 import Seo from '@/components/seo/Seo';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import {
+  storePendingReferral,
+  claimPendingReferral,
+  readFunctionError,
+} from '@/services/collectiveReferralService';
 import { cn } from '@/lib/utils';
 
 interface Role {
