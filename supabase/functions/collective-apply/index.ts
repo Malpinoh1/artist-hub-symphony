@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => null);
     if (!body) return json({ error: "Invalid JSON body" }, 400);
 
-    // ---- Identify caller (optional) ----
+    // ---- Identify caller (REQUIRED: applications belong to a MALPINOHDISTRO account) ----
     let userId: string | null = null;
     let authEmail: string | null = null;
     const authHeader = req.headers.get("Authorization") ?? "";
@@ -39,6 +39,12 @@ Deno.serve(async (req) => {
         userId = data.user.id;
         authEmail = data.user.email ?? null;
       }
+    }
+    if (!userId || !authEmail) {
+      return json(
+        { error: "Please sign in to your MALPINOHDISTRO account before applying.", code: "auth_required" },
+        401,
+      );
     }
 
     // ---- Server-side validation ----
