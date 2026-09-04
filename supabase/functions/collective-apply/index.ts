@@ -124,40 +124,15 @@ Deno.serve(async (req) => {
       .single();
     if (insErr) throw insErr;
 
-    // ---- Referral attribution (server-side only) ----
+    // ---- Referral attribution (server-side only, idempotent) ----
     if (referral_code) {
-      const { data: referrer } = await admin
-        .from("collective_members")
-        .select("id, user_id, display_name")
-        .eq("handle", referral_code)
-        .eq("status", "active")
-        .maybeSingle();
-
-      if (referrer) {
-        let referrerEmail: string | null = null;
-        const { data: ru } = await admin.auth.admin.getUserById(referrer.user_id);
-        referrerEmail = ru?.user?.email?.toLowerCase() ?? null;
-
-        const selfReferral = referrer.user_id === userId || referrerEmail === email;
-        if (!selfReferral) {
-          const { error: refErr } = await admin.from("collective_referrals").insert({
-            referrer_member_id: referrer.id,
-            referred_user_id: userId,
-            referred_email_normalized: email,
-            referred_application_id: app.id,
-            source: "collective_link",
-            status: "registered",
-          });
-          if (!refErr && referrerEmail) {
-            await sendCollectiveEmail(admin, {
-              event: "referral_new",
-              to: referrerEmail,
-              name: referrer.display_name,
-              memberId: referrer.id,
-            });
-          }
-        }
-      }
+      await attributeReferral(admin, {
+        referralCode: referral_code,
+        referredUserId: userId,
+        referredEmail: email,
+        applicationId: app.id,
+        source: "collective_link",
+      });
     }
 
     await sendCollectiveEmail(admin, {
