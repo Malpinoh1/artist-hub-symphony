@@ -23,6 +23,8 @@ import { TwoFactorRecovery } from '../components/TwoFactorRecovery';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { sendWelcomeEmail } from '../services/emailService';
+import { storePendingReferral, claimPendingReferral } from '../services/collectiveReferralService';
+import { supabase as supabaseClient } from '../integrations/supabase/client';
 
 const Auth = () => {
   const navigate = useNavigate();
