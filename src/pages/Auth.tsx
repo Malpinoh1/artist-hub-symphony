@@ -23,6 +23,7 @@ import { TwoFactorRecovery } from '../components/TwoFactorRecovery';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
 import { sendWelcomeEmail } from '../services/emailService';
+import { storePendingReferral, claimPendingReferral } from '../services/collectiveReferralService';
 
 const Auth = () => {
   const navigate = useNavigate();
@@ -32,8 +33,12 @@ const Auth = () => {
     if (n && n.startsWith('/') && !n.startsWith('//')) return n;
     return null;
   })();
+  const referralParam = (searchParams.get('ref') || '').toLowerCase().trim() || null;
   const { toast } = useToast();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(
+    searchParams.get('mode') === 'login' ? true : !referralParam
+  );
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -57,6 +62,18 @@ const Auth = () => {
     // Don't check session on mount - let the login process complete first
     // The auth state is managed by AuthContext
   }, [navigate]);
+
+  // Preserve an incoming Collective referral through signup / login / email confirmation.
+  useEffect(() => {
+    if (!referralParam) return;
+    storePendingReferral(referralParam);
+    supabase
+      .rpc('get_collective_public_profile', { p_handle: referralParam })
+      .then(({ data }) => {
+        const profile = data as { display_name?: string } | null;
+        if (profile?.display_name) setReferrerName(profile.display_name);
+      });
+  }, [referralParam]);
 
   const showNotification = (type: 'success' | 'error' | 'info', title: string, message: string) => {
     setNotification({ show: true, type, title, message });
@@ -301,6 +318,9 @@ const Auth = () => {
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
 
+    // Attribute any pending Collective referral to this account (server-side, idempotent).
+    await claimPendingReferral();
+
     if (nextParam) {
       navigate(nextParam);
       return;
@@ -407,6 +427,13 @@ const Auth = () => {
                     ? 'Sign in to your MALPINOHdistro account' 
                     : 'Join MALPINOHdistro for music distribution'}
                 </p>
+                {referralParam && (
+                  <div className="mt-4 mx-auto max-w-md rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+                    You were invited to MALPINOHdistro
+                    {referrerName ? <> by <strong>{referrerName}</strong></> : null}. Create your free
+                    account below — your invite stays linked to you.
+                  </div>
+                )}
               </div>
               
               <div className="p-8 bg-white border border-gray-200 rounded-xl shadow-lg">
