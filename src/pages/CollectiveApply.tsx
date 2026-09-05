@@ -61,6 +61,7 @@ const CollectiveApply = () => {
 
   useEffect(() => {
     if (!referralCode) return;
+    storePendingReferral(referralCode);
     supabase
       .rpc('get_collective_public_profile', { p_handle: referralCode })
       .then(({ data }) => {
@@ -68,6 +69,16 @@ const CollectiveApply = () => {
         if (profile?.display_name) setReferrerName(profile.display_name);
       });
   }, [referralCode]);
+
+  // Once signed in, attribute any stored referral to this account.
+  useEffect(() => {
+    if (!user) return;
+    claimPendingReferral();
+  }, [user]);
+
+  const authNext = `/collective${referralCode ? `?ref=${encodeURIComponent(referralCode)}` : ''}`;
+  const authLink = (mode: 'signup' | 'login') =>
+    `/auth?next=${encodeURIComponent(authNext)}${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ''}${mode === 'login' ? '&mode=login' : ''}`;
 
   const toggleRole = (slug: string) =>
     setSelected((prev) => (prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]));
