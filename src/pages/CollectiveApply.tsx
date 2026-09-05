@@ -113,7 +113,8 @@ const CollectiveApply = () => {
       });
 
       if (error) {
-        const message = (data as any)?.error || error.message || 'Could not submit your application';
+        const message =
+          (data as any)?.error || (await readFunctionError(error, 'Could not submit your application'));
         throw new Error(message);
       }
       if ((data as any)?.error) throw new Error((data as any).error);
