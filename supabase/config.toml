@@ -39,3 +39,6 @@ verify_jwt = false
 
 [functions.collective-apply]
 verify_jwt = false
+
+[functions.collective-referral-claim]
+verify_jwt = false
