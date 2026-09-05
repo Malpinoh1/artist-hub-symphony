@@ -157,7 +157,36 @@ const CollectiveApply = () => {
             )}
           </header>
 
-          {submitted ? (
+          {isLoading ? (
+            <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-10 text-center">
+              <Loader2 className="h-6 w-6 mx-auto animate-spin text-muted-foreground" />
+            </div>
+          ) : !user ? (
+            <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-8 text-center">
+              <Sparkles className="h-10 w-10 mx-auto text-primary" />
+              <h2 className="mt-4 text-xl font-semibold">
+                {referrerName
+                  ? `${referrerName} invited you to MALPINOHdistro`
+                  : 'You’ve been invited to MALPINOHdistro'}
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground max-w-md mx-auto">
+                Start with a free MALPINOHdistro account. Once you're in, you can apply to the MDISTRO
+                Collective from here — your invite stays linked to you.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3 justify-center">
+                <Button asChild>
+                  <Link to={authLink('signup')}>
+                    <UserPlus className="h-4 w-4 mr-2" /> Create my free account
+                  </Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link to={authLink('login')}>
+                    <LogIn className="h-4 w-4 mr-2" /> I already have an account
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : submitted ? (
             <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-8 text-center">
               <CheckCircle2 className="h-12 w-12 mx-auto text-emerald-500" />
               <h2 className="mt-4 text-xl font-semibold">Application received</h2>
