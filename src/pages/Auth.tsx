@@ -425,6 +425,13 @@ const Auth = () => {
                     ? 'Sign in to your MALPINOHdistro account' 
                     : 'Join MALPINOHdistro for music distribution'}
                 </p>
+                {referralParam && (
+                  <div className="mt-4 mx-auto max-w-md rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-gray-700">
+                    You were invited to MALPINOHdistro
+                    {referrerName ? <> by <strong>{referrerName}</strong></> : null}. Create your free
+                    account below — your invite stays linked to you.
+                  </div>
+                )}
               </div>
               
               <div className="p-8 bg-white border border-gray-200 rounded-xl shadow-lg">
