@@ -33,8 +33,10 @@ const Auth = () => {
     if (n && n.startsWith('/') && !n.startsWith('//')) return n;
     return null;
   })();
+  const referralParam = (searchParams.get('ref') || '').toLowerCase().trim() || null;
   const { toast } = useToast();
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(!referralParam);
+  const [referrerName, setReferrerName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
