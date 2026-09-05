@@ -316,6 +316,9 @@ const Auth = () => {
   const completeLogin = async (user: any) => {
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
 
+    // Attribute any pending Collective referral to this account (server-side, idempotent).
+    await claimPendingReferral();
+
     if (nextParam) {
       navigate(nextParam);
       return;
