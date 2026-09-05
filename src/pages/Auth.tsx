@@ -61,6 +61,18 @@ const Auth = () => {
     // The auth state is managed by AuthContext
   }, [navigate]);
 
+  // Preserve an incoming Collective referral through signup / login / email confirmation.
+  useEffect(() => {
+    if (!referralParam) return;
+    storePendingReferral(referralParam);
+    supabase
+      .rpc('get_collective_public_profile', { p_handle: referralParam })
+      .then(({ data }) => {
+        const profile = data as { display_name?: string } | null;
+        if (profile?.display_name) setReferrerName(profile.display_name);
+      });
+  }, [referralParam]);
+
   const showNotification = (type: 'success' | 'error' | 'info', title: string, message: string) => {
     setNotification({ show: true, type, title, message });
     setTimeout(() => setNotification(prev => ({ ...prev, show: false })), 5000);
