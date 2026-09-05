@@ -24,7 +24,7 @@ interface Role {
 }
 
 const CollectiveApply = () => {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const [searchParams] = useSearchParams();
   const referralCode = (searchParams.get('ref') || '').toLowerCase().trim();
 
