@@ -12,16 +12,23 @@ export type CollectiveEmailEvent =
   | "application_rejected"
   | "application_needs_information"
   | "referral_new"
-  | "referral_qualified";
+  | "referral_qualified"
+  | "contribution_accepted"
+  | "contribution_declined"
+  | "contribution_needs_changes"
+  | "opportunity_new"
+  | "announcement";
 
 interface BuildArgs {
   event: CollectiveEmailEvent;
   name: string;
   note?: string;
   handle?: string;
+  /** Opportunity / announcement title, where relevant. */
+  title?: string;
 }
 
-export function buildCollectiveEmail({ event, name, note, handle }: BuildArgs) {
+export function buildCollectiveEmail({ event, name, note, handle, title }: BuildArgs) {
   const first = (name || "there").split(" ")[0];
 
   switch (event) {
@@ -111,8 +118,80 @@ export function buildCollectiveEmail({ event, name, note, handle }: BuildArgs) {
           ctaUrl: `${SITE}/collective/center`,
         }),
       };
+    case "contribution_accepted":
+      return {
+        subject: `Your contribution was accepted — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Your contribution has been accepted.",
+          heading: `Thank you, ${first}`,
+          subheading: "Your contribution has been accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your contribution${args_title(title)} has been reviewed and accepted. Thank you for helping grow the independent music ecosystem.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}`,
+          ctaLabel: "View my contributions",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "contribution_declined":
+      return {
+        subject: `Update on your contribution — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "An update on your contribution.",
+          heading: `Thanks for taking part, ${first}`,
+          subheading: "This contribution was not accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>After review, your contribution${args_title(title)} was not accepted this time.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+            <p>Plenty of other opportunities are open in your Collective Center.</p>`,
+          ctaLabel: "Browse opportunities",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "contribution_needs_changes":
+      return {
+        subject: `Changes requested on your contribution — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Action needed on your contribution.",
+          heading: `One more step, ${first}`,
+          subheading: "Our reviewers asked for some changes.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your contribution${args_title(title)} needs a few changes before it can be accepted.</p>
+            ${note ? `<p><strong>What to change:</strong> ${note}</p>` : ""}`,
+          ctaLabel: "Update my contribution",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_new":
+      return {
+        subject: `New Collective opportunity: ${title ?? "open now"}`,
+        html: brandedEmail({
+          preheader: "A new way to contribute is open.",
+          heading: `New opportunity, ${first}`,
+          subheading: title ?? "A new opportunity is open.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>A new contribution opportunity is now open to Collective members. Participation is voluntary and unpaid.</p>
+            ${note ? `<p>${note}</p>` : ""}`,
+          ctaLabel: "View opportunity",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "announcement":
+      return {
+        subject: `${title ?? "Collective update"} — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "A new Collective update.",
+          heading: title ?? "Collective update",
+          subheading: `An update for the community, ${first}`,
+          bodyHtml: `${tag(PROGRAMME)}
+            ${note ? `<p>${note}</p>` : ""}`,
+          ctaLabel: "Read in Collective Center",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
   }
 }
+
+const args_title = (title?: string) => (title ? ` for “${title}”` : "");
 
 /** Sends a Collective email and always writes an audit row. */
 export async function sendCollectiveEmail(
