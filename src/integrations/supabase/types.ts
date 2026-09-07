@@ -519,6 +519,45 @@ export type Database = {
           },
         ]
       }
+      collective_announcements: {
+        Row: {
+          category: string
+          content: string
+          created_at: string
+          created_by: string | null
+          featured_image_url: string | null
+          id: string
+          published_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          content: string
+          created_at?: string
+          created_by?: string | null
+          featured_image_url?: string | null
+          id?: string
+          published_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          featured_image_url?: string | null
+          id?: string
+          published_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       collective_applications: {
         Row: {
           admin_notes: string | null
@@ -642,42 +681,66 @@ export type Database = {
       collective_members: {
         Row: {
           application_id: string | null
+          avatar_url: string | null
+          bio: string | null
+          city: string | null
+          contribution_areas: string[]
+          country: string | null
           created_at: string
+          discoverable: boolean
           display_name: string
           handle: string
           id: string
           member_since: string
           points: number
           roles: string[]
+          social_links: Json
           status: Database["public"]["Enums"]["collective_member_status"]
           updated_at: string
           user_id: string
+          visibility: string
         }
         Insert: {
           application_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          contribution_areas?: string[]
+          country?: string | null
           created_at?: string
+          discoverable?: boolean
           display_name: string
           handle: string
           id?: string
           member_since?: string
           points?: number
           roles?: string[]
+          social_links?: Json
           status?: Database["public"]["Enums"]["collective_member_status"]
           updated_at?: string
           user_id: string
+          visibility?: string
         }
         Update: {
           application_id?: string | null
+          avatar_url?: string | null
+          bio?: string | null
+          city?: string | null
+          contribution_areas?: string[]
+          country?: string | null
           created_at?: string
+          discoverable?: boolean
           display_name?: string
           handle?: string
           id?: string
           member_since?: string
           points?: number
           roles?: string[]
+          social_links?: Json
           status?: Database["public"]["Enums"]["collective_member_status"]
           updated_at?: string
           user_id?: string
+          visibility?: string
         }
         Relationships: [
           {
@@ -688,6 +751,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      collective_opportunities: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          deadline: string | null
+          description: string
+          id: string
+          instructions: string | null
+          requirements: string | null
+          requires_submission: boolean
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description: string
+          id?: string
+          instructions?: string | null
+          requirements?: string | null
+          requires_submission?: boolean
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          deadline?: string | null
+          description?: string
+          id?: string
+          instructions?: string | null
+          requirements?: string | null
+          requires_submission?: boolean
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       collective_referrals: {
         Row: {
@@ -778,6 +886,69 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      collective_submissions: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          member_id: string
+          opportunity_id: string
+          reference_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          submission_text: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          member_id: string
+          opportunity_id: string
+          reference_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submission_text: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          member_id?: string
+          opportunity_id?: string
+          reference_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          submission_text?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collective_submissions_member_id_fkey"
+            columns: ["member_id"]
+            isOneToOne: false
+            referencedRelation: "collective_members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collective_submissions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "collective_opportunities"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       credit_transactions: {
         Row: {
@@ -3243,6 +3414,7 @@ export type Database = {
         Returns: Json
       }
       get_my_collective_summary: { Args: never; Returns: Json }
+      get_my_referral_activity: { Args: never; Returns: Json }
       get_platform_stream_analytics: {
         Args: { p_distributor?: string; p_month?: number; p_year?: number }
         Returns: Json
@@ -3271,6 +3443,18 @@ export type Database = {
         Args: { target_account_id: string }
         Returns: boolean
       }
+      is_active_collective_member: { Args: { uid?: string }; Returns: boolean }
+      list_collective_directory: {
+        Args: {
+          p_area?: string
+          p_country?: string
+          p_limit?: number
+          p_offset?: number
+          p_role?: string
+          p_search?: string
+        }
+        Returns: Json
+      }
       process_income: {
         Args: {
           p_amount: number
@@ -3285,6 +3469,20 @@ export type Database = {
       }
       process_royalty_upload: { Args: { p_upload_id: string }; Returns: Json }
       rebuild_all_stream_stats: { Args: never; Returns: Json }
+      update_my_collective_profile: {
+        Args: {
+          p_avatar_url?: string
+          p_bio?: string
+          p_city?: string
+          p_contribution_areas?: string[]
+          p_country?: string
+          p_discoverable?: boolean
+          p_display_name?: string
+          p_social_links?: Json
+          p_visibility?: string
+        }
+        Returns: Json
+      }
       user_has_active_subscription: {
         Args: { user_id?: string }
         Returns: boolean
