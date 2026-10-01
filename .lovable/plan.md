@@ -1,84 +1,49 @@
-# Monthly Streams Synchronization Upgrade
+# MDISTRO Collective Member Center Integration
 
-Upgrade the royalty ingestion pipeline so every ONErpm CSV upload updates both **earnings** and **streaming statistics** at monthly granularity, preserves history, and prevents duplicates.
+## Goal
+Upgrade the existing `/collective/center` into the approved-member hub while preserving the current application, referral, review, approval, email, membership, and security flows.
 
-## 1. Database changes (migration)
+## Implementation
 
-New table `public.monthly_stream_stats` (source of truth for stream history):
+1. **Member access and status handling**
+   - Keep `get_my_collective_summary()` as the single overview source.
+   - Confirm active access with the existing server-side `is_active_collective_member()` RPC before mounting Phase 2 sections.
+   - Keep pending, under-review, needs-information, rejected, and not-yet-applied experiences unchanged in purpose.
+   - Treat suspended/inactive membership as non-active and do not mount member-only panels.
+   - Show human-readable retry states if the summary or membership check fails.
 
-- `artist_id`, `release_id` (nullable), `track_id` (nullable), `upload_id`
-- `period_year`, `period_month`
-- `track_title`, `dsp_name`, `country` (nullable)
-- `streams` (bigint), `downloads` (bigint), `quantity` (bigint)
-- `revenue` (numeric), `currency`
-- `created_at`
-- Unique on `(upload_id, artist_id, track_title, dsp_name, country)` to avoid double-insert on reprocess
-- GRANTs to `authenticated` (read own via artist) and `service_role`; RLS: artists read rows where `artist_id` matches an artist they own/have access to; admins/finance/distribution full read
+2. **Member Center navigation and overview**
+   - Add one responsive internal navigation control with Overview, Directory, Opportunities, Announcements, and My Profile.
+   - Mount the four existing Phase 2 panels only for verified active members.
+   - Preserve member name, handle, status, member-since date, current points balance, referral link, copy/share actions, and all four referral counters.
+   - Keep layouts constrained and horizontally scrollable only within the compact tab control on narrow screens.
 
-Extend `royalty_upload_rows` parser to capture `dsp_name` (Store), `country`, and `downloads` when present in CSV.
+3. **Make existing panels integration-ready**
+   - Add clear loading, empty, error, and success feedback without exposing raw database messages.
+   - Keep all existing Supabase tables, RPCs, and RLS protections.
+   - Fix the opportunity submission session assumption and only allow revisions in states already permitted by RLS.
+   - Make search, cards, long values, forms, and action rows mobile-safe.
+   - Display contribution areas returned by the privacy-aware directory RPC.
 
-Extend `process_royalty_upload` RPC:
-- After clearing prior aggregates for `upload_id`, also delete from `monthly_stream_stats WHERE upload_id = p_upload_id`
-- For each matched row, insert one `monthly_stream_stats` row per matched artist (streams = quantity, revenue = assigned_amount_per_artist)
-- Attempt to resolve `track_id` by matching `track_title` against `tracks.title` for the artist (best-effort, nullable)
+4. **Directory profile dependency**
+   - Do not add the prohibited public member profile route.
+   - Replace links to the missing `/collective/member/:handle` page with an in-center member detail dialog using only fields already returned by `list_collective_directory(...)`.
+   - Remove the broken “View public page” action from My Profile until the public-profile phase is implemented.
 
-New RPC `check_month_already_imported(p_year int, p_month int)` returns list of upload ids for that period — used by UI to warn.
+5. **Mobile navigation**
+   - Keep the five-item bottom bar size stable.
+   - Replace its current “More” shortcut to Settings with a Collective shortcut; Settings remains available in the existing mobile drawer and user menu.
+   - Keep the existing dashboard drawer as the complete navigation source, avoiding duplicate Collective menus.
 
-New views / RPCs for analytics:
-- `artist_stream_totals(artist_id)` → lifetime, this_month, last_month, growth%, top_dsp, top_track, top_country, monthly_revenue
-- `track_stream_totals(track_id)` → lifetime, current_month, previous_month, revenue, revenue_per_stream, dsp_breakdown, monthly_growth
+6. **Verification**
+   - Check the preview build and runtime logs.
+   - Verify public `/collective` referral/auth entry remains intact.
+   - Verify protected `/collective/center` unauthenticated behavior.
+   - Test applicant/non-member and active-member states where available, without creating mock data.
+   - Test the Member Center at desktop and mobile widths, including tab navigation and horizontal overflow.
 
-## 2. CSV parser
+## Technical scope
 
-`src/utils/onerpmCsvParser.ts`:
-- Detect columns by header name (case-insensitive): `Store`/`DSP`/`Retailer` → `dsp_name`, `Country`/`Territory` → `country`, `Downloads` → `downloads`
-- Continue using `Net` strictly and `Quantity` for streams
-- Add new fields to `OnerpmRow`
-
-`royaltyIngestionService.ts`: pass new columns into `royalty_upload_rows` insert.
-
-## 3. Duplicate upload protection
-
-In `RoyaltyUploadTab`:
-- Before creating an upload, call `check_month_already_imported`
-- If existing uploads for that year/month, show dialog:
-  - **Replace existing month** (deletes prior uploads for that period, then processes)
-  - **Cancel upload**
-
-## 4. Admin – Monthly Streaming Manager
-
-Add a section inside `RoyaltyUploadTab` (or new tab) listing uploads grouped by `period_label` with actions:
-- View, Reprocess (existing `process_royalty_upload`), Delete, See logs, See totals (streams + revenue)
-
-## 5. Artist dashboard analytics
-
-New cards + charts (in Earnings or a new Analytics section):
-- Total Lifetime Streams, This Month, Last Month, Growth %, Top Song, Top DSP, Top Country, Monthly Revenue
-- Charts: Streams by Month, Revenue by Month, Streams by Store, Top Tracks
-
-New hook `useArtistStreamStats(artistId)` querying `monthly_stream_stats` and computing aggregates client-side (or via RPC).
-
-## 6. Release/track analytics
-
-On `ReleaseDetails`, add a Monthly Streams section powered by `monthly_stream_stats` filtered by `release_id`/`track_id` (fallback to track_title match when track_id null): lifetime, current month, previous month, revenue, revenue-per-stream, DSP breakdown, monthly trend chart.
-
-## 7. Automatic refresh
-
-Invalidate the relevant React Query keys (`earningsData`, `monthlyEarnings`, new `artistStreamStats`, `trackStreamStats`) after upload completes, so all dashboards refresh with no manual reload.
-
-## Technical notes
-
-- All financial values remain USD (per project memory).
-- Historical `monthly_artist_earnings` behavior is unchanged; the new table is additive for stream-level detail.
-- All calculations for lifetime/monthly totals are derived from `monthly_stream_stats` — never overwritten.
-- Reprocessing a single upload only clears that upload's rows, so other months are never touched.
-
-## Files to touch
-
-- `supabase/migrations/<new>.sql` — new table, grants, RLS, updated RPC, new RPCs
-- `src/utils/onerpmCsvParser.ts` — new columns
-- `src/services/royaltyIngestionService.ts` — pass new columns, add stats fetchers, duplicate-check helper
-- `src/components/admin/RoyaltyUploadTab.tsx` — duplicate warning dialog, monthly manager list
-- `src/hooks/useArtistStreamStats.ts` (new), `src/hooks/useTrackStreamStats.ts` (new)
-- `src/components/earnings/*` and/or new `src/components/analytics/*` — new cards & charts
-- `src/pages/ReleaseDetails.tsx` — monthly analytics section
+- Expected frontend changes: `src/pages/CollectiveCenter.tsx`, the four existing files under `src/components/collective/`, and `src/components/MobileBottomNav.tsx`.
+- No new Collective tables, RPCs, Edge Functions, auth systems, public profile route, storage bucket, or admin tools.
+- No database schema or RLS changes are planned; existing RPC and policy enforcement remains authoritative.
