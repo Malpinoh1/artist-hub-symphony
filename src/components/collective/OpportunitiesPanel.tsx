@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Send, Calendar, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Loader2, Send, Calendar, CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -58,10 +58,12 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const [text, setText] = useState('');
   const [link, setLink] = useState('');
   const [sending, setSending] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const [{ data: oppData, error: oppErr }, { data: subData }] = await Promise.all([
+    setLoadError(false);
+    const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }] = await Promise.all([
       supabase
         .from('collective_opportunities')
         .select('*')
@@ -69,7 +71,11 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
         .order('created_at', { ascending: false }),
       supabase.from('collective_submissions').select('*').order('created_at', { ascending: false }),
     ]);
-    if (oppErr) toast.error(oppErr.message);
+    if (oppErr || subErr) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     setOpps((oppData as Opportunity[]) ?? []);
     setSubs((subData as Submission[]) ?? []);
     setLoading(false);
@@ -83,11 +89,16 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
     if (text.trim().length < 20) return toast.error('Please describe your contribution (at least 20 characters).');
     setSending(true);
     const { data: auth } = await supabase.auth.getUser();
-    const existing = subs.find((s) => s.opportunity_id === opportunityId && s.status === 'needs_changes');
+    if (!auth.user) {
+      setSending(false);
+      toast.error('Please sign in again before submitting.');
+      return;
+    }
+    const existing = subs.find((s) => s.opportunity_id === opportunityId);
     const payload = {
       opportunity_id: opportunityId,
       member_id: memberId,
-      user_id: auth.user!.id,
+      user_id: auth.user.id,
       submission_text: text.trim(),
       link: link.trim() || null,
       status: 'submitted',
@@ -99,7 +110,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
           .eq('id', existing.id)
       : await supabase.from('collective_submissions').insert(payload);
     setSending(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("We couldn't send your contribution. Please try again.");
     toast.success('Contribution sent for review');
     setOpenId(null);
     setText('');
@@ -115,19 +126,32 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="py-14 text-center">
+        <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+        <p className="mt-3 text-sm font-medium">We couldn't load opportunities.</p>
+        <Button variant="outline" className="mt-4" onClick={load}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Try again
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <section className="space-y-3">
         <h2 className="font-semibold">Ways to contribute</h2>
         {opps.length === 0 ? (
           <p className="text-sm text-muted-foreground rounded-2xl border border-border bg-card/60 p-6 text-center">
-            No open opportunities right now. We'll notify you when something new opens.
+            No opportunities are currently available. New Collective opportunities will appear here when published.
           </p>
         ) : (
           opps.map((o) => {
             const mySub = subs.find((s) => s.opportunity_id === o.id);
             const closed = o.status === 'closed';
-            const canSubmit = o.requires_submission && !closed && (!mySub || mySub.status === 'needs_changes');
+            const canRevise = mySub?.status === 'submitted' || mySub?.status === 'needs_changes';
+            const canSubmit = o.requires_submission && !closed && (!mySub || canRevise);
             return (
               <div key={o.id} className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-5">
                 <div className="flex flex-wrap items-start justify-between gap-2">
@@ -161,6 +185,9 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                     <span className="text-muted-foreground">How to take part: </span>
                     {o.instructions}
                   </p>
+                )}
+                {!o.requires_submission && !closed && (
+                  <p className="mt-3 text-xs font-medium text-muted-foreground">No submission is required for this opportunity.</p>
                 )}
 
                 {mySub && (
@@ -237,7 +264,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                           setLink(mySub?.link ?? '');
                         }}
                       >
-                        {mySub?.status === 'needs_changes' ? 'Update contribution' : 'Take part'}
+                        {mySub ? 'Update contribution' : 'Take part'}
                       </Button>
                     )}
                   </div>

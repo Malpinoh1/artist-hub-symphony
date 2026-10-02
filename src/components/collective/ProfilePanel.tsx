@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Save, Eye, EyeOff, ExternalLink } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { AlertCircle, Loader2, Save, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -28,13 +27,13 @@ const VISIBILITY: { value: 'public' | 'members' | 'private'; label: string; hint
 ];
 
 interface Props {
-  handle: string;
   onSaved?: () => void;
 }
 
-const ProfilePanel = ({ handle, onSaved }: Props) => {
+const ProfilePanel = ({ onSaved }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({
     display_name: '',
     bio: '',
@@ -52,16 +51,27 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     const { data: auth } = await supabase.auth.getUser();
-    if (!auth.user) return setLoading(false);
+    if (!auth.user) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     const { data, error } = await supabase
       .from('collective_members')
       .select('*')
       .eq('user_id', auth.user.id)
       .maybeSingle();
-    if (error) toast.error(error.message);
+    if (error) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
     if (data) {
-      const links = (data.social_links ?? {}) as Record<string, string>;
+      const links = data.social_links && typeof data.social_links === 'object' && !Array.isArray(data.social_links)
+        ? (data.social_links as Record<string, string>)
+        : {};
       setForm({
         display_name: data.display_name ?? '',
         bio: data.bio ?? '',
@@ -74,7 +84,8 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
         website: links.website ?? '',
       });
       setAreas(data.contribution_areas ?? []);
-      setVisibility((data.visibility as any) ?? 'public');
+      const savedVisibility = data.visibility;
+      setVisibility(savedVisibility === 'public' || savedVisibility === 'private' ? savedVisibility : 'members');
       setDiscoverable(data.discoverable ?? true);
     }
     setLoading(false);
@@ -85,6 +96,10 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
   }, [load]);
 
   const save = async () => {
+    if (!form.display_name.trim()) {
+      toast.error('Please enter a display name.');
+      return;
+    }
     setSaving(true);
     const social: Record<string, string> = {};
     (['instagram', 'twitter', 'tiktok', 'website'] as const).forEach((k) => {
@@ -103,7 +118,7 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
       p_discoverable: discoverable,
     });
     setSaving(false);
-    if (error) return toast.error(error.message);
+    if (error) return toast.error("We couldn't update your profile. Please try again.");
     toast.success('Profile updated');
     onSaved?.();
   };
@@ -116,17 +131,22 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
     );
   }
 
+  if (loadError) {
+    return (
+      <div className="py-14 text-center">
+        <AlertCircle className="mx-auto h-8 w-8 text-destructive" />
+        <p className="mt-3 text-sm font-medium">We couldn't load your profile.</p>
+        <Button variant="outline" className="mt-4" onClick={load}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Try again
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-5 sm:p-6 space-y-5">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-semibold">Your Collective profile</h2>
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/collective/member/${handle}`} target="_blank">
-              <ExternalLink className="h-4 w-4 mr-2" /> View public page
-            </Link>
-          </Button>
-        </div>
+        <h2 className="font-semibold">Your Collective profile</h2>
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -195,19 +215,21 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
             {AREAS.map((a) => {
               const on = areas.includes(a);
               return (
-                <button
+                <Button
                   key={a}
                   type="button"
+                  size="sm"
+                  variant="outline"
                   onClick={() => setAreas(on ? areas.filter((x) => x !== a) : [...areas, a])}
                   className={cn(
-                    'px-3 py-1.5 rounded-full text-xs font-medium border transition-all capitalize',
+                    'h-8 rounded-full px-3 text-xs capitalize',
                     on
-                      ? 'border-primary bg-primary/15 text-primary'
-                      : 'border-border text-muted-foreground hover:text-foreground'
+                      ? 'border-primary bg-primary/15 text-primary hover:bg-primary/20'
+                      : 'text-muted-foreground'
                   )}
                 >
                   {a.replace(/_/g, ' ')}
-                </button>
+                </Button>
               );
             })}
           </div>
@@ -218,21 +240,24 @@ const ProfilePanel = ({ handle, onSaved }: Props) => {
         <h2 className="font-semibold">Privacy</h2>
         <div className="grid gap-2 sm:grid-cols-3">
           {VISIBILITY.map((v) => (
-            <button
+            <Button
               key={v.value}
               type="button"
+              variant="outline"
               onClick={() => setVisibility(v.value)}
               className={cn(
-                'text-left rounded-xl border p-3 transition-all',
+                'h-auto min-h-20 justify-start whitespace-normal rounded-xl p-3 text-left',
                 visibility === v.value ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
               )}
             >
-              <p className="text-sm font-medium flex items-center gap-2">
-                {v.value === 'private' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {v.label}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">{v.hint}</p>
-            </button>
+              <span>
+                <span className="flex items-center gap-2 text-sm font-medium">
+                  {v.value === 'private' ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  {v.label}
+                </span>
+                <span className="mt-1 block text-xs font-normal text-muted-foreground">{v.hint}</span>
+              </span>
+            </Button>
           ))}
         </div>
         <div className="flex items-center justify-between rounded-xl border border-border p-3">

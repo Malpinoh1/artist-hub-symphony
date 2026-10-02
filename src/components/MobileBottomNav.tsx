@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Disc3, BarChart3, DollarSign, Menu } from 'lucide-react';
+import { Home, Disc3, BarChart3, DollarSign, Sparkles } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -8,7 +8,7 @@ const navItems = [
   { label: 'Releases', href: '/releases', icon: Disc3 },
   { label: 'Analytics', href: '/analytics', icon: BarChart3 },
   { label: 'Earnings', href: '/earnings', icon: DollarSign },
-  { label: 'More', href: '/settings', icon: Menu },
+  { label: 'Collective', href: '/collective/center', icon: Sparkles },
 ];
 
 const MobileBottomNav = () => {
@@ -25,8 +25,9 @@ const MobileBottomNav = () => {
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 backdrop-blur-xl safe-bottom">
       <div className="flex items-center justify-around h-16">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.href || 
-            (item.href === '/releases' && location.pathname.startsWith('/releases'));
+          const isActive = location.pathname === item.href ||
+            (item.href === '/releases' && location.pathname.startsWith('/releases')) ||
+            (item.href === '/collective/center' && location.pathname.startsWith('/collective/center'));
           const Icon = item.icon;
           return (
             <Link

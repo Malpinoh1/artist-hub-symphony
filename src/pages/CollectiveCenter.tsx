@@ -2,12 +2,18 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Users, Copy, Check, Loader2, Share2, Clock, XCircle,
-  CheckCircle2, AlertCircle, Trophy,
+  CheckCircle2, AlertCircle, Trophy, LayoutDashboard, UserRound,
+  BriefcaseBusiness, Megaphone, RefreshCw,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { SITE_URL } from '@/lib/site';
+import DirectoryPanel from '@/components/collective/DirectoryPanel';
+import OpportunitiesPanel from '@/components/collective/OpportunitiesPanel';
+import AnnouncementsPanel from '@/components/collective/AnnouncementsPanel';
+import ProfilePanel from '@/components/collective/ProfilePanel';
 
 interface Summary {
   application: {
@@ -73,13 +79,26 @@ const STATUS_META: Record<string, { label: string; icon: React.ElementType; clas
 const CollectiveCenter = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [activeMember, setActiveMember] = useState(false);
   const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase.rpc('get_my_collective_summary');
-    if (error) toast.error(error.message);
+    setLoadError(false);
+    const [{ data, error }, { data: isActive, error: membershipError }] = await Promise.all([
+      supabase.rpc('get_my_collective_summary'),
+      supabase.rpc('is_active_collective_member'),
+    ]);
+    if (error || membershipError) {
+      setLoadError(true);
+      setSummary(null);
+      setActiveMember(false);
+      setLoading(false);
+      return;
+    }
     setSummary((data as unknown as Summary) ?? null);
+    setActiveMember(isActive === true);
     setLoading(false);
   }, []);
 
@@ -92,10 +111,14 @@ const CollectiveCenter = () => {
   const referralLink = member ? `${SITE_URL}/collective?ref=${member.handle}` : '';
 
   const copyLink = async () => {
-    await navigator.clipboard.writeText(referralLink);
-    setCopied(true);
-    toast.success('Referral link copied');
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopied(true);
+      toast.success('Referral link copied');
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("We couldn't copy the link. Please select and copy it manually.");
+    }
   };
 
   const shareLink = async () => {
@@ -107,17 +130,30 @@ const CollectiveCenter = () => {
           url: referralLink,
         });
         return;
-      } catch {
-        /* user cancelled */
+      } catch (error) {
+        if (error instanceof DOMException && error.name === 'AbortError') return;
       }
     }
-    copyLink();
+    await copyLink();
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-xl py-16 text-center">
+        <AlertCircle className="mx-auto h-9 w-9 text-destructive" />
+        <h1 className="mt-4 text-xl font-semibold">We couldn't load your Collective Center</h1>
+        <p className="mt-2 text-sm text-muted-foreground">Please try again. Your application and membership data are unchanged.</p>
+        <Button variant="outline" className="mt-5" onClick={load}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Try again
+        </Button>
       </div>
     );
   }
@@ -157,7 +193,7 @@ const CollectiveCenter = () => {
         </div>
       )}
 
-      {application && (
+      {application && !member && (
         <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-6">
           <div className="flex flex-wrap items-center gap-3">
             <span
@@ -191,29 +227,69 @@ const CollectiveCenter = () => {
         </div>
       )}
 
-      {member && (
-        <>
-          <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-6">
+      {member && !activeMember && (
+        <div className="rounded-2xl border border-border bg-card/60 p-6">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+            <div>
+              <h2 className="font-semibold">Membership is not active</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your membership is currently {member.status}. Member-only areas will become available when your membership is active.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {member && activeMember && (
+        <Tabs defaultValue="overview" className="space-y-6">
+          <div className="-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+            <TabsList className="h-auto min-w-max justify-start gap-1 p-1">
+              <TabsTrigger value="overview" className="gap-2 px-3 py-2">
+                <LayoutDashboard className="h-4 w-4" /> Overview
+              </TabsTrigger>
+              <TabsTrigger value="directory" className="gap-2 px-3 py-2">
+                <Users className="h-4 w-4" /> Directory
+              </TabsTrigger>
+              <TabsTrigger value="opportunities" className="gap-2 px-3 py-2">
+                <BriefcaseBusiness className="h-4 w-4" /> Opportunities
+              </TabsTrigger>
+              <TabsTrigger value="announcements" className="gap-2 px-3 py-2">
+                <Megaphone className="h-4 w-4" /> Announcements
+              </TabsTrigger>
+              <TabsTrigger value="profile" className="gap-2 px-3 py-2">
+                <UserRound className="h-4 w-4" /> My Profile
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="overview" className="mt-0 space-y-6">
+          <div className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-5 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs text-muted-foreground">Member</p>
-                <h2 className="text-lg font-semibold">{member.display_name}</h2>
-                <p className="text-xs text-muted-foreground mt-1">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-xs text-muted-foreground">Member</p>
+                  <span className="rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-[11px] font-medium capitalize text-primary">
+                    {member.status}
+                  </span>
+                </div>
+                <h2 className="mt-1 break-words text-lg font-semibold">{member.display_name}</h2>
+                <p className="mt-1 break-all text-xs text-muted-foreground">
                   @{member.handle} · since {new Date(member.member_since).toLocaleDateString()}
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border border-primary/30 bg-primary/10 text-xs font-medium text-primary">
-                <Trophy className="h-3.5 w-3.5" /> {member.points ?? 0} points
+                <Trophy className="h-3.5 w-3.5" /> {member.points ?? 0} current points
               </span>
             </div>
 
             <div className="mt-6">
               <p className="text-xs font-medium text-muted-foreground mb-2">Your referral link</p>
               <div className="flex flex-col sm:flex-row gap-2">
-                <div className="flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm break-all">
+                <div className="min-w-0 flex-1 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm break-all">
                   {referralLink}
                 </div>
-                <div className="flex gap-2">
+                <div className="flex shrink-0 gap-2">
                   <Button variant="outline" onClick={copyLink}>
                     {copied ? <Check className="h-4 w-4 mr-2" /> : <Copy className="h-4 w-4 mr-2" />}
                     {copied ? 'Copied' : 'Copy'}
@@ -235,14 +311,28 @@ const CollectiveCenter = () => {
             ].map((stat) => (
               <div
                 key={stat.label}
-                className="rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-4"
+                className="min-w-0 rounded-2xl border border-border bg-card/60 backdrop-blur-xl p-4"
               >
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
+                <p className="break-words text-xs text-muted-foreground">{stat.label}</p>
                 <p className="text-2xl font-bold mt-1">{stat.value}</p>
               </div>
             ))}
           </div>
-        </>
+          </TabsContent>
+
+          <TabsContent value="directory" className="mt-0">
+            <DirectoryPanel />
+          </TabsContent>
+          <TabsContent value="opportunities" className="mt-0">
+            <OpportunitiesPanel memberId={member.id} />
+          </TabsContent>
+          <TabsContent value="announcements" className="mt-0">
+            <AnnouncementsPanel />
+          </TabsContent>
+          <TabsContent value="profile" className="mt-0">
+            <ProfilePanel onSaved={load} />
+          </TabsContent>
+        </Tabs>
       )}
     </div>
   );
