@@ -2109,6 +2109,9 @@ export type Database = {
           data: Json
           id: string
           selected_artist_account: string
+          submission_status: string
+          submitted_at: string | null
+          submitted_release_id: string | null
           updated_at: string
           user_id: string
         }
@@ -2120,6 +2123,9 @@ export type Database = {
           data?: Json
           id?: string
           selected_artist_account?: string
+          submission_status?: string
+          submitted_at?: string | null
+          submitted_release_id?: string | null
           updated_at?: string
           user_id: string
         }
@@ -2131,10 +2137,21 @@ export type Database = {
           data?: Json
           id?: string
           selected_artist_account?: string
+          submission_status?: string
+          submitted_at?: string | null
+          submitted_release_id?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "release_drafts_submitted_release_id_fkey"
+            columns: ["submitted_release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       release_edit_requests: {
         Row: {
@@ -3369,6 +3386,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_delete_release: { Args: { p_release_id: string }; Returns: boolean }
       award_stream_achievements: { Args: never; Returns: Json }
       check_month_already_imported: {
         Args: { p_month: number; p_year: number }
@@ -3469,6 +3487,17 @@ export type Database = {
       }
       process_royalty_upload: { Args: { p_upload_id: string }; Returns: Json }
       rebuild_all_stream_stats: { Args: never; Returns: Json }
+      submit_release_from_draft: {
+        Args: {
+          p_audio_clips?: Json
+          p_draft_id: string
+          p_free_track_numbers?: Json
+          p_release: Json
+          p_stores?: Json
+          p_tracks?: Json
+        }
+        Returns: Json
+      }
       update_my_collective_profile: {
         Args: {
           p_avatar_url?: string
