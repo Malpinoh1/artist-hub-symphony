@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Analytics as VercelAnalytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { AccountProvider } from "./contexts/AccountContext";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -181,6 +182,7 @@ const App = () => {
                 <AppContent />
               </BrowserRouter>
               <VercelAnalytics />
+              <SpeedInsights />
             </TooltipProvider>
           </AccountProvider>
         </AuthProvider>
