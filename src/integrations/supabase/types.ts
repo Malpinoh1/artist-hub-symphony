@@ -3386,7 +3386,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _can_manage_releases: { Args: never; Returns: boolean }
+      _purge_row_refs: {
+        Args: { p_ids: string[]; p_table: unknown }
+        Returns: undefined
+      }
       admin_delete_release: { Args: { p_release_id: string }; Returns: boolean }
+      admin_delete_releases: {
+        Args: { p_release_ids: string[] }
+        Returns: number
+      }
+      admin_delete_tracks: { Args: { p_track_ids: string[] }; Returns: number }
       award_stream_achievements: { Args: never; Returns: Json }
       check_month_already_imported: {
         Args: { p_month: number; p_year: number }
