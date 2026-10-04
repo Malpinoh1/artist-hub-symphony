@@ -68,17 +68,19 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
     return () => { active = false; };
   }, [userId, enabled]);
 
+  const [saving, setSaving] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+
   const persist = useCallback(async (payload: {
     data: ReleaseDraftData;
     cover_art_url: string | null;
     audio_file_urls: string[];
     current_step: number;
     selected_artist_account: string;
-  }) => {
-    if (!userId) return;
+  }, force = false): Promise<boolean> => {
+    if (!userId) return false;
     const serialized = JSON.stringify(payload);
-    if (serialized === lastPayloadRef.current) return;
-    lastPayloadRef.current = serialized;
+    if (!force && serialized === lastPayloadRef.current && draftIdRef.current) return true;
 
     const row = {
       user_id: userId,
@@ -89,23 +91,33 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
       selected_artist_account: payload.selected_artist_account,
     };
 
-    if (draftIdRef.current) {
-      await supabase.from('release_drafts').update(row).eq('id', draftIdRef.current);
-    } else {
-      const { data, error } = await supabase.from('release_drafts').insert(row).select('id').single();
-      if (!error && data) draftIdRef.current = data.id;
+    setSaving(true);
+    try {
+      if (draftIdRef.current) {
+        const { error } = await supabase.from('release_drafts').update(row).eq('id', draftIdRef.current);
+        if (error) return false;
+      } else {
+        const { data, error } = await supabase.from('release_drafts').insert(row).select('id').single();
+        if (error || !data) return false;
+        draftIdRef.current = data.id;
+      }
+      lastPayloadRef.current = serialized;
+      setLastSavedAt(new Date());
+      return true;
+    } finally {
+      setSaving(false);
     }
   }, [userId]);
 
   const scheduleSave = useCallback((payload: Parameters<typeof persist>[0]) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => persist(payload), 1200);
+    debounceRef.current = setTimeout(() => { persist(payload); }, 1200);
   }, [persist]);
 
-  const saveNow = useCallback(async (payload: Parameters<typeof persist>[0]) => {
+  const saveNow = useCallback(async (payload: Parameters<typeof persist>[0], force = false) => {
     if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    await persist(payload);
-    return draftIdRef.current;
+    const ok = await persist(payload, force);
+    return ok ? draftIdRef.current : null;
   }, [persist]);
 
   const clearDraft = useCallback(async () => {
@@ -116,5 +128,5 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
     lastPayloadRef.current = '';
   }, []);
 
-  return { draft, loaded, scheduleSave, saveNow, clearDraft };
+  return { draft, loaded, scheduleSave, saveNow, clearDraft, saving, lastSavedAt };
 };
