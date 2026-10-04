@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge"
 import { MoreVertical, Pencil, Barcode, BarChart, Link, Trash2, Plus, Download, User, Eye, Image, Music, FileDown } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from '@/components/ui/button';
-import { Release, updateReleaseStatus, updateReleaseIdentifiers, updateReleaseArtistName, deleteRelease } from '@/services/adminService';
+import { Release, updateReleaseStatus, updateReleaseIdentifiers, updateReleaseArtistName } from '@/services/adminService';
+import { deleteReleases } from '@/services/admin/releaseService';
+import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -81,6 +83,12 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [artistNameInput, setArtistNameInput] = useState('');
   const [downloading, setDownloading] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const allSelected = releases.length > 0 && releases.every(r => selectedIds.has(r.id));
+  const toggleOne = (id: string) => setSelectedIds(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+  const toggleAll = () => setSelectedIds(allSelected ? new Set() : new Set(releases.map(r => r.id)));
   
   const statusOptions = [
     { label: 'Pending', value: 'Pending' },
@@ -230,14 +238,19 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   };
 
   const handleDeleteRelease = async () => {
-    if (!releaseToDelete || deleting) return;
+    if (deleting) return;
+    const ids = releaseToDelete ? [releaseToDelete.id] : Array.from(selectedIds);
+    if (ids.length === 0) return;
     setDeleting(true);
     try {
-      const result = await deleteRelease(releaseToDelete.id);
+      const result = await deleteReleases(ids);
       if (result.success) {
-        toast.success(`Release "${releaseToDelete.title}" deleted successfully`);
+        toast.success(releaseToDelete
+          ? `Release "${releaseToDelete.title}" deleted successfully`
+          : `${result.count} release(s) deleted successfully`);
         setDeleteDialogOpen(false);
         setReleaseToDelete(null);
+        setSelectedIds(prev => { const n = new Set(prev); ids.forEach(i => n.delete(i)); return n; });
         onRefreshData?.();
       } else {
         toast.error(`Failed to delete release: ${result.error?.message || 'Unknown error'}`);
@@ -553,6 +566,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               className="bg-background border rounded-lg p-4 space-y-3"
             >
               <div className="flex gap-3">
+                <Checkbox className="mt-1" checked={selectedIds.has(release.id)} onCheckedChange={() => toggleOne(release.id)} aria-label={`Select ${release.title}`} />
                 {release.cover_art_url ? (
                   <img src={release.cover_art_url} alt={release.title} className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
                 ) : (
@@ -625,6 +639,9 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead className="w-[40px]">
+            <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all releases" />
+          </TableHead>
           <TableHead className="w-[80px]">Cover</TableHead>
           <TableHead>Title</TableHead>
           <TableHead>Artist</TableHead>
@@ -638,13 +655,16 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
       <TableBody>
         {releases.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={8} className="text-center py-10 text-muted-foreground">
+            <TableCell colSpan={9} className="text-center py-10 text-muted-foreground">
               No releases found
             </TableCell>
           </TableRow>
         ) : (
           releases.map((release) => (
-            <TableRow key={release.id}>
+            <TableRow key={release.id} data-state={selectedIds.has(release.id) ? 'selected' : undefined}>
+              <TableCell>
+                <Checkbox checked={selectedIds.has(release.id)} onCheckedChange={() => toggleOne(release.id)} aria-label={`Select ${release.title}`} />
+              </TableCell>
               <TableCell>
                 {release.cover_art_url ? (
                   <img src={release.cover_art_url} alt={release.title} className="w-12 h-12 rounded object-cover" />
@@ -728,7 +748,18 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
         </div>
       ) : (
         <div className="w-full">
-          <div className="flex justify-end mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer">
+                <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all releases" />
+                {selectedIds.size > 0 ? `${selectedIds.size} selected` : 'Select all'}
+              </label>
+              {selectedIds.size > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => { setReleaseToDelete(null); setDeleteDialogOpen(true); }}>
+                  <Trash2 className="w-4 h-4 mr-2" /> Delete selected ({selectedIds.size})
+                </Button>
+              )}
+            </div>
             <Button onClick={() => setUploadDialogOpen(true)} size={isMobile ? "sm" : "default"}>
               <Plus className="w-4 h-4 mr-2" /> Upload Release
             </Button>
@@ -855,7 +886,9 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Release</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Are you sure you want to delete "{releaseToDelete?.title}"? This action cannot be undone.
+                  {releaseToDelete
+                    ? `Are you sure you want to delete "${releaseToDelete.title}"? This action cannot be undone.`
+                    : `Are you sure you want to delete ${selectedIds.size} selected release(s)? This action cannot be undone.`}
                   All associated tracks, streaming links, and statistics will also be deleted.
                 </AlertDialogDescription>
               </AlertDialogHeader>
