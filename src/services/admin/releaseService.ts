@@ -261,8 +261,20 @@ export async function adminCreateRelease(
   }
 }
 
-// Delete a release (admin only)
+// Delete one or many releases with all dependent records (admin / distribution manager)
+export async function deleteReleases(releaseIds: string[]): Promise<{ success: boolean; count?: number; error?: any }> {
+  const { data, error } = await (supabase as any).rpc('admin_delete_releases', { p_release_ids: releaseIds });
+  if (error) return { success: false, error };
+  return { success: true, count: Number(data) || 0 };
+}
+
 export async function deleteRelease(releaseId: string) {
+  const res = await deleteReleases([releaseId]);
+  return res.success ? { success: true } : res;
+}
+
+// Legacy client-side deletion (unused)
+async function legacyDeleteRelease(releaseId: string) {
   console.log('Deleting release:', releaseId);
   
   try {
