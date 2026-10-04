@@ -64,7 +64,7 @@ const ReleaseForm = () => {
   const [resumed, setResumed] = useState(false);
   const isResumeIntent = searchParams.get('resume') === '1';
 
-  const { draft, loaded: draftLoaded, scheduleSave, saveNow, clearDraft } = useReleaseDraft({
+  const { draft, loaded: draftLoaded, scheduleSave, saveNow, clearDraft, saving: draftSaving, lastSavedAt } = useReleaseDraft({
     userId: user?.id ?? null,
     enabled: !!user,
   });
@@ -212,7 +212,22 @@ const ReleaseForm = () => {
   const nextStep = () => { setCurrentStep(prev => prev + 1); window.scrollTo(0, 0); };
   const prevStep = () => { setCurrentStep(prev => prev - 1); window.scrollTo(0, 0); };
 
+  const draftPayload = () => ({
+    data: { formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted },
+    cover_art_url: coverArtUrlRef.current,
+    audio_file_urls: audioFileUrlsRef.current,
+    current_step: currentStep,
+    selected_artist_account: selectedArtistAccount,
+  });
+
+  const handleManualSave = async () => {
+    const id = await saveNow(draftPayload(), true);
+    if (id) toast({ title: 'Draft saved', description: 'You can leave and continue this release later.' });
+    else toast({ title: 'Could not save draft', description: 'Please check your connection and try again.', variant: 'destructive' });
+  };
+
   const handleSubmit = async () => {
+    if (isSubmitting) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate('/auth'); return; }
 
@@ -287,7 +302,10 @@ const ReleaseForm = () => {
       setUploadProgress({ step: 'saving' });
       const enabledPlatforms = Object.values(storeSelections).filter((s: any) => s.enabled).map((s: any) => s.name);
 
-      const { data: insertedRelease, error: releaseErr } = await supabase.from('releases').insert({
+      const draftId = await saveNow(draftPayload());
+      if (!draftId) throw new Error('Could not save your draft before submitting. Please try again.');
+
+      const releasePayload = {
         title: formData.title,
         artist_id: userId,
         artist_name: releaseArtistName,
@@ -302,8 +320,6 @@ const ReleaseForm = () => {
         artwork_credits: formData.artwork_credits,
         copyright_info: formData.copyright_info,
         submission_notes: formData.submission_notes,
-        total_tracks: tracks.length,
-        status: 'Pending',
         cover_art_url: coverArtUrl,
         platforms: enabledPlatforms,
         audio_file_url: audioFilesUrls[0] || null,
@@ -314,69 +330,38 @@ const ReleaseForm = () => {
         pre_order_enabled: formData.pre_order_enabled,
         pre_order_previews: formData.pre_order_previews,
         pricing: formData.pricing,
-      }).select().single();
-
-      if (releaseErr) throw new Error(releaseErr.message || 'Failed to submit release.');
-
-      if (tracks.length > 0) {
-        const trackRecords = tracks.map((track: any, i: number) => ({
-          release_id: insertedRelease.id,
-          track_number: track.track_number || (i + 1),
-          title: track.title,
-          duration: track.duration,
-          isrc: track.isrc,
-          explicit_content: track.explicit_content || false,
-          featured_artists: track.featured_artists || []
-        }));
-        const { data: insertedReleaseTracks } = await supabase.from('release_tracks').insert(trackRecords).select('id, title, track_number');
-        if (insertedReleaseTracks && insertedReleaseTracks.length > 0) {
-          const incomeTrackRecords = insertedReleaseTracks.map(rt => ({
-            title: rt.title, primary_artist_id: userId,
-            release_id: insertedRelease.id, release_track_id: rt.id,
-          }));
-          await supabase.from('tracks').insert(incomeTrackRecords);
-        }
-      }
-
-      setUploadProgress({ step: 'stores' });
-      const storeRecords = Object.values(storeSelections).map((store: any) => ({
-        release_id: insertedRelease.id,
+      };
+      const trackPayload = tracks.map((track: any, i: number) => ({
+        track_number: track.track_number || (i + 1),
+        title: track.title,
+        duration: track.duration ?? null,
+        isrc: track.isrc ?? null,
+        explicit_content: track.explicit_content || false,
+        featured_artists: track.featured_artists || [],
+      }));
+      const storePayload = Object.values(storeSelections).map((store: any) => ({
         store_name: store.name,
         store_category: getStoreCategory(store.name),
         enabled: store.enabled,
-        status: 'pending'
+        status: 'pending',
       }));
-      if (storeRecords.length > 0) {
-        await supabase.from('release_store_selections').insert(storeRecords);
-      }
+      const clipPayload = Object.entries(audioClips).map(([idx, clip]: any) => ({
+        track_number: parseInt(idx) + 1, clip_start: clip.clip_start, clip_end: clip.clip_end, clip_type: 'ringtone',
+      }));
+      const freePayload = freeTrackIds.map(idx => parseInt(idx) + 1);
 
-      if (Object.keys(audioClips).length > 0) {
-        const { data: insertedTracks } = await supabase.from('release_tracks').select('id, track_number').eq('release_id', insertedRelease.id).order('track_number');
-        if (insertedTracks) {
-          const clipRecords = Object.entries(audioClips).map(([trackIndex, clip]: any) => {
-            const trackNum = parseInt(trackIndex) + 1;
-            const trackRecord = insertedTracks.find((t: any) => t.track_number === trackNum);
-            if (!trackRecord) return null;
-            return { release_id: insertedRelease.id, track_id: trackRecord.id, clip_start: clip.clip_start, clip_end: clip.clip_end, clip_type: 'ringtone' };
-          }).filter(Boolean);
-          if (clipRecords.length > 0) await supabase.from('release_audio_clips').insert(clipRecords as any);
-        }
-      }
+      const { data: result, error: submitErr } = await (supabase as any).rpc('submit_release_from_draft', {
+        p_draft_id: draftId,
+        p_release: releasePayload,
+        p_tracks: trackPayload,
+        p_stores: storePayload,
+        p_audio_clips: clipPayload,
+        p_free_track_numbers: freePayload,
+      });
+      if (submitErr) throw new Error(submitErr.message || 'Failed to submit release.');
+      const duplicatePrevented = !!(result as any)?.duplicate_prevented;
 
-      if (freeTrackIds.length > 0) {
-        const { data: insertedTracks } = await supabase.from('release_tracks').select('id, track_number').eq('release_id', insertedRelease.id).order('track_number');
-        if (insertedTracks) {
-          const freeRecords = freeTrackIds.map(idx => {
-            const trackNum = parseInt(idx) + 1;
-            const trackRecord = insertedTracks.find((t: any) => t.track_number === trackNum);
-            if (!trackRecord) return null;
-            return { release_id: insertedRelease.id, track_id: trackRecord.id };
-          }).filter(Boolean);
-          if (freeRecords.length > 0) await supabase.from('release_free_tracks').insert(freeRecords as any);
-        }
-      }
-
-      try {
+      if (!duplicatePrevented) try {
         const { sendReleaseSubmissionEmail } = await import('../services/emailService');
         await sendReleaseSubmissionEmail(userEmail, formData.title, releaseArtistName);
       } catch (e) { console.error('Email error:', e); }
@@ -452,12 +437,15 @@ const ReleaseForm = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <p>Complete the steps below to submit your music for distribution.</p>
                 </div>
-                {draft && (
-                  <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-md">
-                    <Save className="h-3 w-3" />
-                    Draft auto-saved — you can leave and come back any time.
-                  </div>
-                )}
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={handleManualSave} disabled={draftSaving || isSubmitting}>
+                    <Save className="h-4 w-4 mr-2" />
+                    {draftSaving ? 'Saving…' : 'Save Draft'}
+                  </Button>
+                  <span className="text-xs text-muted-foreground">
+                    {draftSaving ? 'Saving draft…' : lastSavedAt ? `Draft saved at ${lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · auto-save is on` : 'Auto-save is on'}
+                  </span>
+                </div>
                 {(coverArtUrlRef.current && !coverArt) || (audioFileUrlsRef.current.length > 0 && audioFiles.length === 0) ? (
                   <div className="mt-3 flex items-start gap-2 text-xs text-amber-500 bg-amber-500/10 px-2 py-1.5 rounded-md">
                     <AlertCircle className="h-3.5 w-3.5 mt-px shrink-0" />
