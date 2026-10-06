@@ -37,6 +37,8 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
   const draftIdRef = useRef<string | null>(null);
   const lastPayloadRef = useRef<string>('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistQueueRef = useRef<Promise<void>>(Promise.resolve());
+  const activeSavesRef = useRef(0);
 
   // Load existing
   useEffect(() => {
@@ -62,11 +64,16 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
           selected_artist_account: data.selected_artist_account ?? 'self',
           updated_at: data.updated_at,
         });
+        setLastSavedAt(data.updated_at ? new Date(data.updated_at) : null);
       }
       setLoaded(true);
     })();
     return () => { active = false; };
   }, [userId, enabled]);
+
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+  }, []);
 
   const [saving, setSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -80,33 +87,41 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
   }, force = false): Promise<boolean> => {
     if (!userId) return false;
     const serialized = JSON.stringify(payload);
-    if (!force && serialized === lastPayloadRef.current && draftIdRef.current) return true;
+    const operation = persistQueueRef.current.then(async () => {
+      if (!force && serialized === lastPayloadRef.current && draftIdRef.current) return true;
 
-    const row = {
-      user_id: userId,
-      data: payload.data as any,
-      cover_art_url: payload.cover_art_url,
-      audio_file_urls: payload.audio_file_urls,
-      current_step: payload.current_step,
-      selected_artist_account: payload.selected_artist_account,
-    };
+      const row = {
+        user_id: userId,
+        data: payload.data as any,
+        cover_art_url: payload.cover_art_url,
+        audio_file_urls: payload.audio_file_urls,
+        current_step: payload.current_step,
+        selected_artist_account: payload.selected_artist_account,
+      };
 
-    setSaving(true);
-    try {
-      if (draftIdRef.current) {
-        const { error } = await supabase.from('release_drafts').update(row).eq('id', draftIdRef.current);
-        if (error) return false;
-      } else {
-        const { data, error } = await supabase.from('release_drafts').insert(row).select('id').single();
-        if (error || !data) return false;
-        draftIdRef.current = data.id;
+      activeSavesRef.current += 1;
+      setSaving(true);
+      try {
+        if (draftIdRef.current) {
+          const { error } = await supabase.from('release_drafts').update(row).eq('id', draftIdRef.current);
+          if (error) return false;
+        } else {
+          const { data, error } = await supabase.from('release_drafts').insert(row).select('id').single();
+          if (error || !data) return false;
+          draftIdRef.current = data.id;
+        }
+        lastPayloadRef.current = serialized;
+        setLastSavedAt(new Date());
+        return true;
+      } catch {
+        return false;
+      } finally {
+        activeSavesRef.current -= 1;
+        if (activeSavesRef.current === 0) setSaving(false);
       }
-      lastPayloadRef.current = serialized;
-      setLastSavedAt(new Date());
-      return true;
-    } finally {
-      setSaving(false);
-    }
+    });
+    persistQueueRef.current = operation.then(() => undefined, () => undefined);
+    return operation;
   }, [userId]);
 
   const scheduleSave = useCallback((payload: Parameters<typeof persist>[0]) => {
@@ -121,11 +136,17 @@ export const useReleaseDraft = ({ userId, enabled }: UseReleaseDraftArgs) => {
   }, [persist]);
 
   const clearDraft = useCallback(async () => {
-    if (!draftIdRef.current) return;
-    await supabase.from('release_drafts').delete().eq('id', draftIdRef.current);
-    draftIdRef.current = null;
-    setDraft(null);
-    lastPayloadRef.current = '';
+    const operation = persistQueueRef.current.then(async () => {
+      if (!draftIdRef.current) return;
+      const { error } = await supabase.from('release_drafts').delete().eq('id', draftIdRef.current);
+      if (error) return;
+      draftIdRef.current = null;
+      setDraft(null);
+      lastPayloadRef.current = '';
+      setLastSavedAt(null);
+    });
+    persistQueueRef.current = operation.then(() => undefined, () => undefined);
+    await operation;
   }, []);
 
   return { draft, loaded, scheduleSave, saveNow, clearDraft, saving, lastSavedAt };
