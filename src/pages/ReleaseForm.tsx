@@ -253,7 +253,8 @@ const ReleaseForm = () => {
     setIsSubmitting(true);
     try {
       const userId = session.user.id;
-      const userEmail = session.user.email!;
+      const userEmail = session.user.email;
+      if (!userEmail) throw new Error('User email not found.');
 
       const { data: profileData } = await supabase.from('profiles').select('full_name').eq('user_id', userId).maybeSingle();
 
@@ -270,7 +271,7 @@ const ReleaseForm = () => {
         if (createErr) throw new Error('Failed to create artist profile.');
         artistData = newArtist;
       }
-      const releaseArtistName = artistNameOverride || artistData!.name;
+      const releaseArtistName = artistNameOverride || artistData.name;
 
       // Use already-uploaded URLs; fall back to per-submit upload if missing.
       setUploadProgress({ step: 'cover' });
@@ -438,7 +439,7 @@ const ReleaseForm = () => {
                   <p>Complete the steps below to submit your music for distribution.</p>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" onClick={handleManualSave} disabled={draftSaving || isSubmitting}>
+                  <Button type="button" variant="outline" size="sm" onClick={handleManualSave} disabled={!draftLoaded || draftSaving || isSubmitting}>
                     <Save className="h-4 w-4 mr-2" />
                     {draftSaving ? 'Saving…' : 'Save Draft'}
                   </Button>

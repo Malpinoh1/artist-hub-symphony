@@ -263,7 +263,16 @@ export async function adminCreateRelease(
 
 // Delete one or many releases with all dependent records (admin / distribution manager)
 export async function deleteReleases(releaseIds: string[]): Promise<{ success: boolean; count?: number; error?: any }> {
+  if (releaseIds.length === 0) return { success: true, count: 0 };
   const { data, error } = await (supabase as any).rpc('admin_delete_releases', { p_release_ids: releaseIds });
+  if (error) return { success: false, error };
+  return { success: true, count: Number(data) || 0 };
+}
+
+// Delete selected royalty tracks through the admin/distribution-role checked RPC.
+export async function deleteTracks(trackIds: string[]): Promise<{ success: boolean; count?: number; error?: any }> {
+  if (trackIds.length === 0) return { success: true, count: 0 };
+  const { data, error } = await (supabase as any).rpc('admin_delete_tracks', { p_track_ids: trackIds });
   if (error) return { success: false, error };
   return { success: true, count: Number(data) || 0 };
 }

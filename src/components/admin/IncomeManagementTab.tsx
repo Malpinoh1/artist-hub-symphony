@@ -12,6 +12,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Plus, Music, DollarSign, Users, Loader2, Trash2, AlertTriangle, CheckCircle2, XCircle, ArrowRight } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { deleteTracks } from '@/services/admin/releaseService';
 
 interface Artist { id: string; name: string; email: string; }
 interface Track { id: string; title: string; primary_artist_id: string; created_at: string; }
@@ -22,6 +25,9 @@ interface Income { id: string; track_id: string; platform_id: string; amount: nu
 const IncomeManagementTab: React.FC = () => {
   const [artists, setArtists] = useState<Artist[]>([]);
   const [tracks, setTracks] = useState<Track[]>([]);
+  const [selectedTrackIds, setSelectedTrackIds] = useState<Set<string>>(new Set());
+  const [deleteTracksDialogOpen, setDeleteTracksDialogOpen] = useState(false);
+  const [deletingTracks, setDeletingTracks] = useState(false);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [incomes, setIncomes] = useState<Income[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,6 +54,18 @@ const IncomeManagementTab: React.FC = () => {
   // Track split validation for selected track in Add Income form
   const [selectedTrackSplits, setSelectedTrackSplits] = useState<RoyaltySplit[]>([]);
   const [loadingSplitCheck, setLoadingSplitCheck] = useState(false);
+  const allTracksSelected = tracks.length > 0 && tracks.every(track => selectedTrackIds.has(track.id));
+
+  const toggleTrack = (trackId: string) => setSelectedTrackIds(previous => {
+    const next = new Set(previous);
+    if (next.has(trackId)) next.delete(trackId);
+    else next.add(trackId);
+    return next;
+  });
+
+  const toggleAllTracks = () => setSelectedTrackIds(
+    allTracksSelected ? new Set() : new Set(tracks.map(track => track.id)),
+  );
 
   const fetchData = async () => {
     setLoading(true);
@@ -191,6 +209,27 @@ const IncomeManagementTab: React.FC = () => {
       fetchData();
     } catch (err: any) {
       toast.error(err.message || 'Failed to create track');
+    }
+  };
+
+  const handleDeleteSelectedTracks = async () => {
+    if (deletingTracks || selectedTrackIds.size === 0) return;
+    const ids = Array.from(selectedTrackIds);
+    setDeletingTracks(true);
+    try {
+      const result = await deleteTracks(ids);
+      if (!result.success) throw result.error || new Error('Track deletion failed.');
+      setTracks(previous => previous.filter(track => !selectedTrackIds.has(track.id)));
+      if (selectedTrack && selectedTrackIds.has(selectedTrack)) setSelectedTrack('');
+      if (selectedTrackIds.has(splitTrackId)) setSplitDialogOpen(false);
+      setSelectedTrackIds(new Set());
+      setDeleteTracksDialogOpen(false);
+      toast.success(`${result.count ?? ids.length} track(s) deleted successfully`);
+      await fetchData();
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to delete selected tracks');
+    } finally {
+      setDeletingTracks(false);
     }
   };
 
@@ -390,8 +429,21 @@ const IncomeManagementTab: React.FC = () => {
         {/* TRACKS TAB */}
         <TabsContent value="tracks">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-3">
               <CardTitle>Tracks & Royalty Splits</CardTitle>
+              {tracks.length > 0 && (
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Checkbox checked={allTracksSelected} onCheckedChange={toggleAllTracks} aria-label="Select all tracks" />
+                  {selectedTrackIds.size > 0 ? `${selectedTrackIds.size} selected` : 'Select all'}
+                </label>
+              )}
+              {selectedTrackIds.size > 0 && (
+                <Button size="sm" variant="destructive" onClick={() => setDeleteTracksDialogOpen(true)}>
+                  <Trash2 className="h-4 w-4 mr-2" />Delete selected ({selectedTrackIds.size})
+                </Button>
+              )}
+            </div>
               <Dialog open={trackDialogOpen} onOpenChange={setTrackDialogOpen}>
                 <DialogTrigger asChild>
                   <Button size="sm"><Plus className="h-4 w-4 mr-1" />Add Track</Button>
@@ -423,10 +475,13 @@ const IncomeManagementTab: React.FC = () => {
                 {tracks.map(track => (
                   <div key={track.id} className="border rounded-lg p-3 bg-card">
                     <div className="flex justify-between items-start gap-2">
-                      <div className="min-w-0">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <Checkbox checked={selectedTrackIds.has(track.id)} onCheckedChange={() => toggleTrack(track.id)} aria-label={`Select ${track.title}`} />
+                        <div className="min-w-0">
                         <p className="font-medium truncate">{track.title}</p>
                         <p className="text-xs text-muted-foreground truncate">{getArtistName(track.primary_artist_id)}</p>
                         <p className="text-xs text-muted-foreground">{new Date(track.created_at).toLocaleDateString()}</p>
+                        </div>
                       </div>
                       <Button size="sm" variant="outline" className="min-h-[44px] shrink-0" onClick={() => loadSplits(track.id)}>
                         <Users className="h-3 w-3 mr-1" />Splits
@@ -442,6 +497,7 @@ const IncomeManagementTab: React.FC = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-10"><Checkbox checked={allTracksSelected} onCheckedChange={toggleAllTracks} aria-label="Select all tracks" /></TableHead>
                       <TableHead>Title</TableHead>
                       <TableHead>Primary Artist</TableHead>
                       <TableHead>Created</TableHead>
@@ -450,7 +506,8 @@ const IncomeManagementTab: React.FC = () => {
                   </TableHeader>
                   <TableBody>
                     {tracks.map(track => (
-                      <TableRow key={track.id}>
+                      <TableRow key={track.id} data-state={selectedTrackIds.has(track.id) ? 'selected' : undefined}>
+                        <TableCell><Checkbox checked={selectedTrackIds.has(track.id)} onCheckedChange={() => toggleTrack(track.id)} aria-label={`Select ${track.title}`} /></TableCell>
                         <TableCell className="font-medium">{track.title}</TableCell>
                         <TableCell>{getArtistName(track.primary_artist_id)}</TableCell>
                         <TableCell>{new Date(track.created_at).toLocaleDateString()}</TableCell>
@@ -462,7 +519,7 @@ const IncomeManagementTab: React.FC = () => {
                       </TableRow>
                     ))}
                     {tracks.length === 0 && (
-                      <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">No tracks yet</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No tracks yet</TableCell></TableRow>
                     )}
                   </TableBody>
                 </Table>
@@ -599,6 +656,23 @@ const IncomeManagementTab: React.FC = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={deleteTracksDialogOpen} onOpenChange={open => { if (!deletingTracks) setDeleteTracksDialogOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete selected tracks?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes {selectedTrackIds.size} selected track(s) and removes linked track records where required. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingTracks}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSelectedTracks} disabled={deletingTracks}>
+              {deletingTracks ? 'Deleting…' : 'Delete tracks'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
