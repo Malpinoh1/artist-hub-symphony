@@ -62,20 +62,20 @@ const Index = () => {
 
   const testimonials = [
     {
-      name: "Alex Johnson",
+      name: "HEERA YGL",
       role: "Independent Artist",
       content: "MALPINOHdistro made it incredibly easy to get my music everywhere. The analytics help me understand my audience better.",
       rating: 5
     },
     {
-      name: "Sarah Chen",
+      name: "KING ADETAYO",
       role: "Record Label Owner",
       content: "The team collaboration features are game-changing. We can manage multiple artists efficiently with role-based access.",
       rating: 5
     },
     {
-      name: "Marcus Williams",
-      role: "Producer",
+      name: "LIOLIZZY",
+      role: "Independent Artist",
       content: "Fast distribution and excellent customer support. My tracks were live on all platforms within hours.",
       rating: 5
     }
@@ -96,7 +96,7 @@ const Index = () => {
               <div className="space-y-4">
                 <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-sm font-medium">
                   <Star className="w-4 h-4 mr-2 fill-current" />
-                  Trusted by 10,000+ Artists
+                  Trusted by 100+ Artists
                 </div>
                 
                 <h1 className="text-4xl md:text-6xl lg:text-7xl font-display font-bold leading-tight">
