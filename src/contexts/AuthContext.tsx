@@ -49,6 +49,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => subscription.unsubscribe();
   }, []);
 
+  // Check renewal eligibility whenever an artist signs in or an existing session is restored.
+  // The server deduplicates notifications per subscription expiry and retries failed emails.
+  useEffect(() => {
+    if (!user?.id) return;
+    void supabase.functions.invoke('notify-subscription-renewal', { body: {} })
+      .then(({ error }) => {
+        if (error) console.warn('Renewal notification check did not complete:', error.message);
+      })
+      .catch((error) => console.warn('Renewal notification check did not complete:', error));
+  }, [user?.id]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
