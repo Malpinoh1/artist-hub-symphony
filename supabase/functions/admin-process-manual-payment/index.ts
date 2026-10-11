@@ -61,11 +61,43 @@ serve(async (req) => {
     const { data: existingRef } = await supabase.from("payments").select("id,status").eq("flutterwave_tx_ref", receiptReference).maybeSingle();
     if (existingRef) return json({ success: false, error: "That receipt reference already exists. Use a unique reference to avoid duplicate receipts." }, 409);
 
-    const { data: plan, error: planError } = await supabase.from("plans").select("id,name,price_usd,duration_days").eq("duration_days", durationDays).eq("is_active", true).order("sort_order", { ascending: true }).limit(1).maybeSingle();
+    let { data: plan, error: planError } = await supabase.from("plans").select("id,name,price_usd,duration_days").eq("duration_days", durationDays).eq("is_active", true).order("sort_order", { ascending: true }).limit(1).maybeSingle();
     if (planError) throw new Error("Could not look up an active plan: " + planError.message);
-    if (!plan) return json({ success: false, error: `No active plan configured for ${durationDays} days. Add/activate a matching plan before processing this renewal.` }, 422);
 
-    const { data: pendingPayments, error: pendingError } = await supabase.from("payments").select("id,created_at").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: false });
+    // Manual-only durations are represented by inactive internal plans, never public checkout plans.
+    if (!plan) {
+      const internalCode = `manual_${durationDays}_day`;
+      const { data: existingInternal, error: internalError } = await supabase.from("plans")
+        .select("id,name,price_usd,duration_days").eq("code", internalCode).maybeSingle();
+      if (internalError) throw new Error("Could not look up the internal manual plan: " + internalError.message);
+      if (existingInternal) {
+        plan = existingInternal;
+      } else {
+        const { data: annual, error: annualError } = await supabase.from("plans")
+          .select("release_limit,features").eq("code", "annual").eq("is_active", true).maybeSingle();
+        if (annualError || !annual) throw new Error("Could not find the active annual plan to inherit subscription features: " + (annualError?.message ?? "annual plan missing"));
+        const { data: insertedPlan, error: insertPlanError } = await supabase.from("plans").insert({
+          code: internalCode,
+          name: `Manual ${durationDays}-Day Renewal`,
+          description: "Internal admin-only term for manually verified payments; not available for public purchase.",
+          price_usd: 0,
+          duration_days: durationDays,
+          release_limit: annual.release_limit,
+          features: annual.features,
+          supports_auto_renew: false,
+          is_active: false,
+          sort_order: 999,
+        }).select("id,name,price_usd,duration_days").single();
+        if (insertPlanError || !insertedPlan) throw new Error("Could not create internal manual plan: " + (insertPlanError?.message ?? "unknown database error"));
+        plan = insertedPlan;
+      }
+    }
+
+    // Reconcile only pending checkout attempts explicitly marked as renewals; never cancel unrelated pending purchases.
+    const { data: pendingPayments, error: pendingError } = await supabase.from("payments").select("id,created_at")
+      .eq("user_id", userId).eq("status", "pending")
+      .contains("raw_response", { checkout_meta: { is_renewal: true } })
+      .order("created_at", { ascending: false });
     if (pendingError) throw new Error("Could not check pending payments: " + pendingError.message);
     const now = new Date();
     const startDate = now.toISOString();
