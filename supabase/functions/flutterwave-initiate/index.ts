@@ -114,6 +114,7 @@ Deno.serve(async (req) => {
       fx_rate: fxRate,
       status: "pending",
       customer_email: email,
+      raw_response: { checkout_meta: { is_renewal: isRenewal } },
     });
     if (payErr) {
       console.error("payment insert", payErr);
