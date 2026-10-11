@@ -93,98 +93,26 @@ serve(async (req) => {
       }
     }
 
-    // Reconcile only pending checkout attempts explicitly marked as renewals; never cancel unrelated pending purchases.
-    const { data: pendingPayments, error: pendingError } = await supabase.from("payments").select("id,created_at")
-      .eq("user_id", userId).eq("status", "pending")
-      .contains("raw_response", { checkout_meta: { is_renewal: true } })
-      .order("created_at", { ascending: false });
-    if (pendingError) throw new Error("Could not check pending payments: " + pendingError.message);
-    const now = new Date();
-    const startDate = now.toISOString();
-    const endDate = new Date(now.getTime() + durationDays * 86400000).toISOString();
-    const extra = Math.round((amountReceived - subscriptionFee) * 100) / 100;
-    const paymentMeta = {
-      manual_confirmation: true,
-      confirmed_by_admin_user_id: authData.user.id,
-      amount_received_ngn: amountReceived,
-      subscription_fee_ngn: subscriptionFee,
-      unapplied_difference_ngn: extra,
-      duration_days: durationDays,
-      receipt_reference: receiptReference,
-      payment_channel: paymentMethod,
-      processed_at: startDate,
-    };
-
-    // Prefer updating the newest pending attempt, so payment history is reconciled instead of duplicated.
-    let paymentId: string;
-    const pendingToUse = pendingPayments?.[0];
-    if (pendingToUse) {
-      const { data: paid, error: payError } = await supabase.from("payments").update({
-        plan_id: plan.id,
-        flutterwave_tx_ref: receiptReference,
-        amount_usd: 0,
-        amount_charged: amountReceived,
-        currency: "NGN",
-        payment_method: paymentMethod + " (manual confirmation)",
-        status: "successful",
-        customer_email: email,
-        raw_response: paymentMeta,
-        updated_at: startDate,
-      }).eq("id", pendingToUse.id).eq("status", "pending").select("id").maybeSingle();
-      if (payError || !paid) throw new Error("Could not confirm the pending payment: " + (payError?.message ?? "payment status changed; refresh and retry"));
-      paymentId = paid.id;
-    } else {
-      const { data: inserted, error: insertError } = await supabase.from("payments").insert({
-        user_id: userId,
-        plan_id: plan.id,
-        flutterwave_tx_ref: receiptReference,
-        amount_usd: 0,
-        amount_charged: amountReceived,
-        currency: "NGN",
-        payment_method: paymentMethod + " (manual confirmation)",
-        status: "successful",
-        customer_email: email,
-        raw_response: paymentMeta,
-      }).select("id").single();
-      if (insertError || !inserted) throw new Error("Could not create payment history: " + (insertError?.message ?? "unknown database error"));
-      paymentId = inserted.id;
+    const { data: processed, error: processError } = await supabase.rpc("process_manual_payment_renewal", {
+      p_user_id: userId,
+      p_plan_id: plan.id,
+      p_receipt_reference: receiptReference,
+      p_amount_received_ngn: amountReceived,
+      p_subscription_fee_ngn: subscriptionFee,
+      p_payment_method: paymentMethod,
+      p_admin_user_id: authData.user.id,
+      p_duration_days: durationDays,
+      p_email: email,
+    });
+    if (processError || !processed) {
+      if (processError?.code === "23505") return json({ success: false, error: "That receipt reference already exists. Use a unique reference to avoid duplicate receipts." }, 409);
+      throw new Error("Could not atomically process manual payment and subscription: " + (processError?.message ?? "unknown database error"));
     }
 
-    // Mark other pending attempts for this artist as failed so the same renewal is not counted twice.
-    const duplicateIds = (pendingPayments ?? []).filter((p: { id: string }) => p.id !== paymentId).map((p: { id: string }) => p.id);
-    if (duplicateIds.length) {
-      const { error } = await supabase.from("payments").update({
-        status: "failed",
-        raw_response: { reconciled_duplicate: true, reconciled_into: receiptReference, reconciled_at: startDate },
-        updated_at: startDate,
-      }).in("id", duplicateIds).eq("user_id", userId).eq("status", "pending");
-      if (error) throw new Error("Payment recorded, but duplicate pending attempts could not be reconciled: " + error.message);
-    }
-
-    const { data: currentSub, error: subLookupError } = await supabase.from("subscriptions").select("id,end_date").eq("user_id", userId).order("end_date", { ascending: false }).limit(1).maybeSingle();
-    if (subLookupError) throw new Error("Payment recorded, but subscription lookup failed: " + subLookupError.message);
-    const subPayload = { plan_id: plan.id, status: "active", start_date: startDate, end_date: endDate, last_payment_id: paymentId, updated_at: startDate, auto_renew: false };
-    let subscriptionError;
-    if (currentSub?.id) {
-      ({ error: subscriptionError } = await supabase.from("subscriptions").update(subPayload).eq("id", currentSub.id));
-    } else {
-      ({ error: subscriptionError } = await supabase.from("subscriptions").insert({ user_id: userId, ...subPayload }));
-    }
-    if (subscriptionError) throw new Error("Payment recorded, but subscription update failed: " + subscriptionError.message);
-
-    const { error: legacyError } = await supabase.from("subscribers").upsert({
-      user_id: userId, email, subscribed: true, subscription_tier: plan.name, subscription_end: endDate, updated_at: startDate,
-    }, { onConflict: "email" });
-    if (legacyError) console.error("Legacy subscriber sync warning:", legacyError.message);
-
-    const notificationMessage = `Your ${durationDays}-day MALPINOHdistro subscription renewal is active. Amount received: ₦${amountReceived.toLocaleString("en-NG")}; subscription fee: ₦${subscriptionFee.toLocaleString("en-NG")}; difference not applied: ₦${extra.toLocaleString("en-NG")}.`;
-    const { data: notification, error: notificationError } = await supabase.from("notifications").insert({
-      user_id: userId, type: "payment", title: "Payment received — subscription activated",
-      message: notificationMessage, link: "/billing",
-      metadata: { receipt_reference: receiptReference, payment_id: paymentId, duration_days: durationDays, amount_received_ngn: amountReceived, subscription_fee_ngn: subscriptionFee, unapplied_difference_ngn: extra },
-      read: false,
-    }).select("id").single();
-    if (notificationError) throw new Error("Subscription updated, but in-app notification creation failed: " + notificationError.message);
+    const startDate = String(processed.subscription_start);
+    const endDate = String(processed.subscription_end);
+    const extra = Number(processed.unapplied_difference_ngn);
+    const paymentId = String(processed.payment_id);
 
     let emailStatus = "not_requested";
     if (sendEmail) {
@@ -201,12 +129,12 @@ serve(async (req) => {
 
     return json({
       success: true, artist_name: artist.name, email, receipt_reference: receiptReference,
-      payment_id: paymentId, payment_status: "successful", subscription_id: currentSub?.id ?? null,
+      payment_id: paymentId, payment_status: "successful", subscription_id: processed.subscription_id ?? null,
       subscription_status: "active", subscription_start: startDate, subscription_end: endDate,
-      plan_name: plan.name, duration_days: durationDays, notification_created: !!notification?.id,
+      plan_name: plan.name, duration_days: durationDays, notification_created: !!processed.notification_id,
       email_status: emailStatus, amount_received_ngn: amountReceived,
       subscription_fee_ngn: subscriptionFee, unapplied_difference_ngn: extra,
-      duplicate_pending_attempts_reconciled: duplicateIds.length,
+      duplicate_pending_attempts_reconciled: Number(processed.duplicate_pending_attempts_reconciled ?? 0),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
