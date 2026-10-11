@@ -47,6 +47,10 @@ const Pricing = () => {
       setCanRenew(false);
       return;
     }
+    // Trigger the same server-side, deduplicated in-app + email renewal notice on pricing visits.
+    void supabase.functions.invoke('notify-subscription-renewal', { body: {} })
+      .then(({ error }) => { if (error) console.warn('Renewal notification check did not complete:', error.message); })
+      .catch((error) => console.warn('Renewal notification check did not complete:', error));
     let cancelled = false;
     (async () => {
       const { data: sub } = await supabase
