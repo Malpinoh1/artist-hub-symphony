@@ -110,7 +110,7 @@ const PaymentHistory = () => {
         <tr><td>Reference</td><td><b>${p.flutterwave_tx_ref}</b></td></tr>
         <tr><td>Transaction ID</td><td>${p.flutterwave_transaction_id || '—'}</td></tr>
         <tr><td>Plan</td><td>${p.plans?.name || '—'}</td></tr>
-        <tr><td>Amount (USD)</td><td>$${Number(p.amount_usd).toFixed(2)}</td></tr>
+        ${p.payment_method?.includes("(manual confirmation)") ? "" : `<tr><td>Amount (USD)</td><td>${Number(p.amount_usd).toFixed(2)}</td></tr>`}
         <tr><td>Amount charged</td><td>${p.currency} ${Number(p.amount_charged).toLocaleString()}</td></tr>
         <tr><td>Method</td><td>${p.payment_method || '—'}</td></tr>
         <tr><td>Status</td><td>${p.status}</td></tr>
@@ -204,7 +204,7 @@ const PaymentHistory = () => {
                     <tr key={p.id} className="border-b border-border/50">
                       <td className="py-3 px-3">{new Date(p.created_at).toLocaleDateString()}</td>
                       <td className="px-3">{p.plans?.name || '—'}</td>
-                      <td className="px-3">${Number(p.amount_usd).toFixed(2)} <span className="text-xs text-muted-foreground">({p.currency} {Number(p.amount_charged).toLocaleString()})</span></td>
+                      <td className="px-3">{p.payment_method?.includes("(manual confirmation)") ? `${p.currency} ${Number(p.amount_charged).toLocaleString()}` : <>${Number(p.amount_usd).toFixed(2)} <span className="text-xs text-muted-foreground">({p.currency} {Number(p.amount_charged).toLocaleString()})</span></>}</td>
                       <td className="px-3 capitalize">{p.payment_method || '—'}</td>
                       <td className="px-3"><Badge variant={statusVariant(p.status) as any}>{p.status}</Badge></td>
                       <td className="px-3">{p.status==='successful' && <button onClick={()=>downloadReceipt(p)} className="text-primary inline-flex items-center gap-1 text-xs"><Download className="h-3.5 w-3.5"/>Download</button>}</td>
