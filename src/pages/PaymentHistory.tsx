@@ -30,6 +30,10 @@ const PaymentHistory = () => {
 
   const load = async () => {
     if (!user) return;
+    // Recheck here too in case a subscription expires while the artist's session stays open.
+    void supabase.functions.invoke('notify-subscription-renewal', { body: {} })
+      .then(({ error }) => { if (error) console.warn('Renewal notification check did not complete:', error.message); })
+      .catch((error) => console.warn('Renewal notification check did not complete:', error));
     setLoading(true);
     const [{ data: pays }, { data: subs }] = await Promise.all([
       supabase.from('payments').select('*, plans(name)').eq('user_id', user.id).order('created_at', { ascending: false }),
