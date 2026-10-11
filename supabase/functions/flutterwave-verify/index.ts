@@ -97,10 +97,16 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     // Recheck eligibility after the payment: never let a client-side flag grant a renewal.
     const existingEnd = existing?.end_date ? new Date(existing.end_date) : null;
     const status = String(existing?.status || "").toLowerCase();
-    const eligible = !!existing && (
+    let eligible = !!existing && (
       status === "paused" || status === "expired" ||
       (!!existingEnd && !Number.isNaN(existingEnd.getTime()) && existingEnd <= now)
     );
+    if (!existing) {
+      const { data: legacySub } = await admin
+        .from("subscribers").select("subscription_end").eq("user_id", payment.user_id).maybeSingle();
+      const legacyEnd = legacySub?.subscription_end ? new Date(legacySub.subscription_end) : null;
+      eligible = !!legacyEnd && !Number.isNaN(legacyEnd.getTime()) && legacyEnd <= now;
+    }
     if (!eligible) {
       await admin.from("payments").update({
         status: "successful",
