@@ -77,7 +77,9 @@ Deno.serve(async (req) => {
         const { data } = await admin.from("plans").select("*").eq("code", legacySub.subscription_tier).maybeSingle();
         plan = data;
       }
-      if (!plan) return json({ error: "Could not find your subscription plan. Please contact support." }, 409);
+      if (!plan || plan.code === "per_release" || Number(plan.duration_days) <= 0) {
+        return json({ error: "Could not find a renewable subscription plan. Please contact support." }, 409);
+      }
 
       currency = "NGN";
       amountCharged = 10000;
