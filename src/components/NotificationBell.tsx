@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Trophy, BadgeCheck, Inbox } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,11 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface NotificationRow {
   id: string;
+  user_id?: string;
   type: string;
   title: string;
   message: string | null;
@@ -46,6 +48,39 @@ const NotificationBell: React.FC = () => {
     enabled: !!user?.id,
     refetchInterval: 60_000,
   });
+
+  // Show a live toast popup when a new notification is inserted for this signed-in account.
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`account-notifications-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const notification = payload.new as NotificationRow;
+          toast(notification.title || 'New notification', {
+            description: notification.message || undefined,
+            duration: 10_000,
+            action: notification.link
+              ? { label: 'View', onClick: () => navigate(notification.link as string) }
+              : undefined,
+          });
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [user?.id, navigate, queryClient]);
 
   const unread = items.filter((n) => !n.read).length;
 
