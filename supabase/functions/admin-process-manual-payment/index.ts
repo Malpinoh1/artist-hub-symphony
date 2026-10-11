@@ -51,12 +51,19 @@ serve(async (req) => {
     if (!receiptReference || !/^[A-Za-z0-9][A-Za-z0-9._-]{5,99}$/.test(receiptReference)) return json({ success: false, error: "Use a unique receipt reference of 6–100 letters, numbers, dots, underscores or hyphens" }, 400);
     if (sendEmail && (!emailSubject || !emailMessage)) return json({ success: false, error: "Email subject and message are required" }, 400);
 
-    const { data: targetAuth, error: targetError } = await supabase.auth.admin.getUserByEmail(email);
-    if (targetError || !targetAuth.user) return json({ success: false, error: "No registered user found for that email" }, 404);
-    const userId = targetAuth.user.id;
+    // Resolve the registered artist by email. supabase-js v2 does not expose
+    // auth.admin.getUserByEmail; artist IDs in this schema match auth user IDs.
+    const { data: artist, error: artistError } = await supabase
+      .from("artists")
+      .select("id,name,email")
+      .ilike("email", email)
+      .maybeSingle();
+    if (artistError) throw new Error("Could not look up artist by email: " + artistError.message);
+    if (!artist) return json({ success: false, error: "No artist account is linked to that email" }, 404);
+    const userId = artist.id;
 
-    const { data: artist, error: artistError } = await supabase.from("artists").select("id,name,email").eq("id", userId).maybeSingle();
-    if (artistError || !artist) return json({ success: false, error: "No artist account is linked to this user" }, 404);
+    const { data: targetAuth, error: targetError } = await supabase.auth.admin.getUserById(userId);
+    if (targetError || !targetAuth.user) return json({ success: false, error: "No registered user found for that artist account" }, 404);
 
     const { data: existingRef } = await supabase.from("payments").select("id,status").eq("flutterwave_tx_ref", receiptReference).maybeSingle();
     if (existingRef) return json({ success: false, error: "That receipt reference already exists. Use a unique reference to avoid duplicate receipts." }, 409);
