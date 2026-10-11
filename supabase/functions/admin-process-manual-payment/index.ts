@@ -61,9 +61,47 @@ serve(async (req) => {
     const { data: existingRef } = await supabase.from("payments").select("id,status").eq("flutterwave_tx_ref", receiptReference).maybeSingle();
     if (existingRef) return json({ success: false, error: "That receipt reference already exists. Use a unique reference to avoid duplicate receipts." }, 409);
 
-    const { data: plan, error: planError } = await supabase.from("plans").select("id,name,price_usd,duration_days").eq("duration_days", durationDays).eq("is_active", true).order("sort_order", { ascending: true }).limit(1).maybeSingle();
+    let { data: plan, error: planError } = await supabase.from("plans").select("id,name,price_usd,duration_days,release_limit,features").eq("duration_days", durationDays).eq("is_active", true).order("sort_order", { ascending: true }).limit(1).maybeSingle();
     if (planError) throw new Error("Could not look up an active plan: " + planError.message);
-    if (!plan) return json({ success: false, error: `No active plan configured for ${durationDays} days. Add/activate a matching plan before processing this renewal.` }, 422);
+
+    // Manual terms must not become publicly purchasable plans. If there is no active
+    // plan for this exact term, reuse or create a hidden admin-only plan record so
+    // subscriptions can keep a valid, non-null plan_id without mislabelling a 90-day
+    // renewal as the 365-day Annual Plan.
+    if (!plan) {
+      const internalCode = `manual_${durationDays}_day`;
+      const { data: existingInternal, error: internalLookupError } = await supabase
+        .from("plans")
+        .select("id,name,price_usd,duration_days,release_limit,features")
+        .eq("code", internalCode)
+        .maybeSingle();
+      if (internalLookupError) throw new Error("Could not look up the internal manual term: " + internalLookupError.message);
+      if (existingInternal) {
+        plan = existingInternal;
+      } else {
+        const { data: basePlan, error: basePlanError } = await supabase
+          .from("plans")
+          .select("release_limit,features")
+          .eq("code", "annual")
+          .eq("is_active", true)
+          .maybeSingle();
+        if (basePlanError || !basePlan) throw new Error("No active Annual Plan is available to copy subscription entitlements from.");
+        const { data: createdPlan, error: createPlanError } = await supabase.from("plans").insert({
+          code: internalCode,
+          name: `Manual ${durationDays}-Day Renewal`,
+          description: "Internal admin-only term for manually verified payments; not available for public purchase.",
+          price_usd: 0,
+          duration_days: durationDays,
+          release_limit: basePlan.release_limit,
+          supports_auto_renew: false,
+          is_active: false,
+          sort_order: 999,
+          features: basePlan.features,
+        }).select("id,name,price_usd,duration_days,release_limit,features").single();
+        if (createPlanError || !createdPlan) throw new Error("Could not create the hidden manual subscription term: " + (createPlanError?.message ?? "unknown database error"));
+        plan = createdPlan;
+      }
+    }
 
     const { data: pendingPayments, error: pendingError } = await supabase.from("payments").select("id,created_at").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: false });
     if (pendingError) throw new Error("Could not check pending payments: " + pendingError.message);
