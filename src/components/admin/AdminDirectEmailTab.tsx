@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Send, Mail, CheckCircle, AlertCircle } from 'lucide-react';
+import { Send, Mail, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { sendMarketingEmail } from '@/services/emailService';
+import { supabase } from '@/integrations/supabase/client';
 
 const DEFAULT_EMAIL = `Hi MIDE BLAQ,
 
@@ -39,7 +40,8 @@ const AdminDirectEmailTab = () => {
   const [sent, setSent] = useState(false);
 
   const handleSend = async () => {
-    if (!recipient.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(recipient.trim())) {
+    const email = recipient.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       toast({ title: 'Check recipient', description: 'Enter a valid recipient email address.', variant: 'destructive' });
       return;
     }
@@ -60,7 +62,7 @@ const AdminDirectEmailTab = () => {
         .map((paragraph) => `<p style="margin:0 0 16px;white-space:pre-line;">${paragraph.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`)
         .join('');
       const result = await sendMarketingEmail(
-        recipient.trim(),
+        email,
         'MIDE BLAQ',
         subject.trim(),
         htmlContent,
@@ -69,9 +71,41 @@ const AdminDirectEmailTab = () => {
       );
 
       if (!result.success) throw new Error(result.error || 'The email service rejected the request.');
+
       setSent(true);
-      toast({ title: 'Email request accepted', description: `The email service accepted the message for ${recipient.trim()}.` });
       setConfirmed(false);
+
+      // Notify the matching artist account after the email service accepts the send request.
+      const { data: artist, error: artistError } = await supabase
+        .from('artists')
+        .select('id, name')
+        .ilike('email', email)
+        .maybeSingle();
+
+      if (!artistError && artist?.id) {
+        const { error: notificationError } = await supabase.from('notifications' as any).insert({
+          user_id: artist.id,
+          type: 'release_update',
+          title: 'Release update completed',
+          message: 'Your producer-name change has been completed. Renew your subscription (₦10,000 for 90 days) to finalize distribution.',
+          link: '/billing',
+          metadata: { subject: subject.trim(), source: 'admin_direct_email' },
+          read: false,
+        });
+        if (notificationError) {
+          console.error('Email accepted but artist notification could not be created:', notificationError);
+          toast({
+            title: 'Email accepted; notification needs attention',
+            description: 'The email request was accepted, but the in-app notification could not be created. Check notification-table permissions.',
+            variant: 'destructive',
+          });
+          return;
+        }
+        toast({ title: 'Email and account notification queued', description: `The email service accepted the message and a notification was added to ${artist.name || 'the artist'}’s account.` });
+      } else {
+        console.error('Email accepted but matching artist account was not found:', artistError);
+        toast({ title: 'Email request accepted', description: 'The email service accepted the message, but no matching artist account was found for the in-app notification.', variant: 'destructive' });
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to send the email.';
       toast({ title: 'Email failed', description: message, variant: 'destructive' });
@@ -86,7 +120,7 @@ const AdminDirectEmailTab = () => {
         <Mail className="h-8 w-8" />
         <div>
           <h2 className="text-xl font-bold">Send a Direct Email</h2>
-          <p className="text-sm text-blue-100">Compose and send a one-to-one message through the configured email service.</p>
+          <p className="text-sm text-blue-100">Compose and send a one-to-one message through the configured email service. A matching artist account also receives an in-app notification.</p>
         </div>
       </div>
 
@@ -122,13 +156,10 @@ const AdminDirectEmailTab = () => {
               The email service accepted the send request. This confirms the request was accepted, not inbox delivery.
             </div>
           )}
-          <div className="flex items-start gap-2 text-xs text-muted-foreground">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-            This sends only to the recipient above; it does not send a campaign to marketing subscribers.
-          </div>
-          <Button onClick={handleSend} disabled={sending || !confirmed || !recipient.trim() || !subject.trim() || !content.trim()} className="w-full">
+
+          <Button onClick={handleSend} disabled={sending || !confirmed} className="w-full sm:w-auto">
             <Send className="mr-2 h-4 w-4" />
-            {sending ? 'Sending…' : 'Send Email'}
+            {sending ? 'Sending…' : 'Send Email & Notify Account'}
           </Button>
         </CardContent>
       </Card>
