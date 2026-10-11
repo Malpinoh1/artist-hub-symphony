@@ -36,7 +36,38 @@ const PaymentHistory = () => {
       supabase.from('subscriptions').select('*, plans(name, price_usd)').eq('user_id', user.id).order('end_date', { ascending: false }).limit(1),
     ]);
     setPayments((pays as any) || []);
-    setSub(((subs as any) || [])[0] || null);
+    let currentSub = ((subs as any) || [])[0] || null;
+
+    // Backward compatibility: older accounts may only have a legacy subscribers row.
+    // Surface renewal for expired legacy subscriptions instead of showing "Choose a plan".
+    if (!currentSub) {
+      const { data: legacy } = await supabase
+        .from('subscribers')
+        .select('subscription_tier, subscription_end, subscribed')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      const legacyEnd = legacy?.subscription_end ? new Date(legacy.subscription_end) : null;
+      const tier = String(legacy?.subscription_tier || '').toLowerCase();
+      if (legacyEnd && !Number.isNaN(legacyEnd.getTime()) && legacyEnd <= new Date() && tier !== 'per_release') {
+        const { data: legacyPlan } = await supabase
+          .from('plans')
+          .select('id, name, price_usd')
+          .eq('code', tier || 'annual')
+          .maybeSingle();
+        if (legacyPlan) {
+          currentSub = {
+            id: `legacy-${user.id}`,
+            status: 'paused',
+            start_date: new Date(legacyEnd.getTime() - 365 * 24 * 60 * 60 * 1000).toISOString(),
+            end_date: legacyEnd.toISOString(),
+            auto_renew: false,
+            plan_id: legacyPlan.id,
+            plans: { name: legacyPlan.name, price_usd: legacyPlan.price_usd },
+          };
+        }
+      }
+    }
+    setSub(currentSub);
     setLoading(false);
   };
   useEffect(() => { load(); }, [user]);
