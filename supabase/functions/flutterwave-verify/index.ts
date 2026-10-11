@@ -45,6 +45,8 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
   // Idempotency: if already successful, no double-grant.
   if (payment.status === "successful") return { ok: true, already: true, payment_id: payment.id };
 
+  const paymentMeta = payment.raw_response?.checkout_meta || {};
+  const isRenewal = paymentMeta.is_renewal === true;
   const isSuccess =
     tx.status === "successful" &&
     Number(tx.amount) >= Number(payment.amount_charged) - 0.5 &&
@@ -65,7 +67,7 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     status: "successful",
     flutterwave_transaction_id: String(tx.id),
     payment_method: tx.payment_type,
-    raw_response: tx,
+    raw_response: { ...tx, checkout_meta: payment.raw_response?.checkout_meta || {} },
   }).eq("id", payment.id);
 
   const plan = payment.plans;
@@ -89,20 +91,49 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
 
   let startDate = now.toISOString();
   let baseEnd = now;
-  if (existing && new Date(existing.end_date) > now && existing.plan_id === plan.id) {
+  let durationDays = Number(plan.duration_days);
+
+  if (isRenewal) {
+    // Recheck eligibility after the payment: never let a client-side flag grant a renewal.
+    const existingEnd = existing?.end_date ? new Date(existing.end_date) : null;
+    const status = String(existing?.status || "").toLowerCase();
+    let eligible = !!existing && (
+      status === "paused" || status === "expired" ||
+      (!!existingEnd && !Number.isNaN(existingEnd.getTime()) && existingEnd <= now)
+    );
+    if (!existing) {
+      const { data: legacySub } = await admin
+        .from("subscribers").select("subscription_end").eq("user_id", payment.user_id).maybeSingle();
+      const legacyEnd = legacySub?.subscription_end ? new Date(legacySub.subscription_end) : null;
+      eligible = !!legacyEnd && !Number.isNaN(legacyEnd.getTime()) && legacyEnd <= now;
+    }
+    if (!eligible) {
+      await admin.from("payments").update({
+        status: "successful",
+        raw_response: { ...tx, renewal_rejected: true, reason: "Subscription was not paused or expired at verification time" },
+      }).eq("id", payment.id);
+      return { ok: false, error: "Payment received, but renewal could not be applied because the subscription is not paused or expired. Contact support." };
+    }
+    durationDays = 90;
+    baseEnd = now;
+  } else if (existing && new Date(existing.end_date) > now && existing.plan_id === plan.id) {
     baseEnd = new Date(existing.end_date);
   }
-  const endDate = new Date(baseEnd);
-  endDate.setUTCDate(endDate.getUTCDate() + plan.duration_days);
 
-  const autoRenew = tx.meta?.auto_renew !== false;
+  if (!Number.isFinite(durationDays) || durationDays <= 0) {
+    return { ok: false, error: "Subscription duration is invalid" };
+  }
+  const endDate = new Date(baseEnd);
+  endDate.setUTCDate(endDate.getUTCDate() + durationDays);
+
+  const autoRenew = isRenewal ? false : tx.meta?.auto_renew !== false;
   const cardToken = tx.card?.token ?? null;
 
   const subPayload = {
     user_id: payment.user_id,
     plan_id: plan.id,
     status: "active",
-    start_date: existing && new Date(existing.end_date) > now ? existing.start_date : startDate,
+    start_date: existing && new Date(existing.end_date) > now && !isRenewal ? existing.start_date : startDate,
     end_date: endDate.toISOString(),
     auto_renew: autoRenew,
     last_payment_id: payment.id,
@@ -138,10 +169,16 @@ async function notifyUser(admin: any, userId: string, kind: "successful" | "fail
     if (!to) return;
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const planName = payment.plans?.name || "subscription";
-    const subject = kind === "successful" ? "Payment successful — subscription activated" : "Payment failed";
+    const isRenewalPayment = payment.raw_response?.checkout_meta?.is_renewal === true;
+    const amountLabel = payment.currency === "NGN"
+      ? `₦${Number(payment.amount_charged).toLocaleString("en-NG")}`
+      : `${payment.amount_usd}`;
+    const subject = kind === "successful"
+      ? (isRenewalPayment ? "Subscription renewed — MALPINOHdistro" : "Payment successful — subscription activated")
+      : "Payment failed";
     const html = kind === "successful"
-      ? `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>$${payment.amount_usd}</strong> for the <strong>${planName}</strong> plan was successful. Your subscription is now active.</p><p>— MALPINOHdistro</p>`
-      : `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>$${payment.amount_usd}</strong> for the <strong>${planName}</strong> plan could not be completed. Please try again.</p><p>— MALPINOHdistro</p>`;
+      ? `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>${amountLabel}</strong> for the <strong>${isRenewalPayment ? "3-month subscription renewal" : planName + " plan"}</strong> was successful. Your subscription is active until ${payment.raw_response?.subscription_end || "the date shown in your dashboard"}.</p><p>— MALPINOHdistro</p>`
+      : `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>${amountLabel}</strong> for ${isRenewalPayment ? "subscription renewal" : "the " + planName + " plan"} could not be completed. Please try again.</p><p>— MALPINOHdistro</p>`;
     await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}` },

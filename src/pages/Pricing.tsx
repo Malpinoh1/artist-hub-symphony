@@ -30,6 +30,8 @@ const Pricing = () => {
   const [loading, setLoading] = useState(true);
   const [checkoutCode, setCheckoutCode] = useState<string | null>(null);
   const [autoRenew, setAutoRenew] = useState(true);
+  const [canRenew, setCanRenew] = useState(false);
+  const [renewing, setRenewing] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -39,6 +41,49 @@ const Pricing = () => {
       setLoading(false);
     })();
   }, []);
+
+  useEffect(() => {
+    if (!user) {
+      setCanRenew(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data: sub } = await supabase
+        .from('subscriptions').select('status, end_date')
+        .eq('user_id', user.id).order('updated_at', { ascending: false })
+        .limit(1).maybeSingle();
+      const status = String(sub?.status || '').toLowerCase();
+      const endDate = sub?.end_date ? new Date(sub.end_date) : null;
+      let eligible = status === 'paused' || status === 'expired' ||
+        (!!endDate && !Number.isNaN(endDate.getTime()) && endDate <= new Date());
+
+      if (!sub) {
+        const { data: legacy } = await supabase
+          .from('subscribers').select('subscription_end')
+          .eq('user_id', user.id).maybeSingle();
+        const legacyEnd = legacy?.subscription_end ? new Date(legacy.subscription_end) : null;
+        eligible = !!legacyEnd && !Number.isNaN(legacyEnd.getTime()) && legacyEnd <= new Date();
+      }
+      if (!cancelled) setCanRenew(eligible);
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  const handleRenew = async () => {
+    if (!user) { navigate('/auth?redirect=/pricing'); return; }
+    setRenewing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('flutterwave-initiate', {
+        body: { renewal: true },
+      });
+      if (error || !data?.link) throw new Error(error?.message || data?.error || 'Failed to start renewal');
+      window.location.href = data.link;
+    } catch (e: any) {
+      toast.error(e.message || 'Could not start renewal');
+      setRenewing(false);
+    }
+  };
 
   const handleUpgrade = async (code: string) => {
     if (!user) { navigate('/auth?redirect=/pricing'); return; }
@@ -72,6 +117,24 @@ const Pricing = () => {
               </div>
             </div>
           </AnimatedCard>
+
+          {canRenew && (
+            <AnimatedCard>
+              <div className="glass-panel p-6 md:p-8 mb-8 flex flex-col md:flex-row items-center justify-between gap-5">
+                <div>
+                  <h2 className="text-xl font-semibold">Renew your subscription</h2>
+                  <p className="text-sm text-muted-foreground mt-1">Restore your artist account access for 3 months with a fixed payment of ₦10,000.</p>
+                </div>
+                <button
+                  disabled={renewing}
+                  onClick={handleRenew}
+                  className="w-full md:w-auto min-w-56 py-3 px-6 rounded-lg bg-primary text-primary-foreground font-medium disabled:opacity-50"
+                >
+                  {renewing ? <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Starting checkout…</span> : 'Renew for ₦10,000'}
+                </button>
+              </div>
+            </AnimatedCard>
+          )}
 
           {loading ? (
             <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
