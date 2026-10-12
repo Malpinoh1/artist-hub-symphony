@@ -1,0 +1,350 @@
+
+import React, { useState, useEffect } from 'react';
+import AnimatedCard from '../components/AnimatedCard';
+import { toast } from 'sonner';
+import AdminAnalyticsEditor from '../components/AdminAnalyticsEditor';
+import TakeDownRequestsTab from '../components/TakeDownRequestsTab';
+import SubscriptionManagement from '../components/admin/SubscriptionManagement';
+import {
+  fetchAdminReleases,
+  fetchAdminWithdrawals,
+  fetchAdminArtists,
+  fetchTakeDownRequestsCount,
+  fetchArtistsEarningSummary
+} from '../services/adminService';
+import ReleasesTab from '@/components/admin/ReleasesTab';
+import WithdrawalsTab from '@/components/admin/WithdrawalsTab';
+import ArtistsTab from '@/components/admin/ArtistsTab';
+import DashboardStats from '@/components/admin/DashboardStats';
+import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
+import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
+import AdminDirectEmailTab from '@/components/admin/AdminDirectEmailTab';
+import PlatformEarningsTab from '@/components/admin/PlatformEarningsTab';
+import RoyaltyStatementsTab from '@/components/admin/RoyaltyStatementsTab';
+import { SiteNoticesTab } from '@/components/admin/SiteNoticesTab';
+import SupportTicketsTab from '@/components/admin/SupportTicketsTab';
+import AdminCreditManager from '@/components/admin/AdminCreditManager';
+import IncomeManagementTab from '@/components/admin/IncomeManagementTab';
+import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab';
+import OACRequestsTab from '@/components/admin/OACRequestsTab';
+import CollectiveTab from '@/components/admin/CollectiveTab';
+import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+
+import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
+import AdminManualPaymentTab from '@/components/admin/AdminManualPaymentTab';
+import { useAdminRole } from '@/hooks/useAdminRole';
+import { ShieldAlert } from 'lucide-react';
+
+// Tabs each sub-role may access (admin sees all)
+const FINANCE_TABS = new Set([
+  'withdrawals', 'support', 'royalty-upload', 'marketing',
+  'subscriptions', 'artists', 'payments', 'credit-balance', 'manual-payment',
+  'earnings', 'platform-earnings', 'royalty-statements', 'income-management',
+]);
+const DISTRIBUTION_TABS = new Set([
+  'releases', 'artists', 'support', 'takedown', 'split-requests', 'oac',
+]);
+
+
+const AdminDashboard = () => {
+  const [releases, setReleases] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [artistsEarnings, setArtistsEarnings] = useState([]);
+  const [activeTab, setActiveTab] = useState('releases');
+  const [loading, setLoading] = useState(true);
+  const [takeDownRequestsCount, setTakeDownRequestsCount] = useState(0);
+  const { isAdmin, isFinance, isDistribution } = useAdminRole();
+
+  const canAccessTab = (tabId: string): boolean => {
+    if (isAdmin) return true;
+    if (isDistribution && DISTRIBUTION_TABS.has(tabId)) return true;
+    if (isFinance && FINANCE_TABS.has(tabId)) return true;
+    return false;
+  };
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    
+    try {
+      const [releasesData, withdrawalsData, artistsData, takeDownCount, artistsEarningsData] = await Promise.all([
+        fetchAdminReleases(),
+        fetchAdminWithdrawals(),
+        fetchAdminArtists(),
+        fetchTakeDownRequestsCount(),
+        fetchArtistsEarningSummary()
+      ]);
+      
+      console.log('Fetched dashboard data:', {
+        releases: releasesData?.length,
+        withdrawals: withdrawalsData?.length,
+        artists: artistsData?.length,
+        takeDownCount,
+        artistsEarnings: artistsEarningsData?.length
+      });
+      
+      setReleases(releasesData || []);
+      setWithdrawals(withdrawalsData || []);
+      setArtists(artistsData || []);
+      setArtistsEarnings(artistsEarningsData || []);
+      setTakeDownRequestsCount(takeDownCount || 0);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load admin dashboard data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+  
+  // Handle release update with proper data refresh
+  const handleReleaseUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleReleaseUpdate called with:', { id, status, updatedData });
+    
+    if (updatedData) {
+      setReleases(prev => {
+        const newReleases = prev.map(release => 
+          release.id === id ? { ...release, ...updatedData } : release
+        );
+        console.log('AdminDashboard: Updated releases array:', newReleases);
+        return newReleases;
+      });
+    } else {
+      // Fallback - just refresh all data
+      console.log('AdminDashboard: No updated data provided, refreshing all data');
+      fetchDashboardData();
+    }
+  };
+  
+  // Handle withdrawal update
+  const handleWithdrawalUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleWithdrawalUpdate called with:', { id, status, updatedData });
+    
+    if (updatedData) {
+      setWithdrawals(prev => prev.map(withdrawal => 
+        withdrawal.id === id ? updatedData : withdrawal
+      ));
+    } else {
+      fetchDashboardData();
+    }
+  };
+  
+  // Handle artist update
+  const handleArtistUpdate = (id, status, updatedData = null) => {
+    console.log('AdminDashboard: handleArtistUpdate called with:', { id, status, updatedData });
+    
+    if (updatedData) {
+      setArtists(prev => prev.map(artist => 
+        artist.id === id ? updatedData : artist
+      ));
+    } else {
+      fetchDashboardData();
+    }
+  };
+
+  // Handle refresh data
+  const handleRefreshData = () => {
+    console.log('AdminDashboard: Refreshing all data');
+    fetchDashboardData();
+  };
+  
+  // Handle tab change
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+  };
+  
+  // Calculate total earnings from all artists
+  const totalArtistEarnings = artistsEarnings.reduce((total, artist) => {
+    return total + (artist.total_earnings || 0);
+  }, 0);
+  
+  // Calculate total pending withdrawals amount
+  const pendingWithdrawalsAmount = withdrawals
+    .filter(w => w.status === 'PENDING')
+    .reduce((total, w) => total + w.amount, 0);
+  
+  // Render active tab content
+  const renderActiveTabContent = () => {
+    if (!canAccessTab(activeTab)) {
+      return (
+        <div className="text-center py-16">
+          <ShieldAlert className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+          <h2 className="text-lg font-semibold mb-2">No Access</h2>
+          <p className="text-sm text-muted-foreground">Your admin role doesn't have permission to view this section.</p>
+        </div>
+      );
+    }
+    switch (activeTab) {
+      case 'releases':
+        return (
+          <ReleasesTab 
+            releases={releases} 
+            loading={loading}
+            onReleaseUpdate={handleReleaseUpdate}
+            onRefreshData={handleRefreshData}
+          />
+        );
+      case 'withdrawals':
+        return (
+          <WithdrawalsTab 
+            withdrawals={withdrawals} 
+            loading={loading}
+            onWithdrawalUpdate={handleWithdrawalUpdate} 
+          />
+        );
+      case 'artists':
+        return (
+          <ArtistsTab 
+            artists={artists} 
+            loading={loading}
+            onArtistUpdate={handleArtistUpdate} 
+          />
+        );
+      case 'earnings':
+        return (
+          <ArtistsEarningsTab 
+            artistsEarnings={artistsEarnings} 
+            loading={loading}
+            onArtistUpdate={handleRefreshData}
+          />
+        );
+      case 'analytics':
+        return <AdminAnalyticsEditor />;
+      case 'subscriptions':
+        return <SubscriptionManagement />;
+      case 'manual-payment':
+        return <AdminManualPaymentTab />;
+      case 'takedown':
+        return <TakeDownRequestsTab />;
+      case 'marketing':
+        return <MarketingEmailsTab />;
+      case 'direct-email':
+        return <AdminDirectEmailTab />;
+      case 'platform-earnings':
+        return <PlatformEarningsTab onGenerateStatement={handleRefreshData} />;
+      case 'royalty-statements':
+        return <RoyaltyStatementsTab onStatementUpdate={handleRefreshData} />;
+      case 'site-notices':
+        return <SiteNoticesTab />;
+      case 'support':
+        return <SupportTicketsTab />;
+      case 'credit-balance':
+        return <AdminCreditManager />;
+      case 'income-management':
+        return <IncomeManagementTab />;
+      case 'split-requests':
+        return <RoyaltySplitRequestsTab />;
+      case 'oac':
+        return <OACRequestsTab />;
+      case 'collective':
+        return <CollectiveTab />;
+
+      case 'royalty-upload':
+        return <RoyaltyUploadTab />;
+      case 'payments':
+        return <PaymentsAnalyticsTab />;
+      default:
+        return null;
+    }
+  };
+
+  const allTabs = [
+    { id: 'releases', label: 'Releases' },
+    { id: 'withdrawals', label: 'Withdrawals' },
+    { id: 'artists', label: 'Artists' },
+    { id: 'earnings', label: 'Earnings Summary' },
+    { id: 'platform-earnings', label: 'Platform Earnings' },
+    { id: 'royalty-statements', label: 'Royalty Statements' },
+    { id: 'analytics', label: 'Analytics' },
+    { id: 'subscriptions', label: 'Subscriptions' },
+    { id: 'manual-payment', label: 'Manual Payment & Renewal' },
+    { id: 'payments', label: 'Payments & Revenue' },
+    { id: 'marketing', label: 'Marketing Emails' },
+    { id: 'direct-email', label: 'Direct Email' },
+    { id: 'site-notices', label: 'Site Notices' },
+    { id: 'support', label: 'Support Tickets' },
+    { id: 'credit-balance', label: 'Credit Balance' },
+    { id: 'income-management', label: 'Income & Royalties' },
+    { id: 'split-requests', label: 'Split Requests' },
+    { id: 'oac', label: 'YouTube OAC' },
+    { id: 'collective', label: 'MDISTRO Collective' },
+    { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+
+    {
+      id: 'takedown',
+      label: 'Take Down Requests',
+      badge: takeDownRequestsCount > 0 ? takeDownRequestsCount : null,
+    },
+  ];
+
+  const tabs = allTabs.filter(t => canAccessTab(t.id));
+
+  // Ensure active tab is always one the user can access
+  useEffect(() => {
+    if (tabs.length > 0 && !tabs.find(t => t.id === activeTab)) {
+      setActiveTab(tabs[0].id);
+    }
+  }, [tabs, activeTab]);
+
+  return (
+    <div className="admin-responsive container mx-auto w-full min-w-0 max-w-full px-0 sm:px-2">
+          <AnimatedCard>
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h1 className="text-xl sm:text-3xl font-display font-bold text-foreground">Admin Dashboard</h1>
+                <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Manage your distribution platform</p>
+              </div>
+              <a
+                href="/dashboard"
+                className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 to-purple-600/10 hover:from-primary/20 hover:to-purple-600/20 text-sm font-medium text-foreground transition-all shadow-sm hover:shadow-md"
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                Switch to Artist Portal
+                <span aria-hidden>→</span>
+              </a>
+            </div>
+            
+            <DashboardStats 
+              releasesCount={releases.length}
+              artistsCount={artists.length}
+              pendingWithdrawalsCount={withdrawals.filter(w => w.status === 'PENDING').length}
+              takeDownRequestsCount={takeDownRequestsCount}
+              totalArtistEarnings={totalArtistEarnings}
+              pendingWithdrawalsAmount={pendingWithdrawalsAmount}
+            />
+            
+            <div className="border-b border-border mb-4 sm:mb-6 -mx-3 sm:mx-0 px-3 sm:px-0">
+              <div className="flex w-full min-w-0 flex-nowrap overflow-x-auto overscroll-x-contain space-x-1 pb-1 -mb-px scrollbar-thin">
+                {tabs.map((tab) => (
+                  <button 
+                    key={tab.id}
+                    onClick={() => handleTabChange(tab.id)}
+                    className={`min-h-[44px] shrink-0 px-3 py-2 border-b-2 whitespace-nowrap flex items-center text-sm ${
+                      activeTab === tab.id
+                        ? 'border-primary text-primary font-medium'
+                        : 'border-transparent text-muted-foreground hover:text-primary'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    {tab.badge && (
+                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-destructive/15 text-destructive">
+                        {tab.badge}
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
+              {renderActiveTabContent()}
+            </div>
+          </AnimatedCard>
+    </div>
+  );
+};
+
+export default AdminDashboard;

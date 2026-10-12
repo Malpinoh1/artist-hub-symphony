@@ -93,7 +93,7 @@ const AdminFinance: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto w-full min-w-0 max-w-full px-0 sm:px-2">
+    <div className="admin-responsive container mx-auto w-full min-w-0 max-w-full px-0 sm:px-2">
       <AnimatedCard>
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
