@@ -103,20 +103,20 @@ const AdminDistribution: React.FC = () => {
           <StatCard icon={Users} label="Artists" value={artists.length} accent="bg-primary/15 text-primary" />
         </div>
 
-        <AdminSectionNavigation tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
-        <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
-          {activeTab === 'releases' && (
-            <ReleasesTab releases={releases} loading={loading} onReleaseUpdate={handleReleaseUpdate} onRefreshData={refresh} />
-          )}
-          {activeTab === 'artists' && (
-            <ArtistsTab artists={artists} loading={loading} onArtistUpdate={() => refresh()} />
-          )}
-          {activeTab === 'takedown' && <TakeDownRequestsTab />}
-          {activeTab === 'split-requests' && <RoyaltySplitRequestsTab />}
-          {activeTab === 'oac' && <OACRequestsTab />}
-          {activeTab === 'support' && <SupportTicketsTab />}
-        </div>
+        <AdminSectionNavigation tabs={TABS} activeTab={activeTab} onChange={setActiveTab}>
+          <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
+            {activeTab === 'releases' && (
+              <ReleasesTab releases={releases} loading={loading} onReleaseUpdate={handleReleaseUpdate} onRefreshData={refresh} />
+            )}
+            {activeTab === 'artists' && (
+              <ArtistsTab artists={artists} loading={loading} onArtistUpdate={() => refresh()} />
+            )}
+            {activeTab === 'takedown' && <TakeDownRequestsTab />}
+            {activeTab === 'split-requests' && <RoyaltySplitRequestsTab />}
+            {activeTab === 'oac' && <OACRequestsTab />}
+            {activeTab === 'support' && <SupportTicketsTab />}
+          </div>
+        </AdminSectionNavigation>
       </AnimatedCard>
     </div>
   );
