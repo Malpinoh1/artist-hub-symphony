@@ -118,24 +118,24 @@ const AdminFinance: React.FC = () => {
           <StatCard icon={Users} label="Earning artists" value={stats.artistCount} accent="bg-primary/15 text-primary" />
         </div>
 
-        <AdminSectionNavigation tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
-
-        <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
-          {activeTab === 'withdrawals' && (
-            <WithdrawalsTab withdrawals={withdrawals} loading={loading} onWithdrawalUpdate={handleWithdrawalUpdate} />
-          )}
-          {activeTab === 'royalty-upload' && <RoyaltyUploadTab />}
-          {activeTab === 'stream-analytics' && <PlatformStreamAnalytics />}
-          {activeTab === 'royalty-statements' && <RoyaltyStatementsTab onStatementUpdate={refresh} />}
-          {activeTab === 'platform-earnings' && <PlatformEarningsTab onGenerateStatement={refresh} />}
-          {activeTab === 'earnings' && (
-            <ArtistsEarningsTab artistsEarnings={earnings} loading={loading} onArtistUpdate={refresh} />
-          )}
-          {activeTab === 'income-management' && <IncomeManagementTab />}
-          {activeTab === 'payments' && <PaymentsAnalyticsTab />}
-          {activeTab === 'subscriptions' && <SubscriptionManagement />}
-          {activeTab === 'credit-balance' && <AdminCreditManager />}
-        </div>
+        <AdminSectionNavigation tabs={TABS} activeTab={activeTab} onChange={setActiveTab}>
+          <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
+            {activeTab === 'withdrawals' && (
+              <WithdrawalsTab withdrawals={withdrawals} loading={loading} onWithdrawalUpdate={handleWithdrawalUpdate} />
+            )}
+            {activeTab === 'royalty-upload' && <RoyaltyUploadTab />}
+            {activeTab === 'stream-analytics' && <PlatformStreamAnalytics />}
+            {activeTab === 'royalty-statements' && <RoyaltyStatementsTab onStatementUpdate={refresh} />}
+            {activeTab === 'platform-earnings' && <PlatformEarningsTab onGenerateStatement={refresh} />}
+            {activeTab === 'earnings' && (
+              <ArtistsEarningsTab artistsEarnings={earnings} loading={loading} onArtistUpdate={refresh} />
+            )}
+            {activeTab === 'income-management' && <IncomeManagementTab />}
+            {activeTab === 'payments' && <PaymentsAnalyticsTab />}
+            {activeTab === 'subscriptions' && <SubscriptionManagement />}
+            {activeTab === 'credit-balance' && <AdminCreditManager />}
+          </div>
+        </AdminSectionNavigation>
       </AnimatedCard>
     </div>
   );
