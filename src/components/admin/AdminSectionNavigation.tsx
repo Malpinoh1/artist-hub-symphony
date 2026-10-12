@@ -19,8 +19,8 @@ const AdminSectionNavigation: React.FC<AdminSectionNavigationProps> = ({
   onChange,
 }) => (
   <nav aria-label="Admin sections" className="mb-5 w-full min-w-0">
-    {/* Compact native dropdown on phones; full tab grid on larger screens. */}
-    <div className="sm:hidden">
+    {/* Consistent dropdown navigation across phone, tablet, and desktop. */}
+    <div className="block">
       <label htmlFor="admin-section-select" className="mb-2 block text-sm font-medium text-foreground">
         Navigate to section
       </label>
@@ -44,7 +44,7 @@ const AdminSectionNavigation: React.FC<AdminSectionNavigationProps> = ({
       </div>
     </div>
 
-    <div className="hidden grid-cols-2 gap-2 sm:grid sm:grid-cols-3 xl:grid-cols-4">
+    <div className="hidden">
       {tabs.map((tab) => {
         const active = activeTab === tab.id;
         return (
