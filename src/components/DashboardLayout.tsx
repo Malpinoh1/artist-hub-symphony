@@ -59,7 +59,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
   // finance_manager / distribution_manager without full admin → admin panel only
   const staffOnly = hasAnyAdminRole && !isFullAdmin;
-  const nav = staffOnly ? staffNav : sidebarNav;
+  const nav = staffOnly ? staffNav : hasAnyAdminRole ? [...sidebarNav, { name: 'Admin Panel', href: '/admin', icon: LayoutDashboard }] : sidebarNav;
 
   useEffect(() => {
     if (user) {
@@ -88,7 +88,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen w-full min-w-0 bg-background flex">
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:fixed lg:inset-y-0 border-r border-border bg-card z-40">
         {/* Logo */}
@@ -163,7 +163,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border transform transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-1.5rem)] flex-col overflow-y-auto overscroll-contain bg-card border-r border-border transform transition-transform lg:hidden",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -181,7 +181,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         <div className="px-3 pt-3">
           {!staffOnly && <ModernTeamSwitcher />}
         </div>
-        <nav className="px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {nav.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
@@ -203,7 +203,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             );
           })}
         </nav>
-        <div className="absolute bottom-0 left-0 right-0 px-3 py-4 border-t border-border">
+        <div className="mt-auto shrink-0 px-3 py-4 border-t border-border">
           <Button variant="ghost" size="sm" onClick={handleSignOut} className="w-full justify-start text-destructive">
             <LogOut className="h-4 w-4 mr-2" />
             Sign out
@@ -212,9 +212,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 lg:pl-64">
+      <div className="min-w-0 w-full flex-1 lg:pl-64">
         {/* Top Bar */}
-        <header className="sticky top-0 z-30 h-16 border-b border-border bg-card/95 backdrop-blur-xl flex items-center px-4 lg:px-8 gap-4">
+        <header className="sticky top-0 z-30 flex h-16 w-full min-w-0 items-center gap-2 border-b border-border bg-card/95 px-3 backdrop-blur-xl sm:gap-4 sm:px-4 lg:px-8">
           <Button
             variant="ghost"
             size="sm"
@@ -275,7 +275,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 lg:p-8 pb-20 lg:pb-8">
+        <main className="min-w-0 w-full max-w-full p-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:p-4 lg:p-8 lg:pb-8">
           {children}
         </main>
       </div>
