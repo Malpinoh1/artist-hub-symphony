@@ -126,13 +126,13 @@ const PaymentHistory = () => {
   if (loading) return <div className="flex justify-center py-12"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>;
 
   return (
-    <div className="container mx-auto px-4 py-6 space-y-6">
+    <div className="container mx-auto w-full min-w-0 space-y-4 px-0 py-4 sm:space-y-6 sm:px-4 sm:py-6">
       <div>
         <h1 className="text-2xl sm:text-3xl font-display font-bold">Billing & Payments</h1>
         <p className="text-muted-foreground text-sm mt-1">Manage your subscription and view past payments.</p>
       </div>
 
-      <div className="glass-panel p-6 rounded-2xl">
+      <div className="glass-panel min-w-0 rounded-2xl p-4 sm:p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5" /> Current Plan</h2>
         {sub ? (
           <div className="space-y-3">
@@ -161,7 +161,7 @@ const PaymentHistory = () => {
               </div>
             ) : (
               <>
-                <div className="flex items-center justify-between pt-3 border-t border-border">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3">
                   <div>
                     <div className="text-sm font-medium">Auto-renew</div>
                     <div className="text-xs text-muted-foreground">Automatically charge your card before expiry</div>
@@ -180,10 +180,10 @@ const PaymentHistory = () => {
         )}
       </div>
 
-      <div className="glass-panel p-6 rounded-2xl">
+      <div className="glass-panel min-w-0 rounded-2xl p-4 sm:p-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h2 className="text-lg font-semibold">Payment History</h2>
-          <div className="flex gap-1 text-xs">
+          <div className="flex flex-wrap gap-1 text-xs">
             {(['all','successful','pending','failed'] as const).map(f => (
               <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-md capitalize ${filter===f?'bg-primary text-primary-foreground':'bg-secondary'}`}>{f}</button>
             ))}
