@@ -1,4 +1,5 @@
 import React from 'react';
+import { ChevronDown } from 'lucide-react';
 
 export interface AdminSectionTab {
   id: string;
@@ -18,7 +19,32 @@ const AdminSectionNavigation: React.FC<AdminSectionNavigationProps> = ({
   onChange,
 }) => (
   <nav aria-label="Admin sections" className="mb-5 w-full min-w-0">
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+    {/* Compact native dropdown on phones; full tab grid on larger screens. */}
+    <div className="sm:hidden">
+      <label htmlFor="admin-section-select" className="mb-2 block text-sm font-medium text-foreground">
+        Navigate to section
+      </label>
+      <div className="relative">
+        <select
+          id="admin-section-select"
+          value={activeTab}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-h-12 w-full appearance-none rounded-xl border border-border bg-card py-3 pl-3 pr-10 text-sm font-medium text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+        >
+          {tabs.map((tab) => (
+            <option key={tab.id} value={tab.id}>
+              {tab.label}{tab.badge != null && tab.badge > 0 ? ` (${tab.badge})` : ''}
+            </option>
+          ))}
+        </select>
+        <ChevronDown
+          aria-hidden="true"
+          className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        />
+      </div>
+    </div>
+
+    <div className="hidden grid-cols-2 gap-2 sm:grid sm:grid-cols-3 xl:grid-cols-4">
       {tabs.map((tab) => {
         const active = activeTab === tab.id;
         return (
