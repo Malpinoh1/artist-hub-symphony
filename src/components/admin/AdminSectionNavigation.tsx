@@ -34,7 +34,7 @@ interface AdminSectionNavigationProps {
   children: React.ReactNode;
 }
 
-const TAB_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const TAB_ICONS: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
   releases: Disc3,
   withdrawals: Wallet,
   artists: Users,
