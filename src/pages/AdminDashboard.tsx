@@ -317,11 +317,11 @@ const AdminDashboard = () => {
               pendingWithdrawalsAmount={pendingWithdrawalsAmount}
             />
             
-            <AdminSectionNavigation tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
-            
-            <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
-              {renderActiveTabContent()}
-            </div>
+            <AdminSectionNavigation tabs={tabs} activeTab={activeTab} onChange={handleTabChange}>
+              <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
+                {renderActiveTabContent()}
+              </div>
+            </AdminSectionNavigation>
           </AnimatedCard>
     </div>
   );
