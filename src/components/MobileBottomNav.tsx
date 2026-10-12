@@ -17,6 +17,9 @@ const MobileBottomNav = () => {
 
   if (!user) return null;
 
+  // Admin workspaces use the dashboard drawer and their own section navigation.
+  if (location.pathname === '/admin' || location.pathname.startsWith('/admin/')) return null;
+
   // Hide on public pages
   const publicPaths = ['/', '/auth', '/about', '/services', '/pricing', '/contact', '/faq', '/partners', '/terms', '/privacy', '/cookies', '/copyright', '/blog', '/resources', '/password-reset', '/reset-password'];
   if (publicPaths.includes(location.pathname)) return null;

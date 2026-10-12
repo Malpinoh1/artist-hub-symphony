@@ -290,7 +290,7 @@ const AdminDashboard = () => {
   }, [tabs, activeTab]);
 
   return (
-    <div className="container mx-auto px-3 sm:px-4">
+    <div className="container mx-auto w-full min-w-0 max-w-full px-0 sm:px-2">
           <AnimatedCard>
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
               <div>
@@ -339,7 +339,7 @@ const AdminDashboard = () => {
               </div>
             </div>
             
-            <div className="glass-panel p-2 sm:p-6">
+            <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
               {renderActiveTabContent()}
             </div>
           </AnimatedCard>

@@ -165,3 +165,83 @@
     padding-bottom: 5rem;
   }
 }
+
+
+/* Platform-wide responsive safeguards for artist and admin workspaces. */
+html,
+body,
+#root {
+  width: 100%;
+  min-width: 0;
+  min-height: 100%;
+}
+
+body {
+  min-width: 320px;
+  overflow-x: clip;
+}
+
+img,
+video,
+canvas,
+iframe {
+  max-width: 100%;
+}
+
+input,
+select,
+textarea,
+button {
+  min-width: 0;
+}
+
+main,
+main > *,
+main > * > * {
+  min-width: 0;
+}
+
+.recharts-responsive-container {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .container {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .glass-panel,
+  .glass-card {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .overflow-x-auto,
+  [data-radix-scroll-area-viewport] {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  table {
+    max-width: 100%;
+  }
+
+  th,
+  td {
+    overflow-wrap: anywhere;
+  }
+
+  input,
+  select,
+  textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+
+  button,
+  a {
+    touch-action: manipulation;
+  }
+}

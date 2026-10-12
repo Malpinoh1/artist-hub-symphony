@@ -50,7 +50,7 @@ const EarningsContent = () => {
   }
 
   return (
-    <div className="container px-3 sm:p-4 mx-auto max-w-7xl">
+    <div className="container mx-auto w-full min-w-0 max-w-7xl px-0 sm:px-4 sm:py-4">
           <div className="mb-4 sm:mb-6">
             <h1 className="text-xl sm:text-2xl font-semibold dark:text-white">Earnings & Payments</h1>
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
@@ -66,8 +66,8 @@ const EarningsContent = () => {
           />
 
           <div className="mt-8">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="mb-6 sm:mb-8 flex-wrap h-auto gap-1">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+              <TabsList className="mb-6 flex h-auto max-w-full flex-wrap gap-1 sm:mb-8">
                 <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                   <FileText className="w-3 h-3 sm:w-4 sm:h-4" />
                   <span className="hidden xs:inline">Overview</span>

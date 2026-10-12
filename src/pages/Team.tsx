@@ -763,12 +763,12 @@ const Team = () => {
 
   return (
     <div>
-      <section className="container mx-auto px-4 py-8 max-w-6xl">
+      <section className="container mx-auto w-full min-w-0 max-w-6xl px-0 py-4 sm:px-4 sm:py-8">
           <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+            <h1 className="mb-2 break-words text-2xl font-display font-bold text-foreground sm:text-3xl md:text-4xl">
               Team Access Management
             </h1>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-base text-muted-foreground sm:text-lg">
               Manage who has access to your music distribution account and control their permissions
             </p>
           </div>
@@ -789,7 +789,7 @@ const Team = () => {
                   </CardHeader>
                   <CardContent>
                     {isEditingTeamName ? (
-                      <div className="flex gap-3">
+                      <div className="flex flex-col gap-3 sm:flex-row">
                         <Input
                           placeholder="Enter your team name..."
                           value={newTeamName}
@@ -818,7 +818,7 @@ const Team = () => {
                         </Button>
                       </div>
                     ) : (
-                      <div className="flex items-center justify-between">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           {teamName ? (
                             <span className="text-lg font-medium">{teamName}</span>
@@ -856,7 +856,7 @@ const Team = () => {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row">
                     <Input
                       placeholder="Paste invitation token here..."
                       value={directInviteToken}

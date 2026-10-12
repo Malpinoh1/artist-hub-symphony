@@ -151,8 +151,8 @@ const PerformanceStatisticsEditor = ({
           )}
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="totalStreams" className="text-left dark:text-slate-300 sm:text-right">
                 Total Streams
               </Label>
               <Input
@@ -160,12 +160,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={totalStreams}
                 readOnly
-                className="col-span-3 bg-slate-100 dark:bg-slate-800 dark:text-white"
+                className="w-full min-w-0 bg-slate-100 dark:bg-slate-800 dark:text-white sm:col-span-3"
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="spotifyStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="spotifyStreams" className="text-left dark:text-slate-300 sm:text-right">
                 Spotify Streams
               </Label>
               <Input
@@ -173,12 +173,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={spotifyStreams}
                 onChange={(e) => setSpotifyStreams(e.target.value)}
-                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                className="w-full min-w-0 sm:col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="appleMusicStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="appleMusicStreams" className="text-left dark:text-slate-300 sm:text-right">
                 Apple Music
               </Label>
               <Input
@@ -186,12 +186,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={appleMusicStreams}
                 onChange={(e) => setAppleMusicStreams(e.target.value)}
-                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                className="w-full min-w-0 sm:col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="youtubeMusicStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="youtubeMusicStreams" className="text-left dark:text-slate-300 sm:text-right">
                 YouTube Music
               </Label>
               <Input
@@ -199,12 +199,12 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={youtubeMusicStreams}
                 onChange={(e) => setYoutubeMusicStreams(e.target.value)}
-                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                className="w-full min-w-0 sm:col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
             
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="otherStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="otherStreams" className="text-left dark:text-slate-300 sm:text-right">
                 Other Platforms
               </Label>
               <Input
@@ -212,7 +212,7 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={otherStreams}
                 onChange={(e) => setOtherStreams(e.target.value)}
-                className="col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
+                className="w-full min-w-0 sm:col-span-3 dark:bg-slate-800 dark:text-white dark:border-slate-700"
               />
             </div>
           </div>
