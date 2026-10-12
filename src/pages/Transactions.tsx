@@ -114,14 +114,14 @@ const Transactions = () => {
   }
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-1 sm:px-0">
+    <div className="min-w-0 max-w-full space-y-4 px-0 sm:space-y-6">
       <div>
         <h1 className="text-xl sm:text-2xl font-bold">Transaction History</h1>
         <p className="text-sm sm:text-base text-muted-foreground">View all your income and transaction records</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-3">
+      <div className="grid min-w-0 grid-cols-2 gap-2 sm:gap-3 md:grid-cols-5">
         <AnimatedCard>
           <Card>
             <CardContent className="p-3 sm:p-4">
