@@ -29,6 +29,7 @@ import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab'
 import OACRequestsTab from '@/components/admin/OACRequestsTab';
 import CollectiveTab from '@/components/admin/CollectiveTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+import AdminSectionNavigation from '@/components/admin/AdminSectionNavigation';
 
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import AdminManualPaymentTab from '@/components/admin/AdminManualPaymentTab';
@@ -316,28 +317,7 @@ const AdminDashboard = () => {
               pendingWithdrawalsAmount={pendingWithdrawalsAmount}
             />
             
-            <div className="border-b border-border mb-4 sm:mb-6 -mx-3 sm:mx-0 px-3 sm:px-0">
-              <div className="flex overflow-x-auto space-x-1 pb-1 -mb-px scrollbar-thin">
-                {tabs.map((tab) => (
-                  <button 
-                    key={tab.id}
-                    onClick={() => handleTabChange(tab.id)}
-                    className={`min-h-[44px] px-3 py-2 border-b-2 whitespace-nowrap flex items-center text-sm ${
-                      activeTab === tab.id
-                        ? 'border-primary text-primary font-medium'
-                        : 'border-transparent text-muted-foreground hover:text-primary'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                    {tab.badge && (
-                      <span className="ml-1.5 px-1.5 py-0.5 text-xs rounded-full bg-destructive/15 text-destructive">
-                        {tab.badge}
-                      </span>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <AdminSectionNavigation tabs={tabs} activeTab={activeTab} onChange={handleTabChange} />
             
             <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
               {renderActiveTabContent()}
