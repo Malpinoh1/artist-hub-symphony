@@ -101,11 +101,11 @@ const ArtistEarningsEditor = ({ artist, isOpen, onClose, onUpdate }: ArtistEarni
           )}
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalEarnings" className="text-right">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="totalEarnings" className="text-left sm:text-right">
                 Total Earnings
               </Label>
-              <div className="col-span-3 relative">
+              <div className="relative min-w-0 sm:col-span-3">
                 <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500 dark:text-gray-400">$</span>
                 <Input
                   id="totalEarnings"
