@@ -26,12 +26,12 @@ const TABS = [
 ];
 
 const StatCard = ({ icon: Icon, label, value, accent }: any) => (
-  <div className="glass-panel p-4 rounded-xl flex items-center gap-3">
-    <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${accent}`}>
+  <div className="glass-panel flex min-w-0 items-center gap-3 rounded-xl p-3 sm:p-4">
+    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${accent}`}>
       <Icon className="h-5 w-5" />
     </div>
-    <div>
-      <div className="text-2xl font-semibold leading-tight">{value}</div>
+    <div className="min-w-0 flex-1">
+      <div className="break-words text-xl font-semibold leading-tight sm:text-2xl">{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   </div>
@@ -80,7 +80,7 @@ const AdminDistribution: React.FC = () => {
   };
 
   return (
-    <div className="container mx-auto px-3 sm:px-4">
+    <div className="container mx-auto w-full min-w-0 max-w-full px-0 sm:px-2">
       <AnimatedCard>
         <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div>
@@ -118,7 +118,7 @@ const AdminDistribution: React.FC = () => {
           </div>
         </div>
 
-        <div className="glass-panel p-2 sm:p-6">
+        <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
           {activeTab === 'releases' && (
             <ReleasesTab releases={releases} loading={loading} onReleaseUpdate={handleReleaseUpdate} onRefreshData={refresh} />
           )}
