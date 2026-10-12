@@ -12,6 +12,7 @@ import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import SubscriptionManagement from '@/components/admin/SubscriptionManagement';
 import AdminCreditManager from '@/components/admin/AdminCreditManager';
 import PlatformStreamAnalytics from '@/components/admin/PlatformStreamAnalytics';
+import AdminSectionNavigation from '@/components/admin/AdminSectionNavigation';
 import {
   fetchAdminWithdrawals,
   fetchArtistsEarningSummary,
@@ -117,18 +118,7 @@ const AdminFinance: React.FC = () => {
           <StatCard icon={Users} label="Earning artists" value={stats.artistCount} accent="bg-primary/15 text-primary" />
         </div>
 
-        <div className="border-b border-border mb-4 -mx-3 sm:mx-0 px-3 sm:px-0">
-          <div className="flex overflow-x-auto space-x-1 pb-1 -mb-px scrollbar-thin">
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setActiveTab(t.id)}
-                className={`min-h-[44px] px-3 py-2 border-b-2 whitespace-nowrap text-sm ${
-                  activeTab === t.id ? 'border-primary text-primary font-medium' : 'border-transparent text-muted-foreground hover:text-primary'
-                }`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <AdminSectionNavigation tabs={TABS} activeTab={activeTab} onChange={setActiveTab} />
 
         <div className="glass-panel min-w-0 max-w-full p-2 sm:p-6">
           {activeTab === 'withdrawals' && (
