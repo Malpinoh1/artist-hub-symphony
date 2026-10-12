@@ -79,9 +79,9 @@ export function StepTrackUpload({ formData, tracks, onTracksChange, audioFiles, 
         </CardContent>
       </Card>
 
-      <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={onPrev}><ChevronLeft className="w-4 h-4 mr-2" /> Back</Button>
-        <Button type="button" onClick={onNext} disabled={!canProceed}>Continue to Artwork <ChevronRight className="w-4 h-4 ml-2" /></Button>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
+        <Button className="w-full sm:w-auto" type="button" variant="outline" onClick={onPrev}><ChevronLeft className="w-4 h-4 mr-2" /> Back</Button>
+        <Button className="w-full sm:w-auto" type="button" onClick={onNext} disabled={!canProceed}>Continue to Artwork <ChevronRight className="w-4 h-4 ml-2" /></Button>
       </div>
     </div>
   );
