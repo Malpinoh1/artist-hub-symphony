@@ -163,7 +163,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
       {/* Mobile Sidebar */}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw-1.5rem)] flex-col overflow-y-auto overscroll-contain bg-card border-r border-border transform transition-transform lg:hidden",
+          "fixed inset-y-0 left-0 z-50 flex w-72 max-w-[calc(100vw_-_1.5rem)] flex-col overflow-y-auto overscroll-contain bg-card border-r border-border transform transition-transform lg:hidden",
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
