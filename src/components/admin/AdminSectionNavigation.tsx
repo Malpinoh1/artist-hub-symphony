@@ -97,7 +97,7 @@ const AdminSectionNavigation: React.FC<AdminSectionNavigationProps> = ({
         )}
         {tab.badge != null && tab.badge > 0 && (
           <span
-            className={`shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive ${!mobile && collapsed ? 'absolute ml-5 -mt-7' : ''}`}
+            className={`shrink-0 rounded-full bg-destructive/15 px-2 py-0.5 text-xs font-semibold text-destructive ${!mobile && collapsed ? 'absolute right-0 top-0 translate-x-1/3 -translate-y-1/3' : ''}`}
             aria-label={`${tab.badge} pending`}
           >
             {tab.badge}
