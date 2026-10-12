@@ -85,7 +85,7 @@ const AdminSectionNavigation: React.FC<AdminSectionNavigationProps> = ({
         aria-current={active ? 'page' : undefined}
         title={!mobile && collapsed ? tab.label : undefined}
         onClick={() => selectTab(tab.id)}
-        className={`group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+        className={`group relative flex min-h-11 w-full min-w-0 items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
           active
             ? 'bg-primary/10 text-primary'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
