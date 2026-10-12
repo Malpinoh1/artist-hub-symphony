@@ -135,18 +135,18 @@ const DashboardContent = () => {
 
   return (
     <div>
-      <section className="container mx-auto px-4 py-8 max-w-6xl">
+      <section className="container mx-auto w-full max-w-6xl px-0 py-4 sm:px-4 sm:py-8">
           <div className="mb-8">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-2">
+                <h1 className="mb-2 break-words text-2xl font-display font-bold text-foreground sm:text-3xl md:text-4xl">
                   Welcome back, {user?.email?.split('@')[0] || 'Artist'}!
                 </h1>
-                <p className="text-muted-foreground text-lg">
+                <p className="text-base text-muted-foreground sm:text-lg">
                   Manage your music distribution and track your performance
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {isWebsiteAdmin && (
                   <Badge variant="destructive">Admin Access</Badge>
                 )}
@@ -221,7 +221,7 @@ const DashboardContent = () => {
 
           {/* Recent Releases */}
           <div className="mb-8">
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-display font-semibold text-foreground">
                 Recent Releases
               </h2>
