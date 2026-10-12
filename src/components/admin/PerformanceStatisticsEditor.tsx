@@ -151,8 +151,8 @@ const PerformanceStatisticsEditor = ({
           )}
           
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="totalStreams" className="text-right dark:text-slate-300">
+            <div className="grid grid-cols-1 items-start gap-2 sm:grid-cols-4 sm:items-center sm:gap-4">
+              <Label htmlFor="totalStreams" className="text-left dark:text-slate-300 sm:text-right">
                 Total Streams
               </Label>
               <Input
@@ -160,7 +160,7 @@ const PerformanceStatisticsEditor = ({
                 type="number"
                 value={totalStreams}
                 readOnly
-                className="col-span-3 bg-slate-100 dark:bg-slate-800 dark:text-white"
+                className="w-full min-w-0 bg-slate-100 dark:bg-slate-800 dark:text-white sm:col-span-3"
               />
             </div>
             
