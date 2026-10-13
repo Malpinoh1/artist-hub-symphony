@@ -25,6 +25,64 @@ const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n
 // The same original transparent PNG used by the MALPINOHDISTRO site header/footer.
 const BRAND_LOGO_URL = '/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png';
 
+const drawStreamingPlatformLogos = (ctx: CanvasRenderingContext2D, w: number, pad: number, stripY: number) => {
+  const platforms = ['Spotify', 'Apple Music', 'Audiomack', 'Boomplay', 'TikTok', 'YouTube'];
+  const areaW = w - pad * 2;
+  const slotW = areaW / platforms.length;
+  const y = stripY + 27;
+  const icon = Math.round(w * 0.022);
+  const labelFont = Math.round(w * 0.016);
+  ctx.save();
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  platforms.forEach((name, index) => {
+    const centerX = pad + slotW * (index + 0.5);
+    const textW = name === 'Apple Music' ? w * 0.074 : name === 'Audiomack' ? w * 0.073 : name === 'Boomplay' ? w * 0.068 : name === 'Spotify' ? w * 0.052 : name === 'YouTube' ? w * 0.06 : w * 0.05;
+    const groupW = icon + 6 + textW;
+    const x = centerX - groupW / 2;
+    const iy = y;
+
+    if (name === 'Spotify') {
+      ctx.fillStyle = '#1DB954';
+      ctx.beginPath(); ctx.arc(x + icon / 2, iy, icon / 2, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#07130B'; ctx.lineWidth = Math.max(1.5, w * 0.0018);
+      [0.25, 0.43, 0.61].forEach((offset, i) => {
+        ctx.beginPath();
+        ctx.ellipse(x + icon / 2, iy - icon * 0.05 + i * icon * 0.06, icon * (0.32 - i * 0.035), icon * (0.13 - i * 0.012), 0, Math.PI * 1.12, Math.PI * 1.88);
+        ctx.stroke();
+      });
+    } else if (name === 'Apple Music') {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `900 ${Math.round(icon * 1.25)}px Arial, sans-serif`;
+      ctx.fillText('♫', x - 1, iy);
+    } else if (name === 'Audiomack') {
+      ctx.fillStyle = '#FFC400';
+      for (let b = 0; b < 4; b++) {
+        const bh = icon * (0.28 + (b % 3) * 0.18);
+        ctx.fillRect(x + b * icon * 0.22, iy + bh / 2 - bh, icon * 0.13, bh);
+      }
+    } else if (name === 'Boomplay') {
+      ctx.fillStyle = '#FFC928';
+      ctx.beginPath(); ctx.moveTo(x + icon * 0.16, iy - icon * 0.48); ctx.lineTo(x + icon * 0.82, iy); ctx.lineTo(x + icon * 0.16, iy + icon * 0.48); ctx.closePath(); ctx.fill();
+    } else if (name === 'TikTok') {
+      ctx.font = `900 ${Math.round(icon * 1.15)}px Arial, sans-serif`;
+      ctx.fillStyle = '#25F4EE'; ctx.fillText('♪', x - 1, iy + 1);
+      ctx.fillStyle = '#FE2C55'; ctx.fillText('♪', x + 1, iy - 1);
+      ctx.fillStyle = '#FFFFFF'; ctx.fillText('♪', x, iy);
+    } else {
+      ctx.fillStyle = '#FF0033';
+      roundRect(ctx, x, iy - icon * 0.34, icon * 1.18, icon * 0.68, icon * 0.17); ctx.fill();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath(); ctx.moveTo(x + icon * 0.46, iy - icon * 0.21); ctx.lineTo(x + icon * 0.46, iy + icon * 0.21); ctx.lineTo(x + icon * 0.82, iy); ctx.closePath(); ctx.fill();
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = `700 ${labelFont}px Inter, system-ui, sans-serif`;
+    ctx.fillText(name, x + icon + 5, iy);
+  });
+  ctx.restore();
+};
+
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -306,6 +364,9 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.lineWidth = 2;
     roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
     ctx.stroke();
+
+    // DSP platform marks — built into the exported image, not just the app preview.
+    drawStreamingPlatformLogos(ctx, w, pad + w * 0.015, stripY + 1);
 
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
