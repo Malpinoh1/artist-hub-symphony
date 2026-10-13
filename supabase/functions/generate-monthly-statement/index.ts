@@ -25,13 +25,12 @@ serve(async (req) => {
 
     const { data: agg } = await supabase
       .from('monthly_artist_earnings')
-      .select('*')
+      .select('total_streams, total_earnings, currency')
       .eq('artist_id', artistId)
       .eq('period_year', year)
-      .eq('period_month', month)
-      .maybeSingle();
+      .eq('period_month', month);
 
-    if (!agg) {
+    if (!agg || agg.length === 0) {
       return new Response(JSON.stringify({ pdfUrl: null, message: 'No earnings for that period' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
@@ -44,6 +43,9 @@ serve(async (req) => {
       .eq('royalty_uploads.period_month', month);
 
     const tracks = (rows || []) as any[];
+    const earningsRows = agg as any[];
+    const totalStreams = earningsRows.reduce((sum, row) => sum + Number(row.total_streams || 0), 0);
+    const totalEarnings = earningsRows.reduce((sum, row) => sum + Number(row.total_earnings || 0), 0);
     const periodLabel = `${MONTHS[month - 1]} ${year}`;
     const accountName = artist?.account_name || artist?.name || 'Artist';
     const stmtNumber = `MS-${year}${String(month).padStart(2,'0')}-${artistId.slice(0,8).toUpperCase()}`;
@@ -52,8 +54,8 @@ serve(async (req) => {
       accountName,
       periodLabel,
       stmtNumber,
-      totalStreams: agg.total_streams,
-      totalEarnings: Number(agg.total_earnings),
+      totalStreams,
+      totalEarnings,
       tracks,
     });
 
