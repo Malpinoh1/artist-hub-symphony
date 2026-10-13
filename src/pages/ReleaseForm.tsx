@@ -64,7 +64,7 @@ const ReleaseForm = () => {
   const [resumed, setResumed] = useState(false);
   const isResumeIntent = searchParams.get('resume') === '1';
 
-  const { draft, loaded: draftLoaded, scheduleSave, saveNow, clearDraft, saving: draftSaving, lastSavedAt } = useReleaseDraft({
+  const { draft, loaded: draftLoaded, saveNow, clearDraft, saving: draftSaving, lastSavedAt } = useReleaseDraft({
     userId: user?.id ?? null,
     enabled: !!user,
   });
@@ -94,19 +94,7 @@ const ReleaseForm = () => {
     }
   }, [draftLoaded, draft, resumed, isResumeIntent, coverArtUrlRef, audioFileUrlsRef]);
 
-  // Auto-save (debounced)
-  useEffect(() => {
-    if (!draftLoaded || !user) return;
-    if (currentStep >= 6) return; // Don't save the success screen as a draft
-    scheduleSave({
-      data: { formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted },
-      cover_art_url: coverArtUrlRef.current,
-      audio_file_urls: audioFileUrlsRef.current,
-      current_step: currentStep,
-      selected_artist_account: selectedArtistAccount,
-    });
-  }, [formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted, currentStep, selectedArtistAccount, draftLoaded, user, scheduleSave, coverArtUrlRef, audioFileUrlsRef]);
-
+  // Drafts are saved only when the user clicks "Save Draft" or starts submission.
   // Upload cover-art the moment it's chosen so it survives payment redirect.
   const coverUploadingRef = useRef(false);
   useEffect(() => {
@@ -119,14 +107,6 @@ const ReleaseForm = () => {
         if (error) throw error;
         const { data: urlData } = supabase.storage.from('release_artwork').getPublicUrl(path);
         coverArtUrlRef.current = urlData?.publicUrl ?? null;
-        // Trigger save
-        scheduleSave({
-          data: { formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted },
-          cover_art_url: coverArtUrlRef.current,
-          audio_file_urls: audioFileUrlsRef.current,
-          current_step: currentStep,
-          selected_artist_account: selectedArtistAccount,
-        });
       } catch (e: any) {
         console.error('Background cover upload failed:', e);
       } finally {
@@ -154,13 +134,6 @@ const ReleaseForm = () => {
           urls.push(urlData?.publicUrl || '');
         }
         audioFileUrlsRef.current = urls;
-        scheduleSave({
-          data: { formData, tracks, storeSelections, freeTrackIds, audioClips, termsAccepted },
-          cover_art_url: coverArtUrlRef.current,
-          audio_file_urls: urls,
-          current_step: currentStep,
-          selected_artist_account: selectedArtistAccount,
-        });
       } catch (e: any) {
         console.error('Background audio upload failed:', e);
       } finally {
@@ -445,7 +418,7 @@ const ReleaseForm = () => {
                     {draftSaving ? 'Saving…' : 'Save Draft'}
                   </Button>
                   <span className="text-xs text-muted-foreground">
-                    {draftSaving ? 'Saving draft…' : lastSavedAt ? `Draft saved at ${lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · auto-save is on` : 'Auto-save is on'}
+                    {draftSaving ? 'Saving draft…' : lastSavedAt ? `Last saved at ${lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Your progress is not saved until you click Save Draft'}
                   </span>
                 </div>
                 {(coverArtUrlRef.current && !coverArt) || (audioFileUrlsRef.current.length > 0 && audioFiles.length === 0) ? (
