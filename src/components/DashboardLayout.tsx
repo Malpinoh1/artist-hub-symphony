@@ -56,6 +56,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  useEffect(() => {
+    const openMenu = () => setSidebarOpen(true);
+    const closeMenu = () => setSidebarOpen(false);
+    window.addEventListener('malpinohdistro:open-mobile-menu', openMenu);
+    window.addEventListener('malpinohdistro:close-mobile-menu', closeMenu);
+    return () => {
+      window.removeEventListener('malpinohdistro:open-mobile-menu', openMenu);
+      window.removeEventListener('malpinohdistro:close-mobile-menu', closeMenu);
+    };
+  }, []);
   const [seenFeatures, setSeenFeatures] = useState<string[]>([]);
   const featureKey = user?.id ? 'malpinohdistro:new-features:v1:' + user.id : null;
   useEffect(() => {
