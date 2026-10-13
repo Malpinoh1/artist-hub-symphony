@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
 
     const { data: pending, error: pendingError } = await admin
       .from("stream_achievements")
-      .select("id, artist_id, release_id, milestone, streams_at_award, awarded_at")
+      .select("id, artist_id, release_id, track_title, milestone, streams_at_award, awarded_at")
       .is("notified_at", null)
       .order("awarded_at", { ascending: true })
       .limit(200);
@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       ]);
       if (artistError) throw artistError;
       const b = badge(Number(a.milestone));
-      const trackTitle = release?.title || "Your catalogue";
+      const trackTitle = a.track_title || release?.title || "Your catalogue";
       const displayName = artist?.name || "Artist";
       const awardDate = new Date(a.awarded_at).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
