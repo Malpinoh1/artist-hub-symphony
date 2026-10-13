@@ -72,7 +72,7 @@ const DirectoryPanel = () => {
           e.preventDefault();
           setQuery(search.trim());
         }}
-        className="flex min-w-0 gap-2"
+        className="flex min-w-0 flex-col gap-2"
       >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -87,6 +87,11 @@ const DirectoryPanel = () => {
         <Button type="submit" variant="outline">
           Search
         </Button>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Input value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} placeholder="Role slug (e.g. producer)" aria-label="Filter by role" />
+          <Input value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} placeholder="Country" aria-label="Filter by country" />
+          <Input value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} placeholder="Collaboration area" aria-label="Filter by collaboration area" />
+        </div>
       </form>
 
       {loadError ? (
