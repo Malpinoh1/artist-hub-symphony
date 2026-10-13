@@ -32,7 +32,7 @@ const Achievements: React.FC = () => {
   const { getEffectiveAccountId } = useTeamPermissions();
   const artistId = getEffectiveAccountId() || user?.id;
 
-  const { data: achievements = [], isLoading } = useArtistAchievements(artistId);
+  const { data: achievements = [], isLoading, isError: achievementsError } = useArtistAchievements(artistId);
   const { data: snapshot } = useArtistReportedSnapshot(artistId);
 
   const { data: releases = [] } = useQuery({
@@ -148,6 +148,8 @@ const Achievements: React.FC = () => {
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
             {isLoading ? (
               <p className="text-sm text-muted-foreground py-6 text-center">Loading achievements…</p>
+            ) : achievementsError ? (
+              <p role="alert" className="text-sm text-destructive py-4">Achievements could not be loaded. Please try again shortly; your recorded milestones have not been changed.</p>
             ) : unlocked.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No milestones yet. Your first badge unlocks at 100 lifetime streams.
