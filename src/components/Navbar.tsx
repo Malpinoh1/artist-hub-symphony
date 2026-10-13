@@ -102,11 +102,11 @@ const Navbar = () => {
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="hidden sm:block">
-              <span className="text-xl font-display font-bold text-gradient">
-                MALPINOHdistro
+            <div className="block min-w-0">
+              <span className="block text-sm sm:text-xl font-display font-extrabold uppercase tracking-[0.12em] sm:tracking-[0.16em] text-gradient whitespace-nowrap leading-tight">
+                MALPINOH<span className="text-foreground">DISTRO</span>
               </span>
-              <div className="text-xs text-muted-foreground font-medium tracking-wide">
+              <div className="hidden sm:block text-xs text-muted-foreground font-medium tracking-wide">
                 GLOBAL MUSIC DISTRIBUTION
               </div>
             </div>
