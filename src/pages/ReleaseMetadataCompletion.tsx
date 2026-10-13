@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 type MetadataRequest = {
   id: string;
@@ -126,6 +127,11 @@ const ReleaseMetadataCompletion = () => {
       toast({ title: 'Could not submit metadata', description: error.message, variant: 'destructive' });
     } else {
       toast({ title: 'Metadata submitted', description: 'Our distribution team will verify the details and finish matching this release.' });
+      try {
+        await (supabase as any).functions.invoke('notify-release-metadata-completion', { body: { reason: 'owner_submission' } });
+      } catch (notifyError) {
+        console.warn('Metadata submission saved; notification retry may be needed.', notifyError);
+      }
       await loadRequests();
     }
     setSaving(null);
@@ -139,6 +145,11 @@ const ReleaseMetadataCompletion = () => {
         <p className="text-sm font-medium text-primary mb-2">Action required</p>
         <h1 className="text-3xl font-bold text-foreground">Complete your release details</h1>
         <p className="mt-2 text-muted-foreground max-w-3xl">We found royalty statement products that need verified release information before we can safely complete their catalogue records. Please provide the official release date and original cover artwork, then review the other metadata below.</p>
+        <Alert className="mt-4 border-amber-500/40">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Release details required</AlertTitle>
+          <AlertDescription>These requests are also sent as in-app popup notifications and email reminders. Check the notification bell for updates and use this form to submit the missing details.</AlertDescription>
+        </Alert>
       </div>
 
       {requests.length === 0 ? (
