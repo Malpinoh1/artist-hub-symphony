@@ -110,7 +110,10 @@ export const useArtistAchievements = (artistId?: string) =>
       return (data || []) as unknown as Achievement[];
     },
     enabled: !!artistId,
-    staleTime: 60_000,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
+    refetchOnWindowFocus: true,
+    retry: 2,
   });
 
 export async function runAchievementSweep() {
