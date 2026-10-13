@@ -225,9 +225,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             <Menu className="h-5 w-5" />
           </Button>
 
-          <Link to="/dashboard" className="lg:hidden flex min-w-0 items-center gap-2" aria-label="MALPINOH DISTRO dashboard">
-            <img src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" alt="" className="h-7 w-7 shrink-0 object-contain" />
-            <span className="truncate text-[11px] font-black tracking-[0.12em] text-foreground">MALPINOH DISTRO</span>
+          <Link to="/dashboard" className="flex min-w-0 shrink items-center gap-2.5 group" aria-label="MALPINOHdistro artist portal home">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-primary/20 bg-primary/5 p-1 shadow-sm transition-transform group-hover:scale-105">
+              <img src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" alt="MALPINOHdistro logo" className="h-full w-full object-contain" />
+            </span>
+            <span className="flex min-w-0 flex-col leading-none">
+              <span className="truncate font-display text-xs sm:text-sm font-extrabold tracking-[0.12em] text-foreground">MALPINOHdistro</span>
+              <span className="mt-1 hidden sm:block text-[9px] font-semibold tracking-[0.2em] text-muted-foreground">ARTIST PORTAL</span>
+            </span>
           </Link>
 
           <div className="flex-1" />
