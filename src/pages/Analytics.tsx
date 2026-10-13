@@ -112,8 +112,7 @@ const AnalyticsContent = () => {
               previousStats,
             };
           })
-          .sort((a, b) => b.total_streams - a.total_streams)
-          .slice(0, 5); // Top 5 tracks
+          .sort((a, b) => b.total_streams - a.total_streams); // All releases for accurate platform totals
           
         console.log("Processed releases with real performance stats:", tracksWithStats);
         const sum = (key: 'spotify_streams' | 'apple_music_streams' | 'youtube_music_streams' | 'other_streams') =>
@@ -131,10 +130,12 @@ const AnalyticsContent = () => {
       } else {
         console.log("No releases with performance statistics found");
         setTopTracks([]);
+        setPlatformData({ spotify: { plays: 0, growth: 0 }, appleMusic: { plays: 0, growth: 0 }, youtubeMusic: { plays: 0, growth: 0 }, deezer: { plays: 0, growth: 0 } });
       }
     } catch (error) {
       console.error("Error fetching top tracks:", error);
       setTopTracks([]);
+      setPlatformData({ spotify: { plays: 0, growth: 0 }, appleMusic: { plays: 0, growth: 0 }, youtubeMusic: { plays: 0, growth: 0 }, deezer: { plays: 0, growth: 0 } });
     }
   };
 
