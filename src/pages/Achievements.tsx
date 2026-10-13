@@ -40,7 +40,7 @@ const Achievements: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('releases')
-        .select('id, title, cover_art_url')
+        .select('id, title, artist_name, cover_art_url')
         .eq('artist_id', artistId!);
       if (error) throw error;
       return data || [];
@@ -190,7 +190,7 @@ const Achievements: React.FC = () => {
                               awardedAt: a.awarded_at,
                               releaseTitle: achievementTitle,
                               coverUrl: rel?.cover_art_url || null,
-                              artistName: artist?.name || 'MALPINOHDISTRO Artist',
+                              artistName: (rel?.artist_name || artist?.name || 'MALPINOHDISTRO Artist'),
                             })
                           }
                         >
