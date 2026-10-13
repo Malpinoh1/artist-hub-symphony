@@ -121,11 +121,14 @@ const Transactions = () => {
     .filter(t => t.type === 'income' || t.type === 'royalty_share_in')
     .reduce((sum, t) => sum + Number(t.amount), 0);
   const totalWithdrawn = transactions
-    .filter(t => t.type === 'withdrawal')
+    .filter(t => t.type === 'withdrawal' && t.source !== 'subscription')
+    .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
+  const royaltySharedOut = transactions
+    .filter(t => t.type === 'royalty_share_out')
     .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
   const latestLedgerTransaction = transactions.filter(t => t.source !== 'subscription').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
   const currentBalance = latestLedgerTransaction ? Number(latestLedgerTransaction.balance_after) : 0;
-  const pendingBalance = totalEarnings - totalWithdrawn;
+  const pendingBalance = totalEarnings - totalWithdrawn - royaltySharedOut;
   const txCount = transactions.length;
 
   if (loading) {
