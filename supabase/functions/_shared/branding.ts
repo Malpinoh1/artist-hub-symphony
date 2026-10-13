@@ -1,5 +1,6 @@
 export const BRAND = {
   name: "MALPINOHDISTRO",
+  logo: "https://malpinohdistro.com.ng/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png",
   bg: "#0B0B12",
   card: "#15121F",
   border: "#2A2340",
@@ -36,8 +37,11 @@ export function brandedEmail({
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;background:${BRAND.card};border:1px solid ${BRAND.border};border-radius:18px;overflow:hidden;">
         <tr>
           <td style="background:linear-gradient(135deg,${BRAND.purpleDark},${BRAND.purple});padding:22px 26px;">
-            <div style="color:#fff;font-size:17px;font-weight:800;letter-spacing:1.5px;">${BRAND.name}</div>
-            <div style="color:rgba(255,255,255,.82);font-size:11px;letter-spacing:2px;">ARTIST PORTAL</div>
+            <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+              <td valign="middle" style="padding-right:12px;"><img src="${BRAND.logo}" width="46" height="46" alt="${BRAND.name} logo" style="display:block;width:46px;height:46px;object-fit:contain;border:0;" /></td>
+              <td valign="middle"><div style="color:#fff;font-size:17px;font-weight:800;letter-spacing:1.5px;">${BRAND.name}</div>
+              <div style="color:rgba(255,255,255,.82);font-size:11px;letter-spacing:2px;">ARTIST PORTAL</div></td>
+            </tr></table>
           </td>
         </tr>
         <tr>
