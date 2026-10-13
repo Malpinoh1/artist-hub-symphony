@@ -479,6 +479,7 @@ const Auth = () => {
 
                 <form onSubmit={isLogin ? handleLogin : handleSignUp}>
                   {!isLogin && (
+                    <>
                     <div className="mb-6">
                       <label className="block text-sm font-medium text-black mb-2">Account Type *</label>
                       <div className="grid grid-cols-2 gap-3">
@@ -510,6 +511,7 @@ const Auth = () => {
                         />
                       </div>
                     </div>
+                    </>
                   )}
                   
                   <div className="mb-6">
