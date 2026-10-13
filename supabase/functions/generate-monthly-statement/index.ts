@@ -165,8 +165,8 @@ function buildPdf(a: PdfArgs): Uint8Array {
     return title + " " + type + " " + platform + " " + distributor + " " + unitText + " " + amount;
   };
 
-  const firstCapacity = 25;
-  const laterCapacity = 37;
+  const firstCapacity = 23;
+  const laterCapacity = 32;
   let index = 0;
   const firstRows = rows.slice(0, firstCapacity);
   pages.push(firstPageLines.concat(firstRows.map(formatRow)));
