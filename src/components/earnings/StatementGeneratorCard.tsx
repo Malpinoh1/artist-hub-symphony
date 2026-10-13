@@ -35,6 +35,8 @@ const StatementGeneratorCard: React.FC<Props> = ({ artistId }) => {
   }, [artistId]);
 
   const generate = async () => {
+    // Open the tab during the user click so browsers do not block it after the async request.
+    const statementTab = window.open('about:blank', '_blank');
     setGenerating(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-monthly-statement', {
@@ -42,13 +44,19 @@ const StatementGeneratorCard: React.FC<Props> = ({ artistId }) => {
       });
       if (error) throw error;
       if (data?.pdfUrl) {
-        window.open(data.pdfUrl, '_blank');
-        toast.success('Statement ready');
+        if (statementTab) {
+          statementTab.location.href = data.pdfUrl;
+        } else {
+          window.location.assign(data.pdfUrl);
+        }
+        toast.success('Statement PDF generated');
       } else {
-        toast.error('No earnings found for that period');
+        statementTab?.close();
+        toast.error(data?.message || 'No earnings found for that period');
       }
     } catch (e: any) {
-      toast.error(e.message || 'Failed to generate statement');
+      statementTab?.close();
+      toast.error(e.message || 'Failed to generate statement PDF');
     } finally {
       setGenerating(false);
     }
@@ -92,7 +100,7 @@ const StatementGeneratorCard: React.FC<Props> = ({ artistId }) => {
         </div>
         <Button onClick={generate} disabled={generating} className="w-full">
           {generating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Download className="h-4 w-4 mr-2" />}
-          Generate & Download PDF
+          {generating ? 'Generating PDF…' : 'Generate & Download PDF'}
         </Button>
       </CardContent>
     </Card>
