@@ -55,7 +55,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           subheading: "Your Collective membership is now active.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>Your application has been approved. Your Collective Center is now unlocked, including your personal Collective link:</p>
-            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective/${handle ?? ""}</p>
+            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective?ref=${handle ?? ""}</p>
             <p>Share it with artists, fans and industry people you think belong here. Participation is entirely voluntary.</p>`,
           ctaLabel: "Open Collective Center",
           ctaUrl: `${SITE}/collective/center`,
