@@ -40,6 +40,7 @@ const AnalyticsContent = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { getEffectiveAccountId, isWebsiteAdmin } = useTeamPermissions();
+  const effectiveAccountId = getEffectiveAccountId() || user?.id;
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [userProfile, setUserProfile] = useState<{ name: string } | null>(null);
@@ -151,7 +152,6 @@ const AnalyticsContent = () => {
       }
 
       // Use effective account ID (respects team context)
-      const effectiveAccountId = getEffectiveAccountId() || user.id;
       
       // Get user's profile information
       const { data: profileData } = await supabase
@@ -180,6 +180,7 @@ const AnalyticsContent = () => {
       } else {
         console.log("No artist data found");
         setTopTracks([]);
+        setPlatformData({ spotify: { plays: 0, growth: 0 }, appleMusic: { plays: 0, growth: 0 }, youtubeMusic: { plays: 0, growth: 0 }, deezer: { plays: 0, growth: 0 } });
       }
 
       // Platform totals come from this artist's approved releases and latest performance snapshots, not shared global analytics.
@@ -197,8 +198,8 @@ const AnalyticsContent = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    void fetchData();
+  }, [user?.id, effectiveAccountId]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
