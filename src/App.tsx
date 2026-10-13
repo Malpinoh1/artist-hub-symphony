@@ -22,6 +22,7 @@ const Auth = React.lazy(() => import("./pages/Auth"));
 const Pricing = React.lazy(() => import("./pages/Pricing"));
 const Dashboard = React.lazy(() => import("./pages/Dashboard"));
 const Releases = React.lazy(() => import("./pages/Releases"));
+const ReleaseMetadataCompletion = React.lazy(() => import("./pages/ReleaseMetadataCompletion"));
 const Analytics = React.lazy(() => import("./pages/Analytics"));
 const HelpCenter = React.lazy(() => import("./pages/HelpCenter"));
 const Team = React.lazy(() => import("./pages/Team"));
@@ -136,7 +137,8 @@ const AppContent = () => {
 
         {/* Protected dashboard routes — wrapped in DashboardLayout */}
         <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />
-        <Route path="/releases" element={<DashboardPage><Releases /></DashboardPage>} />
+        <Route path="/releases" element={<DashboardPage><Releases /></DashboardPage} />
+        <Route path="/release-metadata-completion" element={<DashboardPage><ReleaseMetadataCompletion /></DashboardPage>} />
         <Route path="/releases/:id" element={<DashboardPage><ReleaseDetails /></DashboardPage>} />
         <Route path="/release-form" element={<DashboardPage><ReleaseForm /></DashboardPage>} />
         <Route path="/analytics" element={<DashboardPage><Analytics /></DashboardPage>} />
