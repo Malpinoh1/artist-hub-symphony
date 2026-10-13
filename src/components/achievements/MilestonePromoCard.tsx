@@ -35,39 +35,37 @@ const DSP_LOGOS = [
 ];
 
 const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: number, pad: number, stripY: number) => {
+  const stripH = Math.round(w * 0.24);
   const areaW = w - pad * 2;
-  const slotW = areaW / DSP_LOGOS.length;
-  const stripH = Math.round(w * 0.19);
-  const y = stripY + stripH * 0.25;
-  const icon = Math.round(w * 0.034);
-  const labelFont = Math.round(w * 0.019);
+  const columns = 3;
+  const slotW = areaW / columns;
+  const icon = Math.round(w * 0.043);
+  const labelFont = Math.round(w * 0.022);
   const logos = await Promise.all(DSP_LOGOS.map(async (platform) => ({
     ...platform,
     image: await loadImage(platform.url),
   })));
 
+  // A 3 × 2 grid keeps each official DSP mark and label clear on square and story exports.
   ctx.save();
-  ctx.textAlign = 'left';
+  ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   logos.forEach((platform, index) => {
-    const centerX = pad + slotW * (index + 0.5);
-    const textW = w * platform.textW;
-    const groupW = icon + 7 + textW;
-    const x = centerX - groupW / 2;
-
+    const col = index % columns;
+    const row = Math.floor(index / columns);
+    const centerX = pad + slotW * (col + 0.5);
+    const centerY = stripY + stripH * (row === 0 ? 0.25 : 0.49);
     if (platform.image) {
-      ctx.drawImage(platform.image, x, y - icon / 2, icon, icon);
+      ctx.drawImage(platform.image, centerX - icon / 2, centerY - icon * 0.82, icon, icon);
     } else {
-      // Keep the DSP strip legible if a platform's official mark cannot load.
       ctx.fillStyle = platform.color;
       ctx.beginPath();
-      ctx.arc(x + icon / 2, y, icon / 2, 0, Math.PI * 2);
+      ctx.arc(centerX, centerY - icon * 0.34, icon * 0.42, 0, Math.PI * 2);
       ctx.fill();
     }
-
     ctx.fillStyle = 'rgba(255,255,255,0.96)';
     ctx.font = `800 ${labelFont}px 'Space Grotesk', system-ui, sans-serif`;
-    ctx.fillText(platform.name, x + icon + 7, y);
+    ctx.fillText(platform.name, centerX, centerY + icon * 0.48);
   });
   ctx.restore();
 };
@@ -343,7 +341,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.fillText(artist, textX, ty);
 
     // Footer stat strip
-    const stripH = Math.round(w * 0.19);
+    const stripH = Math.round(w * 0.24);
 
     const stripY = h - pad - stripH;
     roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
