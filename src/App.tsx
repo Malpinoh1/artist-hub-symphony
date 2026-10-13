@@ -137,7 +137,7 @@ const AppContent = () => {
 
         {/* Protected dashboard routes — wrapped in DashboardLayout */}
         <Route path="/dashboard" element={<DashboardPage><Dashboard /></DashboardPage>} />
-        <Route path="/releases" element={<DashboardPage><Releases /></DashboardPage} />
+        <Route path="/releases" element={<DashboardPage><Releases /></DashboardPage>} />
         <Route path="/release-metadata-completion" element={<DashboardPage><ReleaseMetadataCompletion /></DashboardPage>} />
         <Route path="/releases/:id" element={<DashboardPage><ReleaseDetails /></DashboardPage>} />
         <Route path="/release-form" element={<DashboardPage><ReleaseForm /></DashboardPage>} />
