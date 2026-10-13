@@ -29,9 +29,10 @@ const drawStreamingPlatformLogos = (ctx: CanvasRenderingContext2D, w: number, pa
   const platforms = ['Spotify', 'Apple Music', 'Audiomack', 'Boomplay', 'TikTok', 'YouTube'];
   const areaW = w - pad * 2;
   const slotW = areaW / platforms.length;
-  const y = stripY + 27;
-  const icon = Math.round(w * 0.022);
-  const labelFont = Math.round(w * 0.016);
+  const stripH = Math.round(w * 0.19);
+  const y = stripY + stripH * 0.25;
+  const icon = Math.round(w * 0.034);
+  const labelFont = Math.round(w * 0.019);
   ctx.save();
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
@@ -77,7 +78,7 @@ const drawStreamingPlatformLogos = (ctx: CanvasRenderingContext2D, w: number, pa
     }
 
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = `700 ${labelFont}px Inter, system-ui, sans-serif`;
+    ctx.font = `800 ${labelFont}px 'Space Grotesk', system-ui, sans-serif`;
     ctx.fillText(name, x + icon + 5, iy);
   });
   ctx.restore();
@@ -197,21 +198,21 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     // Brand line — genuine site logo, with a readable wordmark fallback for blocked images.
     ctx.textAlign = 'left';
     if (logo) {
-      const logoW = Math.round(w * 0.145);
+      const logoW = Math.round(w * 0.17);
       const logoH = logoW * (logo.height / logo.width);
       ctx.drawImage(logo, pad, pad - logoH * 0.25, logoW, logoH);
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.font = `700 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
+      ctx.font = `800 ${Math.round(w * 0.024)}px 'Space Grotesk', system-ui, sans-serif`;
       ctx.fillText('MALPINOHDISTRO', pad + logoW + w * 0.018, pad + w * 0.02);
     } else {
       ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.font = `700 ${Math.round(w * 0.028)}px Inter, system-ui, sans-serif`;
+      ctx.font = `800 ${Math.round(w * 0.03)}px 'Space Grotesk', system-ui, sans-serif`;
       ctx.fillText('MALPINOHDISTRO', pad, pad + w * 0.02);
     }
 
     // Tier pill (top-right)
     const pillText = `${tier.toUpperCase()} MILESTONE`;
-    ctx.font = `800 ${Math.round(w * 0.024)}px Inter, system-ui, sans-serif`;
+    ctx.font = `800 ${Math.round(w * 0.024)}px 'Space Grotesk', system-ui, sans-serif`;
     const pillW = ctx.measureText(pillText).width + w * 0.06;
     const pillH = Math.round(w * 0.058);
     const pillX = w - pad - pillW;
@@ -354,7 +355,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.fillText(artist, textX, ty);
 
     // Footer stat strip
-    const stripH = Math.round(w * 0.13);
+    const stripH = Math.round(w * 0.19);
 
     const stripY = h - pad - stripH;
     roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
@@ -371,21 +372,21 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('TOTAL STREAMS', pad + w * 0.045, stripY + stripH * 0.42);
+    ctx.fillText('TOTAL STREAMS', pad + w * 0.045, stripY + stripH * 0.57);
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.045, stripY + stripH * 0.8);
+    ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.045, stripY + stripH * 0.84);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('UNLOCKED', w - pad - w * 0.045, stripY + stripH * 0.42);
+    ctx.fillText('UNLOCKED', w - pad - w * 0.045, stripY + stripH * 0.57);
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
     ctx.fillText(
       new Date(data.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       w - pad - w * 0.045,
-      stripY + stripH * 0.8,
+      stripY + stripH * 0.84,
     );
 
     // Consistent campaign signature at the bottom of both export formats.
