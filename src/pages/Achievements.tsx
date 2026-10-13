@@ -53,7 +53,7 @@ const Achievements: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('artists')
-        .select('name')
+        .select('name, account_type')
         .eq('id', artistId!)
         .maybeSingle();
       if (error) throw error;
@@ -61,6 +61,36 @@ const Achievements: React.FC = () => {
     },
     enabled: !!artistId,
   });
+
+  // For label accounts, use the registered signed artist name when the release
+  // metadata merely repeats the label/account name. Never label the performer
+  // with the label name just because a release has incomplete artist metadata.
+  const { data: signedArtists = [] } = useQuery({
+    queryKey: ['achievement-signed-artists', artistId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('artist_accounts')
+        .select('artist_name, signing_status')
+        .eq('owner_id', artistId!)
+        .eq('signing_status', 'signed')
+        .order('artist_name', { ascending: true });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!artistId && artist?.account_type === 'label',
+  });
+
+  const resolvePromoArtistName = (releaseArtistName?: string | null) => {
+    const releaseName = releaseArtistName?.trim();
+    const accountName = artist?.name?.trim();
+    const isLabel = artist?.account_type === 'label';
+    if (releaseName && (!isLabel || !accountName || releaseName.localeCompare(accountName, undefined, { sensitivity: 'accent' }) !== 0)) {
+      return releaseName;
+    }
+    if (isLabel && signedArtists.length === 1) return signedArtists[0].artist_name;
+    if (isLabel) return 'Featured Artist';
+    return releaseName || accountName || 'MALPINOHDISTRO Artist';
+  };
 
   const [shareCard, setShareCard] = useState<MilestoneCardData | null>(null);
 
@@ -190,7 +220,7 @@ const Achievements: React.FC = () => {
                               awardedAt: a.awarded_at,
                               releaseTitle: achievementTitle,
                               coverUrl: rel?.cover_art_url || null,
-                              artistName: (rel?.artist_name || artist?.name || 'MALPINOHDISTRO Artist'),
+                              artistName: resolvePromoArtistName(rel?.artist_name),
                             })
                           }
                         >
