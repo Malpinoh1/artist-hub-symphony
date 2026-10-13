@@ -48,21 +48,29 @@ const Transactions = () => {
   const [filterDateTo, setFilterDateTo] = useState('');
 
   useEffect(() => {
-    if (!artistId) return;
+    if (!artistId) {
+      setTransactions([]);
+      setLoading(false);
+      return;
+    }
 
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [txRes, tracksRes, platformsRes, paymentsRes] = await Promise.all([
+        const [txRes, tracksRes, platformsRes, paymentsRes, withdrawalsRes] = await Promise.all([
           supabase.from('income_transactions').select('*').eq('artist_id', artistId).order('created_at', { ascending: false }).limit(500),
           supabase.from('tracks').select('id, title'),
           supabase.from('income_platforms').select('id, name'),
           user?.id
             ? supabase.from('payments').select('id, amount_usd, amount_charged, currency, status, payment_method, created_at, flutterwave_tx_ref, plans(name)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200)
             : Promise.resolve({ data: [], error: null } as any),
+          supabase.from('withdrawals').select('id, artist_id, amount, status, created_at, naira_amount, final_amount').eq('artist_id', artistId).order('created_at', { ascending: false }).limit(200),
         ]);
-        if (txRes.error) throw txRes.error;
+        if (txRes.error) console.error('Ledger transactions could not be loaded:', txRes.error.message);
+        if (tracksRes.error) console.warn('Track filter options could not be loaded:', tracksRes.error.message);
+        if (platformsRes.error) console.warn('Platform filter options could not be loaded:', platformsRes.error.message);
         if (paymentsRes.error) console.warn('Subscription payments could not be loaded:', paymentsRes.error.message);
+        if (withdrawalsRes.error) console.warn('Withdrawals could not be loaded:', withdrawalsRes.error.message);
         const ledgerRows = (txRes.data || []).map((row: any) => ({ ...row, source: 'ledger' as const }));
         const subscriptionRows = ((paymentsRes.data || []) as any[]).map((payment) => ({
           id: `subscription-${payment.id}`,
@@ -80,7 +88,20 @@ const Transactions = () => {
           plan_name: payment.plans?.name || 'Subscription',
           payment_method: payment.payment_method,
         }));
-        setTransactions([...ledgerRows, ...subscriptionRows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) as Transaction[]);
+        const withdrawalRows = ((withdrawalsRes.data || []) as any[]).map((withdrawal) => ({
+          id: `withdrawal-${withdrawal.id}`,
+          artist_id: artistId,
+          track_id: null,
+          platform_id: null,
+          income_id: null,
+          type: 'withdrawal',
+          amount: -Math.abs(Number(withdrawal.final_amount ?? withdrawal.amount ?? 0)),
+          balance_after: 0,
+          description: `Withdrawal · ${withdrawal.status || 'pending'}${withdrawal.naira_amount ? ` · ₦${Number(withdrawal.naira_amount).toLocaleString()}` : ''}`,
+          created_at: withdrawal.created_at,
+          source: 'ledger' as const,
+        }));
+        setTransactions([...ledgerRows, ...subscriptionRows, ...withdrawalRows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) as Transaction[]);
         setTracks(tracksRes.data || []);
         setPlatforms(platformsRes.data || []);
       } catch (err) {
@@ -90,7 +111,7 @@ const Transactions = () => {
       }
     };
     fetchData();
-  }, [artistId]);
+  }, [artistId, user?.id]);
 
   const getTrackTitle = (id: string | null) => id ? (tracks.find(t => t.id === id)?.title || '—') : '—';
   const getPlatformName = (id: string | null) => id ? (platforms.find(p => p.id === id)?.name || '—') : '—';
