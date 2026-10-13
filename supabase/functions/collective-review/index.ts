@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
       .from("collective_applications")
       .update({
         status,
-        admin_notes: note ?? app.admin_notes,
+        applicant_message: note ?? app.applicant_message,
         reviewed_at: new Date().toISOString(),
         reviewed_by: reviewer.id,
       })
