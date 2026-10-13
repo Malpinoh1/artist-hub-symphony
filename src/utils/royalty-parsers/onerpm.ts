@@ -4,7 +4,7 @@ import { parseNumericCell, parseIntCell, pickField } from './shared';
 
 /**
  * Extract performer names from ONErpm "Artists" column:
- * "Liolizzy (performer), LAWAL IBRAHIM (writer)" → ["Liolizzy"]
+ * "Liolizzy (performer), LAWAL IBRAHIM (writer)" -> ["Liolizzy"]
  * Falls back to all comma-separated names if no role tags.
  */
 export function extractOnerpmPerformers(raw: string): string[] {
@@ -22,7 +22,6 @@ export function looksLikeOnerpm(headers: string[]): boolean {
   const h = headers.map((s) => s.toLowerCase().trim());
   const hasNet = h.includes('net');
   const hasArtists = h.includes('artists') || h.includes('artist');
-  // ONErpm has "Net" (not "Final Royalty") and typically no "Track Artists" column
   const hasFinalRoyalty = h.includes('final royalty');
   return hasNet && hasArtists && !hasFinalRoyalty;
 }
@@ -44,9 +43,13 @@ export function parseOnerpmRows(records: Record<string, any>[]): NormalizedRoyal
       downloads: parseIntCell(pickField(r, ['Downloads', 'Download'])),
       net_amount: net,
       currency: String(pickField(r, ['Currency']) ?? 'USD').trim() || 'USD',
-      sales_type: String(pickField(r, ['Sales Type', 'Type']) ?? '').trim(),
-      dsp_name: String(pickField(r, ['Store', 'DSP', 'Retailer', 'Platform', 'Shop']) ?? '').trim(),
-      country: String(pickField(r, ['Country', 'Territory', 'Region']) ?? '').trim(),
+      sales_type: String(pickField(r, ['Sales Type', 'Type', 'Transaction Type', 'Royalty Type']) ?? '').trim(),
+      dsp_name: String(pickField(r, [
+        'Store', 'Store Name', 'DSP', 'DSP Name', 'Retailer', 'Retailer Name',
+        'Platform', 'Platform Name', 'Streaming Service', 'Service', 'Channel',
+        'Shop', 'Partner', 'Content Provider',
+      ]) ?? '').trim(),
+      country: String(pickField(r, ['Country', 'Territory', 'Region', 'Sales Region']) ?? '').trim(),
       isrc: (() => {
         const v = String(pickField(r, ['ISRC']) ?? '').trim();
         return v || undefined;
