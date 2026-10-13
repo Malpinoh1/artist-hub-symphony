@@ -40,6 +40,10 @@ const ReleasesContent = () => {
                 Manage and track all your music releases
               </p>
             </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button asChild variant="outline" className="gap-2 w-full sm:w-auto min-h-[44px]">
+                <Link to="/release-metadata-completion">Complete metadata requests</Link>
+              </Button>
             {canManage && (
               <Button asChild className="gap-2 w-full sm:w-auto min-h-[44px]">
                 <Link to="/new-release">  
@@ -48,6 +52,7 @@ const ReleasesContent = () => {
                 </Link>
               </Button>
             )}
+            </div>
           </div>
 
           {releases.length === 0 ? (
