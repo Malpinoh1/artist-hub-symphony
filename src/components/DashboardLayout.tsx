@@ -219,11 +219,16 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
             variant="ghost"
             size="sm"
             aria-label="Open menu"
-            className="lg:hidden"
+            className="lg:hidden shrink-0"
             onClick={() => setSidebarOpen(true)}
           >
             <Menu className="h-5 w-5" />
           </Button>
+
+          <Link to="/dashboard" className="lg:hidden flex min-w-0 items-center gap-2" aria-label="MALPINOH DISTRO dashboard">
+            <img src="/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png" alt="" className="h-7 w-7 shrink-0 object-contain" />
+            <span className="truncate text-[11px] font-black tracking-[0.12em] text-foreground">MALPINOH DISTRO</span>
+          </Link>
 
           <div className="flex-1" />
 
