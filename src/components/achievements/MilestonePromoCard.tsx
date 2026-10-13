@@ -91,7 +91,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
       return;
     }
 
-
+    const logo = await loadImage(BRAND_LOGO_URL);
 
     const tier = milestoneTier(data.milestone);
     const [c1, c2] = TIER_ACCENT[tier] || TIER_ACCENT.Diamond;
@@ -173,10 +173,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     const artX = isStory ? Math.round((w - artSize) / 2) : pad;
     const artY = Math.round(h * (isStory ? 0.185 : 0.16));
 
-    const [cover, logo] = await Promise.all([
-      data.coverUrl ? loadImage(data.coverUrl) : Promise.resolve(null),
-      loadImage(BRAND_LOGO_URL),
-    ]);
+    const cover = data.coverUrl ? await loadImage(data.coverUrl) : null;
 
     // Embedded watermark: draw the original logo into the canvas itself so it survives PNG export.
     ctx.save();
