@@ -35,28 +35,27 @@ const DSP_LOGOS = [
 ];
 
 const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: number, pad: number, stripY: number) => {
-  const stripH = Math.round(w * 0.17);
+  const stripH = Math.round(w * 0.12);
   const areaW = w - pad * 2;
-  const columns = 3;
+  const columns = DSP_LOGOS.length;
   const slotW = areaW / columns;
-  const icon = Math.round(w * 0.032);
-  const labelFont = Math.round(w * 0.018);
+  const icon = Math.round(w * 0.027);
+  const labelFont = Math.round(w * 0.014);
   const logos = await Promise.all(DSP_LOGOS.map(async (platform) => ({
     ...platform,
     image: await loadImage(platform.url),
   })));
 
-  // Keep DSP marks compact in their own top band, well clear of the stream totals below.
+  // A single compact row keeps every DSP mark clear of the stream totals below.
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   logos.forEach((platform, index) => {
     const col = index % columns;
-    const row = Math.floor(index / columns);
     const centerX = pad + slotW * (col + 0.5);
-    const centerY = stripY + stripH * (row === 0 ? 0.25 : 0.70);
+    const centerY = stripY + stripH * 0.43;
     if (platform.image) {
-      ctx.drawImage(platform.image, centerX - icon / 2, centerY - icon * 0.82, icon, icon);
+      ctx.drawImage(platform.image, centerX - icon / 2, centerY - icon * 0.58, icon, icon);
     } else {
       ctx.fillStyle = platform.color;
       ctx.beginPath();
@@ -65,7 +64,7 @@ const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: numb
     }
     ctx.fillStyle = 'rgba(255,255,255,0.96)';
     ctx.font = `800 ${labelFont}px 'Space Grotesk', system-ui, sans-serif`;
-    ctx.fillText(platform.name, centerX, centerY + icon * 0.48);
+    ctx.fillText(platform.name, centerX, centerY + icon * 0.70);
   });
   ctx.restore();
 };
