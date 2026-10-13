@@ -84,6 +84,7 @@ export interface Achievement {
   id: string;
   artist_id: string;
   release_id: string | null;
+  track_title?: string | null;
   milestone: number;
   streams_at_award: number;
   awarded_at: string;
