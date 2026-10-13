@@ -42,3 +42,6 @@ verify_jwt = false
 
 [functions.collective-referral-claim]
 verify_jwt = false
+
+[functions.award-achievements]
+verify_jwt = true
