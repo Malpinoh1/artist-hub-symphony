@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { brandedEmail, sendBrandedEmail, BRAND } from "../_shared/branding.ts";
+import { brandedEmail, sendBrandedEmail } from "../_shared/branding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -13,7 +13,7 @@ const escapeHtml = (value: unknown) => String(value ?? "").replace(/[&<>"']/g, (
 
 const badge = (milestone: number) => {
   if (milestone >= 1_000_000) return { label: `${milestone / 1_000_000}M STREAMS`, tier: "Diamond" };
-  if (milestone >= 1_000) return { label: `${milestone / 1_000}K STREAMS`, tier: milestone >= 500_000 ? "Diamond" : milestone >= 100_000 ? "Platinum" : milestone >= 10_000 ? "Gold" : "Silver" };
+  if (milestone >= 1_000) return { label: `${milestone / 1_000}K STREAMS`, tier: milestone >= 100_000 ? "Platinum" : milestone >= 10_000 ? "Gold" : "Silver" };
   return { label: `${milestone} STREAMS`, tier: "Bronze" };
 };
 
