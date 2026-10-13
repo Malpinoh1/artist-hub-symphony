@@ -4,6 +4,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 
 type ReleaseArtwork = {
   id: string;
@@ -32,12 +34,21 @@ const ReleaseArtworkManager: React.FC = () => {
   const [releases, setReleases] = useState<ReleaseArtwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { getEffectiveAccountId, canManage, isLoading: permissionsLoading, currentAccountId } = useTeamPermissions();
 
   const loadReleases = async () => {
+    if (!user) {
+      setReleases([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    const accountId = getEffectiveAccountId() || user.id;
     const { data, error } = await supabase
       .from('releases')
       .select('id,title,artist_name,cover_art_url,cover_art_update_count,status')
+      .eq('artist_id', accountId)
       .order('updated_at', { ascending: false });
     if (error) {
       toast({ title: 'Could not load releases', description: error.message, variant: 'destructive' });
@@ -47,7 +58,9 @@ const ReleaseArtworkManager: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => { void loadReleases(); }, []);
+  useEffect(() => {
+    if (!permissionsLoading) void loadReleases();
+  }, [user?.id, permissionsLoading, currentAccountId]);
 
   const handleArtworkChange = async (release: ReleaseArtwork, file?: File) => {
     if (!file) return;
@@ -163,7 +176,7 @@ const ReleaseArtworkManager: React.FC = () => {
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     className="hidden"
-                    disabled={busy || remaining === 0}
+                    disabled={!canManage || busy || remaining === 0}
                     onChange={(event) => {
                       const file = event.currentTarget.files?.[0];
                       event.currentTarget.value = '';
@@ -173,7 +186,7 @@ const ReleaseArtworkManager: React.FC = () => {
                   <Button
                     type="button"
                     variant="outline"
-                    disabled={busy || remaining === 0}
+                    disabled={!canManage || busy || remaining === 0}
                     onClick={() => document.getElementById(`release-artwork-${release.id}`)?.click()}
                   >
                     {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : remaining === 0 ? <RefreshCw className="mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />}
