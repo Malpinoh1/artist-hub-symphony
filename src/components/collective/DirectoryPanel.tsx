@@ -28,6 +28,9 @@ const PAGE = 24;
 const DirectoryPanel = () => {
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -40,6 +43,9 @@ const DirectoryPanel = () => {
     setLoadError(false);
     const { data, error } = await supabase.rpc('list_collective_directory', {
       p_search: q || undefined,
+      p_role: roleFilter.trim() || undefined,
+      p_country: countryFilter.trim() || undefined,
+      p_area: areaFilter.trim() || undefined,
       p_limit: PAGE,
       p_offset: off,
     });
@@ -52,7 +58,7 @@ const DirectoryPanel = () => {
     setTotal(result.total ?? 0);
     setMembers((prev) => (reset ? result.members ?? [] : [...prev, ...(result.members ?? [])]));
     setLoading(false);
-  }, []);
+  }, [roleFilter, countryFilter, areaFilter]);
 
   useEffect(() => {
     load(true, query, 0);
