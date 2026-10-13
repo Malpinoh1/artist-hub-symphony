@@ -2347,7 +2347,6 @@ export type Database = {
           admin_notes: string | null
           artist_id: string
           artist_account_id: string | null
-          artist_account_id: string | null
           artist_name: string | null
           artwork_credits: string | null
           audio_file_url: string | null
@@ -2382,7 +2381,6 @@ export type Database = {
         Insert: {
           admin_notes?: string | null
           artist_id: string
-          artist_account_id: string | null
           artist_account_id: string | null
           artist_name?: string | null
           artwork_credits?: string | null
