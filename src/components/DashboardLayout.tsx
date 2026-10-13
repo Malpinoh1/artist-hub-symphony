@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import GuidedTour from './GuidedTour';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Upload, Disc3, BarChart3, DollarSign,
@@ -55,6 +56,25 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const { toast } = useToast();
   const [profile, setProfile] = useState<any>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [seenFeatures, setSeenFeatures] = useState<string[]>([]);
+  const featureKey = user?.id ? 'malpinohdistro:new-features:v1:' + user.id : null;
+  useEffect(() => {
+    if (!featureKey) { setSeenFeatures([]); return; }
+    try { setSeenFeatures(JSON.parse(localStorage.getItem(featureKey) || '[]')); } catch { setSeenFeatures([]); }
+  }, [featureKey]);
+  const markFeatureSeen = (feature: string) => {
+    if (!featureKey) return;
+    setSeenFeatures((current) => {
+      const next = Array.from(new Set([...current, feature]));
+      try { localStorage.setItem(featureKey, JSON.stringify(next)); } catch { /* no-op */ }
+      return next;
+    });
+  };
+  useEffect(() => {
+    if (location.pathname.startsWith('/artist-hub')) markFeatureSeen('artist-hub');
+    if (location.pathname.startsWith('/collective/center')) markFeatureSeen('collective');
+    if (location.pathname.startsWith('/achievements')) markFeatureSeen('achievements');
+  }, [location.pathname, featureKey]);
   const { isAdmin: isFullAdmin, hasAnyAdminRole } = useAdminRole();
 
   // finance_manager / distribution_manager without full admin → admin panel only
@@ -117,6 +137,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Link
                 key={item.name}
                 to={item.href}
+                data-tour={item.href === '/dashboard' ? 'dashboard' : item.href === '/releases' ? 'releases' : item.href === '/analytics' ? 'analytics' : item.href === '/earnings' ? 'earnings' : item.href === '/artist-hub' ? 'artist-hub' : item.href === '/collective/center' ? 'collective' : item.href === '/achievements' ? 'achievements' : item.href === '/settings' ? 'settings' : undefined}
+                onClick={() => { if (item.href === '/artist-hub') markFeatureSeen('artist-hub'); if (item.href === '/collective/center') markFeatureSeen('collective'); if (item.href === '/achievements') markFeatureSeen('achievements'); }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                   active
@@ -125,7 +147,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 )}
               >
                 <Icon className={cn("h-4.5 w-4.5", active && "text-primary")} />
-                {item.name}
+                <span>{item.name}</span>
+                {item.href === '/artist-hub' && !seenFeatures.includes('artist-hub') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
+                {item.href === '/collective/center' && !seenFeatures.includes('collective') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
+                {item.href === '/achievements' && !seenFeatures.includes('achievements') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
               </Link>
             );
           })}
@@ -189,7 +214,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <Link
                 key={item.name}
                 to={item.href}
-                onClick={() => setSidebarOpen(false)}
+                data-tour={item.href === '/dashboard' ? 'dashboard' : item.href === '/releases' ? 'releases' : item.href === '/analytics' ? 'analytics' : item.href === '/earnings' ? 'earnings' : item.href === '/artist-hub' ? 'artist-hub' : item.href === '/collective/center' ? 'collective' : item.href === '/achievements' ? 'achievements' : item.href === '/settings' ? 'settings' : undefined}
+                onClick={() => { setSidebarOpen(false); if (item.href === '/artist-hub') markFeatureSeen('artist-hub'); if (item.href === '/collective/center') markFeatureSeen('collective'); if (item.href === '/achievements') markFeatureSeen('achievements'); }}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                   active
@@ -198,7 +224,10 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 )}
               >
                 <Icon className="h-4.5 w-4.5" />
-                {item.name}
+                <span>{item.name}</span>
+                {item.href === '/artist-hub' && !seenFeatures.includes('artist-hub') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
+                {item.href === '/collective/center' && !seenFeatures.includes('collective') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
+                {item.href === '/achievements' && !seenFeatures.includes('achievements') && <span className="ml-auto rounded-full bg-primary px-1.5 py-0.5 text-[9px] font-bold leading-none text-primary-foreground">NEW</span>}
               </Link>
             );
           })}
@@ -273,6 +302,9 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <DropdownMenuItem asChild>
                 <Link to="/team"><Users className="mr-2 h-4 w-4" />Team</Link>
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.dispatchEvent(new Event('malpinohdistro:replay-tour'))}>
+                <Sparkles className="mr-2 h-4 w-4" />Replay guided tour
+              </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link to="/support"><HelpCircle className="mr-2 h-4 w-4" />Support</Link>
               </DropdownMenuItem>
@@ -290,6 +322,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
         </main>
       </div>
       <AccountNameMigrationModal />
+      <GuidedTour />
     </div>
   );
 };
