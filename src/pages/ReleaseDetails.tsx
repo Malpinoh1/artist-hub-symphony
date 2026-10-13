@@ -18,6 +18,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { getStoreIcon, StoreStatusBadge } from '@/components/release/StoreIcons';
 import { ReleaseEditRequest } from '@/components/ReleaseEditRequest';
+import ReleaseArtworkManager from '@/components/ReleaseArtworkManager';
 
 const ReleaseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -228,6 +229,8 @@ const ReleaseDetails = () => {
                   </div>
                 </Card>
               </AnimatedCard>
+
+              <ReleaseArtworkManager releaseId={release.id} />
 
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Left column */}
