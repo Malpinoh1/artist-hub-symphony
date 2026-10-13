@@ -72,12 +72,12 @@ v_new text := $new$      -- Fallback: uniquely resolve track title against the a
               )
             )
         )
-        SELECT cr.release_id INTO v_release_id
+        SELECT (array_agg(cr.release_id))[1] INTO v_release_id
         FROM candidate_releases cr
         HAVING count(*) = 1;
 
         IF v_release_id IS NOT NULL THEN
-          SELECT t.id INTO v_track_id
+          SELECT (array_agg(t.id))[1] INTO v_track_id
           FROM public.tracks t
           WHERE t.release_id = v_release_id
             AND lower(trim(t.title)) = lower(trim(v_row.track_title))
