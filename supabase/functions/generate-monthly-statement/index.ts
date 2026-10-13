@@ -38,7 +38,7 @@ serve(async (req) => {
 
     const { data: rows } = await supabase
       .from('royalty_upload_rows')
-      .select('track_title, quantity, assigned_amount_per_artist, royalty_uploads!inner(period_year, period_month)')
+      .select('track_title, quantity, sales_type, dsp_name, distributor_code, assigned_amount_per_artist, royalty_uploads!inner(period_year, period_month)')
       .contains('matched_artist_ids', [artistId])
       .eq('royalty_uploads.period_year', year)
       .eq('royalty_uploads.period_month', month);
@@ -82,7 +82,7 @@ interface PdfArgs {
   stmtNumber: string;
   totalStreams: number;
   totalEarnings: number;
-  tracks: { track_title: string; quantity: number; assigned_amount_per_artist: number }[];
+  tracks: { track_title: string; quantity: number; sales_type: string | null; dsp_name: string | null; distributor_code: string | null; assigned_amount_per_artist: number }[];
 }
 
 function escapePdf(s: string) {
@@ -100,16 +100,19 @@ function buildPdf(a: PdfArgs): Uint8Array {
   lines.push('/F2 13 Tf', '0 -28 Td', '(Summary) Tj');
   lines.push('/F1 12 Tf', '0 -16 Td', `(Total Streams: ${a.totalStreams.toLocaleString()}) Tj`);
   lines.push('0 -14 Td', `(Total Earnings: $${a.totalEarnings.toFixed(2)}) Tj`);
-  lines.push('/F2 13 Tf', '0 -28 Td', '(Track Breakdown) Tj', '/F2 11 Tf', '0 -18 Td', '(Title                                Streams        Earnings) Tj');
+  lines.push('/F2 13 Tf', '0 -28 Td', '(Track Breakdown) Tj', '/F2 11 Tf', '0 -18 Td', '(Title                         Type                 Source             Streams   Earnings) Tj');
   lines.push('/F1 10 Tf');
 
   const max = Math.min(a.tracks.length, 30);
   for (let i = 0; i < max; i++) {
     const t = a.tracks[i];
     const title = (t.track_title || 'Unknown').padEnd(40, ' ').slice(0, 40);
-    const qty = String(t.quantity || 0).padStart(8, ' ');
-    const amt = `$${Number(t.assigned_amount_per_artist || 0).toFixed(2)}`.padStart(12, ' ');
-    lines.push('0 -14 Td', `(${escapePdf(title + qty + amt)}) Tj`);
+    const isShareOut = /share\\s*out/i.test(t.sales_type || '');
+    const qty = String(isShareOut ? 0 : (t.quantity || 0)).padStart(7, ' ');
+    const type = (t.sales_type || 'Unspecified').slice(0, 18).padEnd(18, ' ');
+    const source = (t.dsp_name || t.distributor_code || 'Not provided').slice(0, 18).padEnd(18, ' ');
+    const amt = `${Number(t.assigned_amount_per_artist || 0).toFixed(2)}`.padStart(9, ' ');
+    lines.push('0 -14 Td', `(${escapePdf(title.slice(0, 28).padEnd(28, ' ') + type + source + qty + amt)}) Tj`);
   }
   if (a.tracks.length > max) {
     lines.push('0 -16 Td', `(... and ${a.tracks.length - max} more tracks) Tj`);
