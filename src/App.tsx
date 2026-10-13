@@ -66,6 +66,7 @@ const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
 const OAuthConsent = React.lazy(() => import("./pages/OAuthConsent"));
 const CollectiveApply = React.lazy(() => import("./pages/CollectiveApply"));
 const CollectiveCenter = React.lazy(() => import("./pages/CollectiveCenter"));
+const CollectiveMemberProfile = React.lazy(() => import("./pages/CollectiveMemberProfile"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -129,6 +130,7 @@ const AppContent = () => {
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="/accept-split" element={<AcceptSplit />} />
         <Route path="/collective" element={<CollectiveApply />} />
+        <Route path="/collective/member/:handle" element={<CollectiveMemberProfile />} />
         <Route path="/payment/callback" element={<PaymentCallback />} />
         <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
 
