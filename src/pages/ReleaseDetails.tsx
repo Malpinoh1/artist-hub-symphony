@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { getStoreIcon, StoreStatusBadge } from '@/components/release/StoreIcons';
+import { ReleaseEditRequest } from '@/components/ReleaseEditRequest';
 
 const ReleaseDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -213,9 +214,10 @@ const ReleaseDetails = () => {
                         {/* Actions */}
                         {!!artistId && (release.status === 'approved' || release.status === 'processing') && (
                           <div className="flex gap-2 flex-wrap">
-                            <Button variant="outline" size="sm" onClick={() => navigate(`/releases/${release.id}/edit-request`)}>
-                              Request Edit
-                            </Button>
+                            <ReleaseEditRequest
+                              release={{ ...release, artist_id: artistId, release_date: release.releaseDate, cover_art_url: release.coverArt }}
+                              onRequestSubmitted={() => window.location.reload()}
+                            />
                             <Button variant="outline" size="sm" onClick={() => navigate('/royalty-splits')}>
                               <GitBranch className="h-4 w-4 mr-1" />Manage Splits
                             </Button>
