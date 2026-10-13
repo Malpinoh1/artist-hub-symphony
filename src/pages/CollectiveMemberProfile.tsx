@@ -18,6 +18,7 @@ interface CollectivePublicProfile {
   social_links?: Record<string, unknown> | null;
   member_since?: string | null;
   private?: boolean;
+  hidden?: boolean;
   members_only?: boolean;
 }
 
@@ -62,7 +63,7 @@ const CollectiveMemberProfile = () => {
     return () => { cancelled = true; };
   }, [handle]);
 
-  const restricted = profile?.private || profile?.members_only;
+  const restricted = profile?.hidden || profile?.private || profile?.members_only;
   const location = [profile?.city, profile?.country].filter(Boolean).join(", ");
   const socialLinks = Object.entries(profile?.social_links ?? {})
     .map(([label, value]) => ({ label, url: safeExternalUrl(value) }))
@@ -100,7 +101,7 @@ const CollectiveMemberProfile = () => {
               <h1 className="mt-4 text-xl font-semibold">{profile.display_name}</h1>
               <p className="mt-1 text-sm text-muted-foreground">@{profile.handle}</p>
               <p className="mt-4 text-sm text-muted-foreground">
-                {profile.private ? "This member has chosen to keep their profile private." : "This profile is available to active Collective members."}
+                {profile.hidden ? "This member has hidden their profile from discovery." : profile.private ? "This member has chosen to keep their profile private." : "This profile is available to active Collective members."}
               </p>
               <Button asChild className="mt-5"><Link to="/auth">Sign in</Link></Button>
             </div>
