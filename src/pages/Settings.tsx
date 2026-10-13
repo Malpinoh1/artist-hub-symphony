@@ -5,6 +5,7 @@ import InviteNotifications from '../components/InviteNotifications';
 import { TwoFactorSetup } from '../components/TwoFactorSetup';
 import { AdminTwoFactorReset } from '../components/AdminTwoFactorReset';
 import ArtistAccountsManager from '../components/admin/ArtistAccountsManager';
+import ReleaseArtworkManager from '../components/ReleaseArtworkManager';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -615,6 +616,11 @@ const Settings = () => {
               </div>
             </AnimatedCard>
           </div>
+        </section>
+
+        {/* Self-service cover art updates */}
+        <section className="container mx-auto px-4 py-8">
+          <ReleaseArtworkManager />
         </section>
 
         {/* Artist Accounts Section */}
