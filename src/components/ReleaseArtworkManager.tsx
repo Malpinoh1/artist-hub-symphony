@@ -37,7 +37,7 @@ const ReleaseArtworkManager: React.FC<ReleaseArtworkManagerProps> = ({ releaseId
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const { user } = useAuth();
-  const { getEffectiveAccountId, canManage, isLoading: permissionsLoading, currentAccountId } = useTeamPermissions();
+  const { canManage, isLoading: permissionsLoading, currentAccountId } = useTeamPermissions();
 
   const loadReleases = async () => {
     if (!user) {
@@ -46,11 +46,9 @@ const ReleaseArtworkManager: React.FC<ReleaseArtworkManagerProps> = ({ releaseId
       return;
     }
     setLoading(true);
-    const accountId = getEffectiveAccountId() || user.id;
     const { data, error } = await supabase
       .from('releases')
       .select('id,title,artist_name,cover_art_url,cover_art_update_count,status')
-      .eq('artist_id', accountId)
       .eq('id', releaseId)
       .order('updated_at', { ascending: false });
     if (error) {
