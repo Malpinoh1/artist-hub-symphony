@@ -26,7 +26,7 @@ WITH candidates AS (
   SELECT stat_id, min(priority) AS priority
   FROM candidates GROUP BY stat_id
 ), unique_matches AS (
-  SELECT c.stat_id, min(c.release_id) AS release_id
+  SELECT c.stat_id, (array_agg(c.release_id))[1] AS release_id
   FROM candidates c JOIN best b ON b.stat_id=c.stat_id AND b.priority=c.priority
   GROUP BY c.stat_id
   HAVING count(DISTINCT c.release_id)=1
@@ -34,7 +34,7 @@ WITH candidates AS (
 UPDATE public.monthly_stream_stats m
 SET release_id=u.release_id,
     track_id=(
-      SELECT min(t.id)
+      SELECT (array_agg(t.id))[1]
       FROM public.tracks t
       WHERE t.release_id=u.release_id
         AND lower(trim(t.title))=lower(trim(m.track_title))
