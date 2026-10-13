@@ -78,7 +78,7 @@ const Achievements: React.FC = () => {
   }, [snapshot?.top_releases]);
 
   const unlocked = achievements;
-  const unlockedKeys = new Set(unlocked.map((a) => `${a.release_id}:${a.milestone}`));
+  const unlockedKeys = new Set(unlocked.map((a) => `${a.release_id || `track:${(a.track_title || '').trim().toLowerCase()}`}:${a.milestone}`));
 
   // Upcoming: next unreached milestone per release that already has streams
   const upcoming = useMemo(() => {
@@ -142,7 +142,7 @@ const Achievements: React.FC = () => {
               <Sparkles className="h-4 w-4 text-primary" /> Unlocked milestones
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm">
-              Awarded automatically when a release passes a milestone in a processed report.
+              Awarded automatically when a release or a royalty-reported track reaches a milestone.
             </CardDescription>
           </CardHeader>
           <CardContent className="p-4 pt-0 sm:p-6 sm:pt-0">
@@ -159,6 +159,7 @@ const Achievements: React.FC = () => {
                 {unlocked.map((a) => {
                   const rel: any = a.release_id ? releaseMap.get(a.release_id) : null;
                   const tier = milestoneTier(Number(a.milestone));
+                  const achievementTitle = a.track_title || rel?.title || 'Catalogue';
                   return (
                     <div key={a.id} className={`rounded-xl border bg-gradient-to-br p-3 flex items-center gap-3 ${tierStyles[tier]}`}>
                       {rel?.cover_art_url ? (
@@ -171,7 +172,7 @@ const Achievements: React.FC = () => {
                       )}
                       <div className="min-w-0 flex-1">
                         <p className="text-base font-bold">{milestoneLabel(Number(a.milestone))} streams</p>
-                        <p className="text-xs text-foreground/80 truncate">{rel?.title || 'Catalogue'}</p>
+                        <p className="text-xs text-foreground/80 truncate">{achievementTitle}</p>
                         <p className="text-[11px] text-muted-foreground">
                           {new Date(a.awarded_at).toLocaleDateString()} · {fmtNum(Number(a.streams_at_award))} streams
                         </p>
@@ -187,7 +188,7 @@ const Achievements: React.FC = () => {
                               milestone: Number(a.milestone),
                               streamsAtAward: Number(a.streams_at_award),
                               awardedAt: a.awarded_at,
-                              releaseTitle: rel?.title || 'My catalogue',
+                              releaseTitle: achievementTitle,
                               coverUrl: rel?.cover_art_url || null,
                               artistName: artist?.name || 'MALPINOHDISTRO Artist',
                             })
