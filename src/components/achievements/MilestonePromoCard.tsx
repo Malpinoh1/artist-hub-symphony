@@ -226,9 +226,9 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.globalAlpha = 1;
 
     // Artwork
-    const artSize = Math.round(w * (isStory ? 0.56 : 0.24));
+    const artSize = Math.round(w * (isStory ? 0.56 : 0.20));
     const artX = isStory ? Math.round((w - artSize) / 2) : pad;
-    const artY = Math.round(h * (isStory ? 0.185 : 0.16));
+    const artY = Math.round(h * (isStory ? 0.185 : 0.12));
 
     // Clear hierarchy: a campaign-style kicker anchors the artwork and milestone.
     ctx.textAlign = 'center';
@@ -292,8 +292,8 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     // Text block — baselines measured from the bottom of the artwork
     const textX = isStory ? w / 2 : pad;
     ctx.textAlign = isStory ? 'center' : 'left';
-    const bigSize = Math.round(w * (isStory ? 0.26 : 0.19));
-    const gap = Math.round(h * (isStory ? 0.038 : 0.028));
+    const bigSize = Math.round(w * (isStory ? 0.26 : 0.12));
+    const gap = Math.round(h * (isStory ? 0.038 : 0.018));
 
     let ty = artY + artSize + gap + Math.round(bigSize * 0.78);
 
@@ -318,7 +318,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
 
 
     // Release title (truncate to fit)
-    ty += Math.round(w * (isStory ? 0.085 : 0.08));
+    ty += Math.round(w * (isStory ? 0.085 : 0.045));
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `700 ${Math.round(w * 0.048)}px Inter, system-ui, sans-serif`;
     const maxTextW = w - pad * 2;
@@ -340,7 +340,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.fillText(artist, textX, ty);
 
     // Footer stat strip
-    const stripH = Math.round(w * 0.29);
+    const stripH = Math.round(w * (isStory ? 0.29 : 0.20));
 
     const stripY = h - pad - stripH;
     roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
