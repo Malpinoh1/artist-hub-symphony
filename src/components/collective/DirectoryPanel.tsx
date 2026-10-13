@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertCircle, Loader2, Search, MapPin, Users, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -224,6 +225,11 @@ const DirectoryPanel = () => {
                     </div>
                   </div>
                 )}
+              </div>
+              <div className="pt-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/collective/member/${encodeURIComponent(selectedMember.handle)}`}>Open full profile</Link>
+                </Button>
               </div>
             </>
           )}
