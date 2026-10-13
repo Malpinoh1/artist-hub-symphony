@@ -106,14 +106,6 @@ const ReleaseMetadataCompletion = () => {
       return;
     }
     setSaving(request.id);
-    const missing = [
-      !form.release_date && 'release_date',
-      !form.cover_art_url && 'cover_art_url',
-      !form.genre && 'genre',
-      !form.primary_language && 'primary_language',
-      form.explicit_content === undefined && 'explicit_content',
-      !form.copyright_info && 'copyright_info',
-    ].filter(Boolean) as string[];
     const { error } = await (supabase as any).rpc('submit_release_metadata_completion_request', {
       p_request_id: request.id,
       p_metadata: {
