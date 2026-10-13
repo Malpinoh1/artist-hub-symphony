@@ -35,18 +35,18 @@ const DSP_LOGOS = [
 ];
 
 const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: number, pad: number, stripY: number) => {
-  const stripH = Math.round(w * 0.24);
+  const stripH = Math.round(w * 0.17);
   const areaW = w - pad * 2;
   const columns = 3;
   const slotW = areaW / columns;
-  const icon = Math.round(w * 0.043);
-  const labelFont = Math.round(w * 0.022);
+  const icon = Math.round(w * 0.032);
+  const labelFont = Math.round(w * 0.018);
   const logos = await Promise.all(DSP_LOGOS.map(async (platform) => ({
     ...platform,
     image: await loadImage(platform.url),
   })));
 
-  // A 3 × 2 grid keeps each official DSP mark and label clear on square and story exports.
+  // Keep DSP marks compact in their own top band, well clear of the stream totals below.
   ctx.save();
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -54,7 +54,7 @@ const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: numb
     const col = index % columns;
     const row = Math.floor(index / columns);
     const centerX = pad + slotW * (col + 0.5);
-    const centerY = stripY + stripH * (row === 0 ? 0.19 : 0.40);
+    const centerY = stripY + stripH * (row === 0 ? 0.25 : 0.70);
     if (platform.image) {
       ctx.drawImage(platform.image, centerX - icon / 2, centerY - icon * 0.82, icon, icon);
     } else {
@@ -341,7 +341,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.fillText(artist, textX, ty);
 
     // Footer stat strip
-    const stripH = Math.round(w * 0.24);
+    const stripH = Math.round(w * 0.29);
 
     const stripY = h - pad - stripH;
     roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
@@ -358,21 +358,21 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.textAlign = 'left';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('TOTAL STREAMS', pad + w * 0.045, stripY + stripH * 0.57);
+    ctx.fillText('TOTAL STREAMS', pad + w * 0.045, stripY + stripH * 0.66);
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.045, stripY + stripH * 0.84);
+    ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.045, stripY + stripH * 0.86);
 
     ctx.textAlign = 'right';
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('UNLOCKED', w - pad - w * 0.045, stripY + stripH * 0.57);
+    ctx.fillText('UNLOCKED', w - pad - w * 0.045, stripY + stripH * 0.66);
     ctx.fillStyle = '#FFFFFF';
     ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
     ctx.fillText(
       new Date(data.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
       w - pad - w * 0.045,
-      stripY + stripH * 0.84,
+      stripY + stripH * 0.86,
     );
 
     // Consistent campaign signature at the bottom of both export formats.
