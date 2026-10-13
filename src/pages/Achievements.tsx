@@ -40,7 +40,7 @@ const Achievements: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('releases')
-        .select('id, title, artist_name, cover_art_url')
+        .select('id, title, artist_name, artist_account_id, cover_art_url')
         .eq('artist_id', artistId!);
       if (error) throw error;
       return data || [];
@@ -70,7 +70,7 @@ const Achievements: React.FC = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('artist_accounts')
-        .select('artist_name, signing_status')
+        .select('id, artist_name, signing_status')
         .eq('owner_id', artistId!)
         .eq('signing_status', 'signed')
         .order('artist_name', { ascending: true });
@@ -80,15 +80,19 @@ const Achievements: React.FC = () => {
     enabled: !!artistId && artist?.account_type === 'label',
   });
 
-  const resolvePromoArtistName = (releaseArtistName?: string | null) => {
+  const resolvePromoArtistName = (releaseArtistName?: string | null, artistAccountId?: string | null) => {
     const releaseName = releaseArtistName?.trim();
     const accountName = artist?.name?.trim();
     const isLabel = artist?.account_type === 'label';
+    const linkedArtist = artistAccountId
+      ? signedArtists.find((signedArtist: any) => signedArtist.id === artistAccountId)
+      : null;
+    if (linkedArtist?.artist_name?.trim()) return linkedArtist.artist_name.trim();
     if (releaseName && (!isLabel || !accountName || releaseName.localeCompare(accountName, undefined, { sensitivity: 'accent' }) !== 0)) {
       return releaseName;
     }
     if (isLabel && signedArtists.length === 1) return signedArtists[0].artist_name;
-    if (isLabel) return 'Featured Artist';
+    if (isLabel) return 'Artist name needs linking';
     return releaseName || accountName || 'MALPINOHDISTRO Artist';
   };
 
@@ -220,7 +224,7 @@ const Achievements: React.FC = () => {
                               awardedAt: a.awarded_at,
                               releaseTitle: achievementTitle,
                               coverUrl: rel?.cover_art_url || null,
-                              artistName: resolvePromoArtistName(rel?.artist_name),
+                              artistName: resolvePromoArtistName(rel?.artist_name, rel?.artist_account_id),
                             })
                           }
                         >
