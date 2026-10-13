@@ -168,10 +168,31 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.textAlign = 'center';
     ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH * 0.66);
 
+    // Framed editorial border for a finished, share-ready campaign card.
+    const frameInset = Math.round(w * 0.035);
+    const frameGradient = ctx.createLinearGradient(frameInset, frameInset, w - frameInset, h - frameInset);
+    frameGradient.addColorStop(0, c2);
+    frameGradient.addColorStop(0.48, 'rgba(255,255,255,0.22)');
+    frameGradient.addColorStop(1, c1);
+    ctx.strokeStyle = frameGradient;
+    ctx.globalAlpha = 0.72;
+    ctx.lineWidth = Math.max(2, Math.round(w * 0.002));
+    roundRect(ctx, frameInset, frameInset, w - frameInset * 2, h - frameInset * 2, Math.round(w * 0.035));
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
     // Artwork
     const artSize = Math.round(w * (isStory ? 0.56 : 0.24));
     const artX = isStory ? Math.round((w - artSize) / 2) : pad;
     const artY = Math.round(h * (isStory ? 0.185 : 0.16));
+
+    // Clear hierarchy: a campaign-style kicker anchors the artwork and milestone.
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.72)';
+    ctx.font = `800 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
+    ctx.letterSpacing = `${Math.max(2, Math.round(w * 0.003))}px`;
+    ctx.fillText('MILESTONE UNLOCKED', w / 2, artY - Math.round(w * 0.025));
+    ctx.letterSpacing = '0px';
 
     const cover = data.coverUrl ? await loadImage(data.coverUrl) : null;
 
@@ -305,6 +326,14 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
       w - pad - w * 0.045,
       stripY + stripH * 0.8,
     );
+
+    // Consistent campaign signature at the bottom of both export formats.
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.font = `700 ${Math.round(w * 0.018)}px Inter, system-ui, sans-serif`;
+    ctx.letterSpacing = '3px';
+    ctx.fillText('MALPINOH DISTRO  •  GLOBAL MUSIC DISTRIBUTION', w / 2, h - Math.round(pad * 0.27));
+    ctx.letterSpacing = '0px';
 
     setPreview(canvas.toDataURL('image/png'));
     setRendering(false);
