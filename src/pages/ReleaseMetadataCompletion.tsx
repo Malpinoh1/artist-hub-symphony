@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
 
@@ -115,27 +114,22 @@ const ReleaseMetadataCompletion = () => {
       form.explicit_content === undefined && 'explicit_content',
       !form.copyright_info && 'copyright_info',
     ].filter(Boolean) as string[];
-    const { error } = await (supabase as any)
-      .from('release_metadata_completion_requests')
-      .update({
+    const { error } = await (supabase as any).rpc('submit_release_metadata_completion_request', {
+      p_request_id: request.id,
+      p_metadata: {
         release_date: form.release_date,
         cover_art_url: form.cover_art_url,
-        genre: form.genre || null,
-        primary_language: form.primary_language || null,
+        genre: form.genre || '',
+        primary_language: form.primary_language || '',
         explicit_content: form.explicit_content ?? false,
-        copyright_info: form.copyright_info || null,
-        songwriter_credits: form.songwriter_credits || null,
-        producer_credits: form.producer_credits || null,
-        artwork_credits: form.artwork_credits || null,
-        description: form.description || null,
+        copyright_info: form.copyright_info || '',
+        songwriter_credits: form.songwriter_credits || '',
+        producer_credits: form.producer_credits || '',
+        artwork_credits: form.artwork_credits || '',
+        description: form.description || '',
         territory: form.territory || 'Worldwide',
-        missing_fields: missing,
-        metadata_answers: { submitted_by: user?.id, submitted_at: new Date().toISOString() },
-        status: 'submitted',
-        submitted_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', request.id);
+      },
+    });
     if (error) {
       toast({ title: 'Could not submit metadata', description: error.message, variant: 'destructive' });
     } else {
