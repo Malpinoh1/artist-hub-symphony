@@ -30,7 +30,9 @@ const getStorageObject = (url: string) => {
   }
 };
 
-const ReleaseArtworkManager: React.FC = () => {
+interface ReleaseArtworkManagerProps { releaseId: string; }
+
+const ReleaseArtworkManager: React.FC<ReleaseArtworkManagerProps> = ({ releaseId }) => {
   const [releases, setReleases] = useState<ReleaseArtwork[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -49,6 +51,7 @@ const ReleaseArtworkManager: React.FC = () => {
       .from('releases')
       .select('id,title,artist_name,cover_art_url,cover_art_update_count,status')
       .eq('artist_id', accountId)
+      .eq('id', releaseId)
       .order('updated_at', { ascending: false });
     if (error) {
       toast({ title: 'Could not load releases', description: error.message, variant: 'destructive' });
@@ -60,7 +63,7 @@ const ReleaseArtworkManager: React.FC = () => {
 
   useEffect(() => {
     if (!permissionsLoading) void loadReleases();
-  }, [user?.id, permissionsLoading, currentAccountId]);
+  }, [user?.id, permissionsLoading, currentAccountId, releaseId]);
 
   const handleArtworkChange = async (release: ReleaseArtwork, file?: File) => {
     if (!file) return;
@@ -142,16 +145,16 @@ const ReleaseArtworkManager: React.FC = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2"><ImagePlus className="h-5 w-5" /> Release cover art</CardTitle>
+        <CardTitle className="flex items-center gap-2 font-display tracking-tight"><ImagePlus className="h-5 w-5" /> Update this release’s cover art</CardTitle>
         <CardDescription>
-          Update a release cover up to two times without admin approval. Successful changes apply anywhere this release artwork is shown.
+          Choose a new JPG, PNG, or WEBP cover for this release. You can update its artwork twice; the change applies anywhere this release is shown.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {loading ? (
           <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Loading your releases…</div>
         ) : releases.length === 0 ? (
-          <p className="py-4 text-sm text-muted-foreground">No releases are available for your account yet.</p>
+          <p className="py-4 text-sm text-muted-foreground">This release isn’t available under the currently selected artist account.</p>
         ) : (
           releases.map((release) => {
             const remaining = Math.max(0, 2 - (release.cover_art_update_count || 0));
@@ -190,7 +193,7 @@ const ReleaseArtworkManager: React.FC = () => {
                     onClick={() => document.getElementById(`release-artwork-${release.id}`)?.click()}
                   >
                     {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : remaining === 0 ? <RefreshCw className="mr-2 h-4 w-4" /> : <Upload className="mr-2 h-4 w-4" />}
-                    {busy ? 'Updating…' : remaining === 0 ? 'Limit reached' : 'Update cover'}
+                    {busy ? 'Updating…' : remaining === 0 ? 'Limit reached' : 'Edit cover art'}
                   </Button>
                 </div>
               </div>
