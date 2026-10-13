@@ -32,6 +32,8 @@ interface TrackData {
   other_streams: number;
   growth?: number;
   release_date?: string;
+  previousStats?: { spotify_streams?: number; apple_music_streams?: number; youtube_music_streams?: number; other_streams?: number; total_streams?: number };
+
 }
 
 const AnalyticsContent = () => {
@@ -93,26 +95,39 @@ const AnalyticsContent = () => {
           .filter(release => release.performance_statistics && release.performance_statistics.length > 0)
           .map(release => {
             // Get the most recent statistics for each release
-            const latestStats = release.performance_statistics
-              .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
-            
+            const history = [...release.performance_statistics].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            const latestStats = history[0];
+            const previousStats = history[1];
+            const previousTotal = Number(previousStats?.total_streams || 0);
             return {
               id: release.id,
               title: release.title,
-              total_streams: latestStats.total_streams || 0,
-              spotify_streams: latestStats.spotify_streams || 0,
-              apple_music_streams: latestStats.apple_music_streams || 0,
-              youtube_music_streams: latestStats.youtube_music_streams || 0,
-              other_streams: latestStats.other_streams || 0,
+              total_streams: Number(latestStats.total_streams || 0),
+              spotify_streams: Number(latestStats.spotify_streams || 0),
+              apple_music_streams: Number(latestStats.apple_music_streams || 0),
+              youtube_music_streams: Number(latestStats.youtube_music_streams || 0),
+              other_streams: Number(latestStats.other_streams || 0),
               release_date: release.release_date,
-              growth: Math.random() * 20 - 5 // Random growth for now, could be calculated from historical data
+              growth: previousTotal > 0 ? ((Number(latestStats.total_streams || 0) - previousTotal) / previousTotal) * 100 : 0,
+              previousStats,
             };
           })
           .sort((a, b) => b.total_streams - a.total_streams)
           .slice(0, 5); // Top 5 tracks
           
-        console.log("Processed tracks with stats:", tracksWithStats);
-        setTopTracks(tracksWithStats);
+        console.log("Processed releases with real performance stats:", tracksWithStats);
+        const sum = (key: 'spotify_streams' | 'apple_music_streams' | 'youtube_music_streams' | 'other_streams') =>
+          tracksWithStats.reduce((total, track) => total + Number(track[key] || 0), 0);
+        const previousSum = (key: 'spotify_streams' | 'apple_music_streams' | 'youtube_music_streams' | 'other_streams') =>
+          tracksWithStats.reduce((total, track) => total + Number(track.previousStats?.[key] || 0), 0);
+        const growthFor = (current: number, previous: number) => previous > 0 ? Number((((current - previous) / previous) * 100).toFixed(1)) : 0;
+        setPlatformData({
+          spotify: { plays: sum('spotify_streams'), growth: growthFor(sum('spotify_streams'), previousSum('spotify_streams')) },
+          appleMusic: { plays: sum('apple_music_streams'), growth: growthFor(sum('apple_music_streams'), previousSum('apple_music_streams')) },
+          youtubeMusic: { plays: sum('youtube_music_streams'), growth: growthFor(sum('youtube_music_streams'), previousSum('youtube_music_streams')) },
+          deezer: { plays: sum('other_streams'), growth: growthFor(sum('other_streams'), previousSum('other_streams')) },
+        });
+        setTopTracks(tracksWithStats.slice(0, 5));
       } else {
         console.log("No releases with performance statistics found");
         setTopTracks([]);
@@ -166,31 +181,7 @@ const AnalyticsContent = () => {
         setTopTracks([]);
       }
 
-      // Fetch analytics data using the service function
-      const analyticsData = await fetchPlatformAnalytics();
-          
-      if (analyticsData) {
-        setPlatformData({
-          spotify: { 
-            plays: analyticsData.spotify_plays || 0, 
-            growth: analyticsData.spotify_growth || 0 
-          },
-          appleMusic: { 
-            plays: analyticsData.apple_music_plays || 0, 
-            growth: analyticsData.apple_music_growth || 0 
-          },
-          youtubeMusic: { 
-            plays: analyticsData.youtube_music_plays || 0, 
-            growth: analyticsData.youtube_music_growth || 0 
-          },
-          deezer: { 
-            plays: analyticsData.deezer_plays || 0, 
-            growth: analyticsData.deezer_growth || 0 
-          }
-        });
-      } else {
-        console.log("Using default analytics data");
-      }
+      // Platform totals come from this artist's approved releases and latest performance snapshots, not shared global analytics.
 
       setLoading(false);
     } catch (error) {
@@ -222,7 +213,7 @@ const AnalyticsContent = () => {
     { name: 'Spotify', icon: <BarChart3 className="h-5 w-5 text-green-600" />, color: 'bg-green-100', textColor: 'text-green-600', data: platformData.spotify },
     { name: 'Apple Music', icon: <BarChart3 className="h-5 w-5 text-red-600" />, color: 'bg-red-100', textColor: 'text-red-600', data: platformData.appleMusic },
     { name: 'YouTube Music', icon: <BarChart3 className="h-5 w-5 text-purple-600" />, color: 'bg-purple-100', textColor: 'text-purple-600', data: platformData.youtubeMusic },
-    { name: 'Deezer', icon: <BarChart3 className="h-5 w-5 text-blue-600" />, color: 'bg-blue-100', textColor: 'text-blue-600', data: platformData.deezer },
+    { name: 'Other Platforms', icon: <BarChart3 className="h-5 w-5 text-blue-600" />, color: 'bg-blue-100', textColor: 'text-blue-600', data: platformData.deezer },
   ];
 
   return (
@@ -264,7 +255,7 @@ const AnalyticsContent = () => {
                           platform.data.growth > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
                         }`}>
                           {platform.data.growth > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                          {Math.abs(platform.data.growth)}%
+                          {platform.data.growth > 0 ? '+' : platform.data.growth < 0 ? '−' : ''}{Math.abs(platform.data.growth).toFixed(1)}%
                         </span>
                       </div>
                       <h3 className="text-2xl font-display font-semibold text-slate-900 dark:text-white">{platform.data.plays.toLocaleString()}</h3>
@@ -305,9 +296,9 @@ const AnalyticsContent = () => {
                             <td className="px-6 py-4 text-slate-700 dark:text-slate-300">{track.apple_music_streams.toLocaleString()}</td>
                             <td className="px-6 py-4">
                               <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${
-                                (track.growth || 0) > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                                (track.growth || 0) > 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : (track.growth || 0) < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300'
                               }`}>
-                                {(track.growth || 0) > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                {(track.growth || 0) > 0 ? <TrendingUp className="w-3 h-3" /> : (track.growth || 0) < 0 ? <TrendingDown className="w-3 h-3" /> : null}
                                 {Math.abs(track.growth || 0).toFixed(1)}%
                               </span>
                             </td>
