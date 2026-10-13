@@ -281,6 +281,7 @@ export async function submitRelease(
         title: releaseFormData.title,
         artist_id: userId,
         artist_name: releaseArtistName,
+        artist_account_id: releaseFormData.artist_account_id || null,
         release_date: releaseFormData.release_date,
         release_type: releaseFormData.release_type,
         genre: releaseFormData.genre,
