@@ -43,6 +43,7 @@ const Auth = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [accountType, setAccountType] = useState<'artist' | 'label'>('artist');
   const [emailOptIn, setEmailOptIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showMarketingPopup, setShowMarketingPopup] = useState(false);
@@ -156,6 +157,7 @@ const Auth = () => {
         options: {
           data: {
             full_name: fullName,
+            account_type: accountType,
             email_opt_in: emailOptIn,
           }
         }
@@ -477,6 +479,19 @@ const Auth = () => {
 
                 <form onSubmit={isLogin ? handleLogin : handleSignUp}>
                   {!isLogin && (
+                    <div className="mb-6">
+                      <label className="block text-sm font-medium text-black mb-2">Account Type *</label>
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" onClick={() => setAccountType('artist')} disabled={loading} aria-pressed={accountType === 'artist'} className={`rounded-lg border p-3 text-left transition-colors ${accountType === 'artist' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-300 hover:border-blue-300'}`}>
+                          <span className="block font-semibold text-sm text-gray-900">Artist Account</span>
+                          <span className="block mt-1 text-xs text-gray-600">For an individual artist releasing their own music.</span>
+                        </button>
+                        <button type="button" onClick={() => setAccountType('label')} disabled={loading} aria-pressed={accountType === 'label'} className={`rounded-lg border p-3 text-left transition-colors ${accountType === 'label' ? 'border-blue-600 bg-blue-50 ring-1 ring-blue-600' : 'border-gray-300 hover:border-blue-300'}`}>
+                          <span className="block font-semibold text-sm text-gray-900">Label Account</span>
+                          <span className="block mt-1 text-xs text-gray-600">For labels managing signed artists.</span>
+                        </button>
+                      </div>
+                    </div>
                     <div className="mb-6">
                       <label htmlFor="fullName" className="block text-sm font-medium text-black mb-1">Full Name *</label>
                       <div className="relative">
