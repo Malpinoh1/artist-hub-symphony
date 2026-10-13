@@ -101,6 +101,13 @@ export async function createUploadAndProcess(params: {
     console.warn('Royalty notification failed:', e);
   }
 
+  try {
+    await supabase.functions.invoke('award-achievements', { body: {} });
+  } catch (e) {
+    // The royalty import is already committed. Achievement email retries are handled by the delivery ledger.
+    console.warn('Achievement processing deferred:', e);
+  }
+
   return { uploadId: upload.id, matched: r.matched ?? 0, unmatched: r.unmatched ?? 0 };
 }
 
