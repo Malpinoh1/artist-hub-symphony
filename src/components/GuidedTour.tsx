@@ -87,6 +87,10 @@ export default function GuidedTour() {
   }, []);
 
   useEffect(() => {
+    if (open && window.innerWidth < 1024) window.dispatchEvent(new Event('malpinohdistro:open-mobile-menu'));
+  }, [open, index]);
+
+  useEffect(() => {
     if (!open) return;
     const timer = window.setTimeout(() => locate(true), 150);
     const update = () => locate(false);
@@ -112,6 +116,7 @@ export default function GuidedTour() {
 
   const close = (completed = false) => {
     setOpen(false);
+    window.dispatchEvent(new Event('malpinohdistro:close-mobile-menu'));
     if (!key) return;
     try {
       const saved = JSON.parse(localStorage.getItem(key) || '{}');
