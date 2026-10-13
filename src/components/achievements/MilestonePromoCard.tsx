@@ -54,7 +54,7 @@ const drawStreamingPlatformLogos = async (ctx: CanvasRenderingContext2D, w: numb
     const col = index % columns;
     const row = Math.floor(index / columns);
     const centerX = pad + slotW * (col + 0.5);
-    const centerY = stripY + stripH * (row === 0 ? 0.25 : 0.49);
+    const centerY = stripY + stripH * (row === 0 ? 0.19 : 0.40);
     if (platform.image) {
       ctx.drawImage(platform.image, centerX - icon / 2, centerY - icon * 0.82, icon, icon);
     } else {
