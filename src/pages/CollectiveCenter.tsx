@@ -21,7 +21,7 @@ interface Summary {
     status: string;
     roles: string[];
     other_role: string | null;
-    admin_notes: string | null;
+    applicant_message: string | null;
     created_at: string;
     reviewed_at: string | null;
   } | null;
@@ -218,10 +218,10 @@ const CollectiveCenter = () => {
             </div>
           )}
 
-          {application.admin_notes && (
+          {application.applicant_message && (
             <div className="mt-4 rounded-xl border border-border bg-muted/40 p-4">
               <p className="text-xs font-medium text-muted-foreground mb-1">Note from our team</p>
-              <p className="text-sm">{application.admin_notes}</p>
+              <p className="text-sm">{application.applicant_message}</p>
             </div>
           )}
         </div>

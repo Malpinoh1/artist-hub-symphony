@@ -20,7 +20,7 @@ interface Application {
   contribution: string;
   referral_code: string | null;
   status: string;
-  admin_notes: string | null;
+  applicant_message: string | null;
   created_at: string;
   reviewed_at: string | null;
 }
@@ -66,8 +66,8 @@ const CollectiveTab = () => {
   const load = useCallback(async () => {
     setLoading(true);
     let query = supabase
-      .from('collective_applications')
-      .select('*')
+      .from('collective_applications' as any)
+      .select('id, full_name, email, phone, country, city, roles, other_role, social_links, why_join, contribution, referral_code, status, applicant_message, created_at, reviewed_at')
       .order('created_at', { ascending: false })
       .limit(200);
     if (filter !== 'all') query = query.eq('status', filter as any);
@@ -247,8 +247,8 @@ const CollectiveTab = () => {
 
                     <Textarea
                       rows={2}
-                      placeholder="Optional note to include in the applicant's email"
-                      value={notes[app.id] ?? app.admin_notes ?? ''}
+                      placeholder="Message to applicant (visible to them; optional)"
+                      value={notes[app.id] ?? app.applicant_message ?? ''}
                       onChange={(e) => setNotes((n) => ({ ...n, [app.id]: e.target.value }))}
                     />
 

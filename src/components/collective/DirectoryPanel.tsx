@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { AlertCircle, Loader2, Search, MapPin, Users, RefreshCw } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,9 @@ const PAGE = 24;
 const DirectoryPanel = () => {
   const [search, setSearch] = useState('');
   const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [areaFilter, setAreaFilter] = useState('');
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -39,6 +43,9 @@ const DirectoryPanel = () => {
     setLoadError(false);
     const { data, error } = await supabase.rpc('list_collective_directory', {
       p_search: q || undefined,
+      p_role: roleFilter.trim() || undefined,
+      p_country: countryFilter.trim() || undefined,
+      p_area: areaFilter.trim() || undefined,
       p_limit: PAGE,
       p_offset: off,
     });
@@ -51,7 +58,7 @@ const DirectoryPanel = () => {
     setTotal(result.total ?? 0);
     setMembers((prev) => (reset ? result.members ?? [] : [...prev, ...(result.members ?? [])]));
     setLoading(false);
-  }, []);
+  }, [roleFilter, countryFilter, areaFilter]);
 
   useEffect(() => {
     load(true, query, 0);
@@ -65,7 +72,7 @@ const DirectoryPanel = () => {
           e.preventDefault();
           setQuery(search.trim());
         }}
-        className="flex min-w-0 gap-2"
+        className="flex min-w-0 flex-col gap-2"
       >
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -80,6 +87,11 @@ const DirectoryPanel = () => {
         <Button type="submit" variant="outline">
           Search
         </Button>
+        <div className="grid gap-2 sm:grid-cols-3">
+          <Input value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} placeholder="Role slug (e.g. producer)" aria-label="Filter by role" />
+          <Input value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} placeholder="Country" aria-label="Filter by country" />
+          <Input value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} placeholder="Collaboration area" aria-label="Filter by collaboration area" />
+        </div>
       </form>
 
       {loadError ? (
@@ -224,6 +236,11 @@ const DirectoryPanel = () => {
                     </div>
                   </div>
                 )}
+              </div>
+              <div className="pt-2">
+                <Button asChild variant="outline" size="sm">
+                  <Link to={`/collective/member/${encodeURIComponent(selectedMember.handle)}`}>Open full profile</Link>
+                </Button>
               </div>
             </>
           )}
