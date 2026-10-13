@@ -21,6 +21,10 @@ interface Transaction {
   balance_after: number;
   description: string | null;
   created_at: string;
+  currency?: string;
+  source?: 'ledger' | 'subscription';
+  plan_name?: string | null;
+  payment_method?: string | null;
 }
 
 interface Track { id: string; title: string; }
@@ -49,17 +53,34 @@ const Transactions = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [txRes, tracksRes, platformsRes] = await Promise.all([
-          supabase
-            .from('income_transactions')
-            .select('*')
-            .eq('artist_id', artistId)
-            .order('created_at', { ascending: false })
-            .limit(500),
+        const [txRes, tracksRes, platformsRes, paymentsRes] = await Promise.all([
+          supabase.from('income_transactions').select('*').eq('artist_id', artistId).order('created_at', { ascending: false }).limit(500),
           supabase.from('tracks').select('id, title'),
           supabase.from('income_platforms').select('id, name'),
+          user?.id
+            ? supabase.from('payments').select('id, amount_usd, amount_charged, currency, status, payment_method, created_at, flutterwave_tx_ref, plans(name)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(200)
+            : Promise.resolve({ data: [], error: null } as any),
         ]);
-        setTransactions(txRes.data || []);
+        if (txRes.error) throw txRes.error;
+        if (paymentsRes.error) console.warn('Subscription payments could not be loaded:', paymentsRes.error.message);
+        const ledgerRows = (txRes.data || []).map((row: any) => ({ ...row, source: 'ledger' as const }));
+        const subscriptionRows = ((paymentsRes.data || []) as any[]).map((payment) => ({
+          id: `subscription-${payment.id}`,
+          artist_id: artistId,
+          track_id: null,
+          platform_id: null,
+          income_id: null,
+          type: 'subscription',
+          amount: -Math.abs(Number(payment.amount_charged ?? payment.amount_usd ?? 0)),
+          balance_after: 0,
+          description: `${payment.plans?.name || 'Subscription'} payment · ${payment.status || 'unknown'} · Ref ${payment.flutterwave_tx_ref || '—'}`,
+          created_at: payment.created_at,
+          currency: payment.currency || 'USD',
+          source: 'subscription' as const,
+          plan_name: payment.plans?.name || 'Subscription',
+          payment_method: payment.payment_method,
+        }));
+        setTransactions([...ledgerRows, ...subscriptionRows].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()) as Transaction[]);
         setTracks(tracksRes.data || []);
         setPlatforms(platformsRes.data || []);
       } catch (err) {
@@ -80,6 +101,7 @@ const Transactions = () => {
       case 'royalty_share_in': return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">Royalty In</Badge>;
       case 'royalty_share_out': return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200">Royalty Out</Badge>;
       case 'withdrawal': return <Badge className="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">Withdrawal</Badge>;
+      case 'subscription': return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200">Subscription</Badge>;
       default: return <Badge variant="secondary">{type}</Badge>;
     }
   };
@@ -101,7 +123,8 @@ const Transactions = () => {
   const totalWithdrawn = transactions
     .filter(t => t.type === 'withdrawal')
     .reduce((sum, t) => sum + Math.abs(Number(t.amount)), 0);
-  const currentBalance = transactions.length > 0 ? Number(transactions[0].balance_after) : 0;
+  const latestLedgerTransaction = transactions.filter(t => t.source !== 'subscription').sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+  const currentBalance = latestLedgerTransaction ? Number(latestLedgerTransaction.balance_after) : 0;
   const pendingBalance = totalEarnings - totalWithdrawn;
   const txCount = transactions.length;
 
@@ -205,6 +228,7 @@ const Transactions = () => {
                 <SelectItem value="royalty_share_in">Royalty In</SelectItem>
                 <SelectItem value="royalty_share_out">Royalty Out</SelectItem>
                 <SelectItem value="withdrawal">Withdrawal</SelectItem>
+                <SelectItem value="subscription">Subscription</SelectItem>
               </SelectContent>
             </Select>
             <Input className="min-h-[44px]" type="date" value={filterDateFrom} onChange={e => setFilterDateFrom(e.target.value)} placeholder="From" />
@@ -233,8 +257,8 @@ const Transactions = () => {
                     <div className="flex justify-between items-start gap-2 mb-2">
                       <div className="min-w-0">
                         <div className="text-xs text-muted-foreground">{new Date(tx.created_at).toLocaleDateString()}</div>
-                        <div className="font-medium truncate">{getTrackTitle(tx.track_id)}</div>
-                        <div className="text-xs text-muted-foreground truncate">{getPlatformName(tx.platform_id)}</div>
+                        <div className="font-medium truncate">{tx.source === 'subscription' ? (tx.plan_name || 'Subscription') : getTrackTitle(tx.track_id)}</div>
+                        <div className="text-xs text-muted-foreground truncate">{tx.source === 'subscription' ? (tx.payment_method || 'Plan payment') : getPlatformName(tx.platform_id)}</div>
                       </div>
                       <div className="text-right shrink-0">
                         <div className={`font-semibold ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
@@ -269,8 +293,8 @@ const Transactions = () => {
                     {filtered.map(tx => (
                       <TableRow key={tx.id}>
                         <TableCell className="whitespace-nowrap">{new Date(tx.created_at).toLocaleDateString()}</TableCell>
-                        <TableCell>{getTrackTitle(tx.track_id)}</TableCell>
-                        <TableCell>{getPlatformName(tx.platform_id)}</TableCell>
+                        <TableCell>{tx.source === 'subscription' ? (tx.plan_name || 'Subscription') : getTrackTitle(tx.track_id)}</TableCell>
+                        <TableCell>{tx.source === 'subscription' ? (tx.payment_method || 'Plan payment') : getPlatformName(tx.platform_id)}</TableCell>
                         <TableCell className="max-w-[200px] truncate">{tx.description || '—'}</TableCell>
                         <TableCell>{getTypeBadge(tx.type)}</TableCell>
                         <TableCell className={`text-right font-medium ${tx.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
