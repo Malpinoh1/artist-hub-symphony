@@ -4,6 +4,16 @@ import type { NormalizedRoyaltyRow, DistributorCode } from '@/utils/royalty-pars
 // Re-export for legacy imports
 export type { NormalizedRoyaltyRow as OnerpmRow } from '@/utils/royalty-parsers';
 
+async function triggerAchievementWorker() {
+  try {
+    const { error } = await supabase.functions.invoke('award-achievements', { body: {} });
+    if (error) throw error;
+  } catch (e) {
+    // Stream stats are already committed. The pending delivery ledger keeps failures retryable.
+    console.warn('Achievement processing deferred:', e);
+  }
+}
+
 export interface RoyaltyUpload {
   id: string;
   file_name: string;
@@ -101,12 +111,7 @@ export async function createUploadAndProcess(params: {
     console.warn('Royalty notification failed:', e);
   }
 
-  try {
-    await supabase.functions.invoke('award-achievements', { body: {} });
-  } catch (e) {
-    // The royalty import is already committed. Achievement email retries are handled by the delivery ledger.
-    console.warn('Achievement processing deferred:', e);
-  }
+  await triggerAchievementWorker();
 
   return { uploadId: upload.id, matched: r.matched ?? 0, unmatched: r.unmatched ?? 0 };
 }
@@ -156,7 +161,9 @@ export async function assignRowToArtist(rowId: string, artistId: string) {
     })
     .eq('id', rowId);
 
-  await supabase.rpc('process_royalty_upload', { p_upload_id: row.upload_id });
+  const { error: processError } = await supabase.rpc('process_royalty_upload', { p_upload_id: row.upload_id });
+  if (processError) throw processError;
+  await triggerAchievementWorker();
 }
 
 export async function deleteUpload(uploadId: string) {
@@ -232,12 +239,14 @@ export async function deleteMonthUploads(year: number, month: number) {
 export async function reprocessUpload(uploadId: string) {
   const { data, error } = await supabase.rpc('process_royalty_upload', { p_upload_id: uploadId });
   if (error) throw error;
+  await triggerAchievementWorker();
   return data;
 }
 
 export async function rebuildAllStreamStats() {
   const { data, error } = await supabase.rpc('rebuild_all_stream_stats');
   if (error) throw error;
+  await triggerAchievementWorker();
   return data as { reprocessed: number; failed: number; errors: any[] };
 }
 
