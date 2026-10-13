@@ -32,8 +32,9 @@ export function ReleaseEditRequest({ release, onRequestSubmitted }: ReleaseEditR
     reason: ''
   });
 
-  const isApproved = release?.status === 'Approved';
-  const canEdit = release?.status === 'Pending';
+  const normalizedStatus = String(release?.status || '').toLowerCase();
+  const isApproved = normalizedStatus === 'approved' || normalizedStatus === 'processing';
+  const canEdit = normalizedStatus === 'pending';
 
   const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
