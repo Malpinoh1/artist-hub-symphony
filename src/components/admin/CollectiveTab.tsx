@@ -247,7 +247,7 @@ const CollectiveTab = () => {
 
                     <Textarea
                       rows={2}
-                      placeholder="Optional note to include in the applicant's email"
+                      placeholder="Message to applicant (visible to them; optional)"
                       value={notes[app.id] ?? app.applicant_message ?? ''}
                       onChange={(e) => setNotes((n) => ({ ...n, [app.id]: e.target.value }))}
                     />
