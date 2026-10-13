@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Mail, BellRing } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -31,6 +32,7 @@ type RequestRow = {
 const AdminReleaseMetadataQueue = () => {
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sendingReminders, setSendingReminders] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -44,6 +46,20 @@ const AdminReleaseMetadataQueue = () => {
   };
 
   useEffect(() => { void load(); }, []);
+
+  const sendReminders = async () => {
+    setSendingReminders(true);
+    const { data, error } = await (supabase as any).functions.invoke('notify-release-metadata-completion', { body: { reason: 'admin_manual_reminder' } });
+    if (error) {
+      toast({ title: 'Could not send reminders', description: error.message, variant: 'destructive' });
+    } else {
+      const results = data?.results || [];
+      const sent = results.filter((r: any) => r.email_status === 'sent').length;
+      const failed = results.filter((r: any) => r.email_status === 'failed').length;
+      toast({ title: 'Reminder dispatch finished', description: `${sent} owner email(s) sent; ${failed} email(s) failed. In-app notifications are already available in the notification bell.` });
+    }
+    setSendingReminders(false);
+  };
 
   const markInReview = async (row: RequestRow) => {
     const { error } = await (supabase as any)
@@ -64,6 +80,10 @@ const AdminReleaseMetadataQueue = () => {
         <p className="text-sm font-medium text-primary mb-2">Distribution operations</p>
         <h1 className="text-3xl font-bold">Release metadata review queue</h1>
         <p className="mt-2 text-muted-foreground">Owners' submissions appear here for verification. Confirm the release date, artwork, UPC, ISRCs, track count and structure before completing the catalogue records. Do not attach STREET ANTHEM rows to the standalone LOVE ME release.</p>
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button onClick={() => void sendReminders()} disabled={sendingReminders} className="gap-2"><Mail className="h-4 w-4" />{sendingReminders ? 'Sending reminders…' : 'Send popup + email reminders'}</Button>
+          <span className="inline-flex items-center gap-2 text-sm text-muted-foreground"><BellRing className="h-4 w-4" />In-app notifications also appear in the notification bell.</span>
+        </div>
       </div>
       {loading ? <p className="text-muted-foreground py-8">Loading review queue…</p> : rows.length === 0 ? (
         <div className="rounded-xl border bg-card p-8 text-center text-muted-foreground">No metadata requests found.</div>
