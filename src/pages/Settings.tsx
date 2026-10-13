@@ -39,6 +39,7 @@ const Settings = () => {
   const [saving, setSaving] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
+  const [accountType, setAccountType] = useState<'artist' | 'label'>('artist');
   const [subscriptionData, setSubscriptionData] = useState<SubscriptionData | null>(null);
   const [loadingSubscription, setLoadingSubscription] = useState(false);
   const [show2FASetup, setShow2FASetup] = useState(false);
@@ -89,6 +90,9 @@ const Settings = () => {
       }
 
       setCurrentUser(session.user);
+      const { data: accountRow } = await supabase.from('artists').select('account_type').eq('id', session.user.id).maybeSingle();
+      const resolvedAccountType = accountRow?.account_type === 'label' || session.user.user_metadata?.account_type === 'label' ? 'label' : 'artist';
+      setAccountType(resolvedAccountType);
       console.log("Fetching profile for user:", session.user.id);
 
       // Try to fetch existing profile
@@ -366,7 +370,8 @@ const Settings = () => {
     <div>
       <section className="container mx-auto px-4 py-8">
           <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-white mb-2">Settings</h1>
-          <p className="text-slate-600 dark:text-slate-400 mb-8">Manage your account preferences and settings.</p>
+          <p className="text-slate-600 dark:text-slate-400 mb-3">Manage your account preferences and settings.</p>
+          <div className="mb-8 flex items-center gap-2"><Badge variant={accountType === 'label' ? 'default' : 'secondary'}>{accountType === 'label' ? 'Label Account' : 'Artist Account'}</Badge><span className="text-xs text-muted-foreground">Account type</span></div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Profile Settings */}
