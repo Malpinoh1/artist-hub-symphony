@@ -23,7 +23,7 @@ const TIER_ACCENT: Record<string, [string, string]> = {
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n || 0));
 
 // The same original transparent PNG used by the MALPINOHDISTRO site header/footer.
-const BRAND_LOGO_URL = 'https://malpinohdistro.com.ng/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png';
+const BRAND_LOGO_URL = '/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png';
 
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement | null>((resolve) => {
