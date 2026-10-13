@@ -150,10 +150,15 @@ const DashboardContent = () => {
                   Welcome back, {user?.email?.split('@')[0] || 'Artist'}!
                 </h1>
                 <p className="text-base text-muted-foreground sm:text-lg">
-                  Manage your music distribution and track your performance
+                  {accountType === 'label'
+                    ? "Manage your label's music distribution and track your catalog performance"
+                    : 'Manage your music distribution and track your performance'}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={accountType === 'label' ? 'default' : 'outline'}>
+                  {accountType === 'label' ? 'Label Account' : 'Artist Account'}
+                </Badge>
                 {isWebsiteAdmin && (
                   <Badge variant="destructive">Admin Access</Badge>
                 )}
