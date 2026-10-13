@@ -137,9 +137,9 @@ export default function GuidedTour() {
     drag.current = { px: event.clientX, py: event.clientY, x: panel.current.getBoundingClientRect().left, y: panel.current.getBoundingClientRect().top };
   };
   const width = Math.min(360, innerWidth - 24);
-  return <div className="fixed inset-0 z-[90]" aria-label="MALPINOHdistro guided tour">
-    {target && <div aria-hidden="true" className="pointer-events-none fixed rounded-xl border-2 border-primary shadow-[0_0_0_9999px_rgba(0,0,0,0.58)]" style={{ left: Math.max(0, target.left - 4), top: Math.max(0, target.top - 4), width: target.width + 8, height: target.height + 8, zIndex: 91 }} />}
-    <div ref={panel} role="dialog" aria-modal="true" aria-labelledby="malpinoh-tour-title" className="fixed z-[92] overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl" style={{ left: clamp(position.x, 12, innerWidth - width - 12), top: clamp(position.y, 12, innerHeight - Math.min(panel.current?.offsetHeight || 270, innerHeight - 24) - 12), width }}>
+  return <div className="pointer-events-none fixed inset-0 z-[90]" aria-label="MALPINOHdistro guided tour">
+    {target && <div aria-hidden="true" className="pointer-events-none fixed rounded-xl border-2 border-primary shadow-lg" style={{ left: Math.max(0, target.left - 4), top: Math.max(0, target.top - 4), width: target.width + 8, height: target.height + 8, zIndex: 91 }} />}
+    <div ref={panel} role="dialog" aria-modal="true" aria-labelledby="malpinoh-tour-title" className="pointer-events-auto fixed z-[92] overflow-hidden rounded-2xl border border-border bg-card text-card-foreground shadow-2xl" style={{ left: clamp(position.x, 12, innerWidth - width - 12), top: clamp(position.y, 12, innerHeight - Math.min(panel.current?.offsetHeight || 270, innerHeight - 24) - 12), width }}>
       <div onPointerDown={startDrag} className="flex cursor-move touch-none items-center justify-between border-b border-border bg-muted/50 px-4 py-3">
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground"><Grip className="h-4 w-4" /> MALPINOHdistro tour</span>
         <Button variant="ghost" size="icon" className="h-7 w-7" aria-label="Close tour" onClick={() => close()}><X className="h-4 w-4" /></Button>
