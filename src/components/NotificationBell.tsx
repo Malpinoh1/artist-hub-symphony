@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Trophy, BadgeCheck, Inbox } from 'lucide-react';
+import { Bell, Trophy, BadgeCheck, Inbox, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,6 +26,7 @@ interface NotificationRow {
 const iconFor = (type: string) => {
   if (type === 'achievement') return <Trophy className="h-4 w-4 text-primary" />;
   if (type === 'oac_status') return <BadgeCheck className="h-4 w-4 text-primary" />;
+  if (type === 'release_metadata_action_required') return <AlertCircle className="h-4 w-4 text-amber-600" />;
   return <Inbox className="h-4 w-4 text-muted-foreground" />;
 };
 
