@@ -310,6 +310,7 @@ const ReleaseForm = () => {
         title: formData.title,
         artist_id: userId,
         artist_name: releaseArtistName,
+        artist_account_id: selectedArtistAccount === 'self' ? null : selectedArtistAccount,
         release_date: formData.release_date,
         release_type: formData.release_type,
         genre: formData.genre,
