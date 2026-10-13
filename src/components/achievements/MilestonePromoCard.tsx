@@ -22,6 +22,9 @@ const TIER_ACCENT: Record<string, [string, string]> = {
 
 const fmtNum = (n: number) => new Intl.NumberFormat('en-US').format(Math.round(n || 0));
 
+// The same original transparent PNG used by the MALPINOHDISTRO site header/footer.
+const BRAND_LOGO_URL = 'https://malpinohdistro.com.ng/lovable-uploads/e567dcac-3939-45da-9177-42729283dcd9.png';
+
 const loadImage = (src: string) =>
   new Promise<HTMLImageElement | null>((resolve) => {
     const img = new Image();
@@ -133,13 +136,20 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
 
     const pad = Math.round(w * 0.085);
 
-    // Brand line
-    ctx.fillStyle = 'rgba(255,255,255,0.62)';
-    ctx.font = `600 ${Math.round(w * 0.028)}px Inter, system-ui, sans-serif`;
+    // Brand line — genuine site logo, with a readable wordmark fallback for blocked images.
     ctx.textAlign = 'left';
-    ctx.letterSpacing = '4px';
-    ctx.fillText('MALPINOHDISTRO', pad, pad + w * 0.02);
-    ctx.letterSpacing = '0px';
+    if (logo) {
+      const logoW = Math.round(w * 0.145);
+      const logoH = logoW * (logo.height / logo.width);
+      ctx.drawImage(logo, pad, pad - logoH * 0.25, logoW, logoH);
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.font = `700 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
+      ctx.fillText('MALPINOHDISTRO', pad + logoW + w * 0.018, pad + w * 0.02);
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,0.82)';
+      ctx.font = `700 ${Math.round(w * 0.028)}px Inter, system-ui, sans-serif`;
+      ctx.fillText('MALPINOHDISTRO', pad, pad + w * 0.02);
+    }
 
     // Tier pill (top-right)
     const pillText = `${tier.toUpperCase()} MILESTONE`;
@@ -163,7 +173,25 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     const artX = isStory ? Math.round((w - artSize) / 2) : pad;
     const artY = Math.round(h * (isStory ? 0.185 : 0.16));
 
-    const cover = data.coverUrl ? await loadImage(data.coverUrl) : null;
+    const [cover, logo] = await Promise.all([
+      data.coverUrl ? loadImage(data.coverUrl) : Promise.resolve(null),
+      loadImage(BRAND_LOGO_URL),
+    ]);
+
+    // Embedded watermark: draw the original logo into the canvas itself so it survives PNG export.
+    ctx.save();
+    ctx.globalAlpha = 0.055;
+    if (logo) {
+      const watermarkW = w * 0.58;
+      const watermarkH = watermarkW * (logo.height / logo.width);
+      ctx.drawImage(logo, (w - watermarkW) / 2, h * 0.47 - watermarkH / 2, watermarkW, watermarkH);
+    } else {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.textAlign = 'center';
+      ctx.font = `900 ${Math.round(w * 0.07)}px Inter, system-ui, sans-serif`;
+      ctx.fillText('MALPINOHDISTRO', w / 2, h * 0.52);
+    }
+    ctx.restore();
 
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.65)';
