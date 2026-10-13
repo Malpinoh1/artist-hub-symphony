@@ -8,7 +8,7 @@ REVOKE SELECT ON TABLE public.collective_applications FROM authenticated;
 GRANT SELECT (
   id, user_id, full_name, email, email_normalized, phone, country, city,
   roles, other_role, social_links, why_join, contribution, status,
-  referral_code, reviewed_at, reviewed_by, created_at, updated_at, applicant_message
+  referral_code, reviewed_at, created_at, updated_at, applicant_message
 ) ON TABLE public.collective_applications TO authenticated;
 
 -- Summary RPC exposes only the applicant-facing message, never internal admin notes.
