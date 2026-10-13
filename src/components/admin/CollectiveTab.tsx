@@ -67,7 +67,7 @@ const CollectiveTab = () => {
     setLoading(true);
     let query = supabase
       .from('collective_applications')
-      .select('id, full_name, email, phone, country, city, roles, other_role, social_links, why_join, contribution, referral_code, status, applicant_message, created_at, reviewed_at')
+      .select('id, full_name, email, phone, country, city, roles, other_role, social_links, why_join, contribution, referral_code, status, created_at, reviewed_at')
       .order('created_at', { ascending: false })
       .limit(200);
     if (filter !== 'all') query = query.eq('status', filter as any);
