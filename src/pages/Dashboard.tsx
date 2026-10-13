@@ -31,6 +31,7 @@ const DashboardContent = () => {
   } = useTeamPermissions();
   const [loading, setLoading] = useState(true);
   const [releases, setReleases] = useState<any[]>([]);
+  const [accountType, setAccountType] = useState<'artist' | 'label'>('artist');
   const [stats, setStats] = useState({
     totalReleases: 0,
     activeReleases: 0,
@@ -46,6 +47,12 @@ const DashboardContent = () => {
     // Use effective account ID (respects team context)
     const effectiveAccountId = getEffectiveAccountId() || user.id;
     loadData(effectiveAccountId);
+    const loadAccountType = async () => {
+      const { data } = await supabase.from('artists').select('account_type').eq('id', effectiveAccountId).maybeSingle();
+      const metadataType = user.user_metadata?.account_type;
+      setAccountType(data?.account_type === 'label' || (!data?.account_type && metadataType === 'label') ? 'label' : 'artist');
+    };
+    void loadAccountType();
   }, [user, authLoading, permissionsLoading]);
 
   const loadData = async (accountId: string) => {
