@@ -49,7 +49,8 @@ const DashboardContent = () => {
     loadData(effectiveAccountId);
     const loadAccountType = async () => {
       const { data } = await supabase.from('artists').select('account_type').eq('id', effectiveAccountId).maybeSingle();
-      const metadataType = user.user_metadata?.account_type;
+      // Auth metadata belongs to the signed-in user only; never use it to classify a switched team account.
+      const metadataType = effectiveAccountId === user.id ? user.user_metadata?.account_type : undefined;
       setAccountType(data?.account_type === 'label' || (!data?.account_type && metadataType === 'label') ? 'label' : 'artist');
     };
     void loadAccountType();
