@@ -148,244 +148,184 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     const c2 = palette?.secondary || fallbackAccent[1];
     const isStory = format === 'story';
 
-    // Background — deep black/purple base
-    const bg = ctx.createLinearGradient(0, 0, w, h);
-    bg.addColorStop(0, '#0A0710');
-    bg.addColorStop(0.55, '#140E24');
-    bg.addColorStop(1, '#080610');
-    ctx.fillStyle = bg;
+    // A completely new editorial / record-sleeve art direction.
+    const ink = '#141414';
+    const paper = '#F5F1E8';
+    const mutedInk = '#59564F';
+    const accent = c1;
+    const accent2 = c2;
+    const pad = Math.round(w * 0.075);
+    const footerH = Math.round(w * (isStory ? 0.25 : 0.22));
+    const footerY = h - footerH;
+
+    ctx.fillStyle = paper;
     ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, 0, Math.round(w * 0.035), h);
+    ctx.fillStyle = ink;
+    ctx.fillRect(Math.round(w * 0.035), 0, w - Math.round(w * 0.035), Math.round(h * 0.105));
 
-    // Accent glows
-    const glow = (cx: number, cy: number, r: number, color: string, alpha: number) => {
-      const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-      g.addColorStop(0, color);
-      g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, w, h);
-      ctx.globalAlpha = 1;
-    };
-    glow(w * 0.15, h * 0.12, w * 0.75, c1, 0.35);
-    glow(w * 0.9, h * 0.85, w * 0.8, c2, 0.22);
-
-    // Fine grid texture
-    ctx.strokeStyle = 'rgba(255,255,255,0.035)';
-    ctx.lineWidth = 1;
-    for (let x = 0; x < w; x += 60) {
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, h);
-      ctx.stroke();
-    }
-    for (let y = 0; y < h; y += 60) {
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
-
-    const pad = Math.round(w * 0.085);
-
-    // Brand line — genuine site logo, with a readable wordmark fallback for blocked images.
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    const headerY = Math.round(h * 0.052);
     if (logo) {
-      const logoW = Math.round(w * 0.17);
+      const logoW = Math.round(w * 0.12);
       const logoH = logoW * (logo.height / logo.width);
-      ctx.drawImage(logo, pad, pad - logoH * 0.25, logoW, logoH);
-      ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.font = `800 ${Math.round(w * 0.024)}px 'Space Grotesk', system-ui, sans-serif`;
-      ctx.fillText('MALPINOHDISTRO', pad + logoW + w * 0.018, pad + w * 0.02);
-    } else {
-      ctx.fillStyle = 'rgba(255,255,255,0.82)';
-      ctx.font = `800 ${Math.round(w * 0.03)}px 'Space Grotesk', system-ui, sans-serif`;
-      ctx.fillText('MALPINOHDISTRO', pad, pad + w * 0.02);
-    }
-
-    // Tier pill (top-right)
-    const pillText = `${tier.toUpperCase()} MILESTONE`;
-    ctx.font = `800 ${Math.round(w * 0.024)}px 'Space Grotesk', system-ui, sans-serif`;
-    const pillW = ctx.measureText(pillText).width + w * 0.06;
-    const pillH = Math.round(w * 0.058);
-    const pillX = w - pad - pillW;
-    const pillY = pad - pillH * 0.55;
-    const pillGrad = ctx.createLinearGradient(pillX, pillY, pillX + pillW, pillY + pillH);
-    pillGrad.addColorStop(0, c1);
-    pillGrad.addColorStop(1, c2);
-    ctx.fillStyle = pillGrad;
-    roundRect(ctx, pillX, pillY, pillW, pillH, pillH / 2);
-    ctx.fill();
-    ctx.fillStyle = '#0A0710';
-    ctx.textAlign = 'center';
-    ctx.fillText(pillText, pillX + pillW / 2, pillY + pillH * 0.66);
-
-    // Framed editorial border for a finished, share-ready campaign card.
-    const frameInset = Math.round(w * 0.035);
-    const frameGradient = ctx.createLinearGradient(frameInset, frameInset, w - frameInset, h - frameInset);
-    frameGradient.addColorStop(0, c2);
-    frameGradient.addColorStop(0.48, 'rgba(255,255,255,0.22)');
-    frameGradient.addColorStop(1, c1);
-    ctx.strokeStyle = frameGradient;
-    ctx.globalAlpha = 0.72;
-    ctx.lineWidth = Math.max(2, Math.round(w * 0.002));
-    roundRect(ctx, frameInset, frameInset, w - frameInset * 2, h - frameInset * 2, Math.round(w * 0.035));
-    ctx.stroke();
-    ctx.globalAlpha = 1;
-
-    // Artwork
-    const artSize = Math.round(w * (isStory ? 0.56 : 0.20));
-    const artX = isStory ? Math.round((w - artSize) / 2) : pad;
-    const artY = Math.round(h * (isStory ? 0.185 : 0.12));
-
-    // Clear hierarchy: a campaign-style kicker anchors the artwork and milestone.
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = `800 ${Math.round(w * 0.022)}px Inter, system-ui, sans-serif`;
-    ctx.letterSpacing = `${Math.max(2, Math.round(w * 0.003))}px`;
-    ctx.fillText('MILESTONE UNLOCKED', w / 2, artY - Math.round(w * 0.025));
-    ctx.letterSpacing = '0px';
-
-    // Embedded watermark: draw the original logo into the canvas itself so it survives PNG export.
-    ctx.save();
-    ctx.globalAlpha = 0.055;
-    if (logo) {
-      const watermarkW = w * 0.58;
-      const watermarkH = watermarkW * (logo.height / logo.width);
-      ctx.drawImage(logo, (w - watermarkW) / 2, h * 0.47 - watermarkH / 2, watermarkW, watermarkH);
+      ctx.drawImage(logo, pad, headerY - logoH / 2, logoW, logoH);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 ' + Math.round(w * 0.022) + "px 'Space Grotesk', system-ui, sans-serif";
+      ctx.fillText('MALPINOH DISTRO', pad + logoW + w * 0.018, headerY);
     } else {
       ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'center';
-      ctx.font = `900 ${Math.round(w * 0.07)}px Inter, system-ui, sans-serif`;
-      ctx.fillText('MALPINOHDISTRO', w / 2, h * 0.52);
+      ctx.font = '900 ' + Math.round(w * 0.028) + "px 'Space Grotesk', system-ui, sans-serif";
+      ctx.fillText('MALPINOH DISTRO', pad, headerY);
     }
-    ctx.restore();
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.65)';
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetY = 24;
-    roundRect(ctx, artX, artY, artSize, artSize, Math.round(artSize * 0.07));
-    ctx.fillStyle = '#1A1428';
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    roundRect(ctx, artX, artY, artSize, artSize, Math.round(artSize * 0.07));
-    ctx.clip();
-    if (cover) {
-      const scale = Math.max(artSize / cover.width, artSize / cover.height);
-      const dw = cover.width * scale;
-      const dh = cover.height * scale;
-      ctx.drawImage(cover, artX + (artSize - dw) / 2, artY + (artSize - dh) / 2, dw, dh);
-    } else {
-      const ph = ctx.createLinearGradient(artX, artY, artX + artSize, artY + artSize);
-      ph.addColorStop(0, c1);
-      ph.addColorStop(1, '#1A1428');
-      ctx.fillStyle = ph;
-      ctx.fillRect(artX, artY, artSize, artSize);
-      ctx.fillStyle = 'rgba(255,255,255,0.85)';
-      ctx.textAlign = 'center';
-      ctx.font = `800 ${Math.round(artSize * 0.28)}px Inter, system-ui, sans-serif`;
-      ctx.fillText('♪', artX + artSize / 2, artY + artSize * 0.64);
-    }
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(255,255,255,0.14)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, artX, artY, artSize, artSize, Math.round(artSize * 0.07));
-    ctx.stroke();
-
-    // Text block — baselines measured from the bottom of the artwork
-    const textX = isStory ? w / 2 : pad;
-    ctx.textAlign = isStory ? 'center' : 'left';
-    const bigSize = Math.round(w * (isStory ? 0.26 : 0.12));
-    const gap = Math.round(h * (isStory ? 0.038 : 0.018));
-
-    let ty = artY + artSize + gap + Math.round(bigSize * 0.78);
-
-    const numGrad = ctx.createLinearGradient(
-      isStory ? w * 0.15 : pad,
-      ty - bigSize,
-      isStory ? w * 0.85 : w - pad,
-      ty,
-    );
-    numGrad.addColorStop(0, '#FFFFFF');
-    numGrad.addColorStop(1, c2);
-    ctx.fillStyle = numGrad;
-    ctx.font = `900 ${bigSize}px Inter, system-ui, sans-serif`;
-    ctx.fillText(milestoneLabel(data.milestone), textX, ty);
-
-    ty += Math.round(w * 0.055);
-    ctx.fillStyle = 'rgba(255,255,255,0.72)';
-    ctx.font = `700 ${Math.round(w * 0.036)}px Inter, system-ui, sans-serif`;
-    ctx.letterSpacing = '8px';
-    ctx.fillText('STREAMS', isStory ? textX - 4 : textX, ty);
-    ctx.letterSpacing = '0px';
-
-
-    // Release title (truncate to fit)
-    ty += Math.round(w * (isStory ? 0.085 : 0.045));
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `700 ${Math.round(w * 0.048)}px Inter, system-ui, sans-serif`;
-    const maxTextW = w - pad * 2;
-    let title = data.releaseTitle;
-    while (ctx.measureText(title).width > maxTextW && title.length > 4) {
-      title = title.slice(0, -2);
-    }
-    if (title !== data.releaseTitle) title = title.replace(/\s+$/, '') + '…';
-    ctx.fillText(title, textX, ty);
-
-    ty += Math.round(w * 0.045);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
-    ctx.font = `500 ${Math.round(w * 0.032)}px Inter, system-ui, sans-serif`;
-    let artist = data.artistName;
-    while (ctx.measureText(artist).width > maxTextW && artist.length > 4) {
-      artist = artist.slice(0, -2);
-    }
-    ctx.fillText(artist, textX, ty);
-
-    // Footer stat strip
-    const stripH = Math.round(w * (isStory ? 0.29 : 0.20));
-
-    const stripY = h - pad - stripH;
-    roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
-    ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, pad, stripY, w - pad * 2, stripH, Math.round(stripH * 0.28));
-    ctx.stroke();
-
-    // DSP platform marks — built into the exported image, not just the app preview.
-    await drawStreamingPlatformLogos(ctx, w, pad + w * 0.015, stripY + 1);
-
-    ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('TOTAL STREAMS', pad + w * 0.045, stripY + stripH * 0.66);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.045, stripY + stripH * 0.86);
-
     ctx.textAlign = 'right';
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
-    ctx.font = `600 ${Math.round(w * 0.023)}px Inter, system-ui, sans-serif`;
-    ctx.fillText('UNLOCKED', w - pad - w * 0.045, stripY + stripH * 0.66);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = `800 ${Math.round(w * 0.038)}px Inter, system-ui, sans-serif`;
-    ctx.fillText(
-      new Date(data.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      w - pad - w * 0.045,
-      stripY + stripH * 0.86,
-    );
+    ctx.fillStyle = accent2;
+    ctx.font = '900 ' + Math.round(w * 0.018) + 'px Inter, system-ui, sans-serif';
+    ctx.fillText(tier.toUpperCase() + ' / NO. ' + String(data.milestone).padStart(2, '0'), w - pad, headerY);
 
-    // Consistent campaign signature at the bottom of both export formats.
-    ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.font = `700 ${Math.round(w * 0.018)}px Inter, system-ui, sans-serif`;
-    ctx.letterSpacing = '3px';
-    ctx.fillText('MALPINOH DISTRO  •  GLOBAL MUSIC DISTRIBUTION', w / 2, h - Math.round(pad * 0.27));
-    ctx.letterSpacing = '0px';
+    const drawCover = (x: number, y: number, size: number) => {
+      ctx.save();
+      ctx.shadowColor = 'rgba(20,20,20,0.18)';
+      ctx.shadowBlur = Math.round(w * 0.025);
+      ctx.shadowOffsetY = Math.round(w * 0.012);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(x - w * 0.008, y - w * 0.008, size + w * 0.016, size + w * 0.016);
+      ctx.restore();
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x, y, size, size);
+      ctx.clip();
+      if (cover) {
+        const scale = Math.max(size / cover.width, size / cover.height);
+        const dw = cover.width * scale;
+        const dh = cover.height * scale;
+        ctx.drawImage(cover, x + (size - dw) / 2, y + (size - dh) / 2, dw, dh);
+      } else {
+        const grad = ctx.createLinearGradient(x, y, x + size, y + size);
+        grad.addColorStop(0, accent);
+        grad.addColorStop(1, accent2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, y, size, size);
+        ctx.fillStyle = ink;
+        ctx.font = '900 ' + Math.round(size * 0.48) + 'px Inter, system-ui, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('♪', x + size / 2, y + size / 2);
+      }
+      ctx.restore();
+      ctx.strokeStyle = ink;
+      ctx.lineWidth = Math.max(2, Math.round(w * 0.003));
+      ctx.strokeRect(x, y, size, size);
+    };
+
+    const drawFitted = (text: string, x: number, y: number, maxWidth: number, font: string) => {
+      ctx.font = font;
+      let fitted = text || '';
+      while (ctx.measureText(fitted).width > maxWidth && fitted.length > 3) fitted = fitted.slice(0, -2);
+      if (fitted !== text) fitted = fitted.replace(/\s+$/, '') + '…';
+      ctx.fillText(fitted, x, y);
+    };
+
+    if (!isStory) {
+      const artSize = Math.round(w * 0.405);
+      const artX = pad;
+      const artY = Math.round(h * 0.155);
+      drawCover(artX, artY, artSize);
+      const rightX = artX + artSize + Math.round(w * 0.055);
+      const rightW = w - pad - rightX;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = mutedInk;
+      ctx.font = '900 ' + Math.round(w * 0.021) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('THE STREAMING', rightX, artY + w * 0.035);
+      ctx.fillText('MILESTONE', rightX, artY + w * 0.062);
+      ctx.fillStyle = ink;
+      ctx.font = '900 ' + Math.round(w * 0.12) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(milestoneLabel(data.milestone), rightX, artY + w * 0.20);
+      ctx.fillStyle = accent;
+      ctx.fillRect(rightX, artY + w * 0.225, Math.min(rightW, w * 0.16), Math.max(8, w * 0.009));
+      ctx.fillStyle = ink;
+      ctx.font = '900 ' + Math.round(w * 0.043) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('STREAMS', rightX, artY + w * 0.285);
+      ctx.fillStyle = mutedInk;
+      drawFitted(data.releaseTitle, rightX, artY + w * 0.345, rightW, '700 ' + Math.round(w * 0.023) + 'px Inter, system-ui, sans-serif');
+      drawFitted(data.artistName, rightX, artY + w * 0.382, rightW, '500 ' + Math.round(w * 0.021) + 'px Inter, system-ui, sans-serif');
+
+      ctx.fillStyle = ink;
+      ctx.fillRect(pad, Math.round(h * 0.625), w - pad * 2, Math.round(h * 0.20));
+      ctx.fillStyle = accent2;
+      ctx.fillRect(pad, Math.round(h * 0.625), Math.round(w * 0.012), Math.round(h * 0.20));
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#BDB8AE';
+      ctx.font = '800 ' + Math.round(w * 0.018) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('TOTAL REPORTED STREAMS', pad + w * 0.04, h * 0.675);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 ' + Math.round(w * 0.052) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(fmtNum(data.streamsAtAward), pad + w * 0.04, h * 0.745);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#BDB8AE';
+      ctx.font = '800 ' + Math.round(w * 0.018) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('UNLOCKED ON', w - pad - w * 0.04, h * 0.675);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 ' + Math.round(w * 0.027) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(new Date(data.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), w - pad - w * 0.04, h * 0.735);
+
+      const platformY = Math.round(h * 0.875);
+      ctx.fillStyle = mutedInk;
+      ctx.textAlign = 'left';
+      ctx.font = '900 ' + Math.round(w * 0.016) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('AVAILABLE ACROSS', pad, platformY);
+      await drawStreamingPlatformLogos(ctx, w, pad, platformY + w * 0.012);
+      ctx.fillStyle = mutedInk;
+      ctx.textAlign = 'center';
+      ctx.font = '800 ' + Math.round(w * 0.014) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('MALPINOH DISTRO  •  MUSIC WITHOUT BORDERS', w / 2, h - w * 0.025);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = mutedInk;
+      ctx.font = '900 ' + Math.round(w * 0.027) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('YOUR MUSIC. YOUR MOMENT.', w / 2, h * 0.155);
+      const artSize = Math.round(w * 0.60);
+      const artX = Math.round((w - artSize) / 2);
+      const artY = Math.round(h * 0.185);
+      drawCover(artX, artY, artSize);
+
+      ctx.fillStyle = ink;
+      ctx.font = '900 ' + Math.round(w * 0.18) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(milestoneLabel(data.milestone), w / 2, h * 0.64);
+      ctx.fillStyle = accent;
+      ctx.fillRect(w * 0.25, h * 0.655, w * 0.50, w * 0.012);
+      ctx.fillStyle = ink;
+      ctx.font = '900 ' + Math.round(w * 0.047) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('STREAMS', w / 2, h * 0.70);
+      ctx.fillStyle = mutedInk;
+      drawFitted(data.releaseTitle, w / 2, h * 0.745, w * 0.82, '800 ' + Math.round(w * 0.034) + 'px Inter, system-ui, sans-serif');
+      drawFitted(data.artistName, w / 2, h * 0.775, w * 0.82, '600 ' + Math.round(w * 0.028) + 'px Inter, system-ui, sans-serif');
+
+      ctx.fillStyle = ink;
+      ctx.fillRect(0, footerY, w, footerH);
+      ctx.fillStyle = accent2;
+      ctx.fillRect(0, footerY, w, Math.round(w * 0.012));
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#BDB8AE';
+      ctx.font = '800 ' + Math.round(w * 0.022) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('TOTAL STREAMS', pad, footerY + footerH * 0.24);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '900 ' + Math.round(w * 0.052) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(fmtNum(data.streamsAtAward), pad, footerY + footerH * 0.43);
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#BDB8AE';
+      ctx.font = '800 ' + Math.round(w * 0.022) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText(new Date(data.awardedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }), w - pad, footerY + footerH * 0.24);
+      await drawStreamingPlatformLogos(ctx, w, pad, footerY + footerH * 0.52);
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = '800 ' + Math.round(w * 0.018) + 'px Inter, system-ui, sans-serif';
+      ctx.fillText('MALPINOH DISTRO  •  MUSIC WITHOUT BORDERS', w / 2, h - w * 0.025);
+    }
 
     setPreview(canvas.toDataURL('image/png'));
     setRendering(false);
@@ -466,7 +406,7 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-          <div className="rounded-xl bg-muted/40 p-3 flex items-center justify-center min-h-[220px]">
+          <div className="rounded-xl bg-[#E8E2D7] p-3 sm:p-4 flex items-center justify-center min-h-[220px]">
             {rendering || !preview ? (
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             ) : (

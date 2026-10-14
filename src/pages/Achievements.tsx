@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,6 +11,7 @@ import { useTeamPermissions } from '@/hooks/useTeamPermissions';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import MilestonePromoCard, { MilestoneCardData } from '@/components/achievements/MilestonePromoCard';
+import { loadCoverPalette } from '@/lib/coverPalette';
 import {
   useArtistAchievements, useArtistReportedSnapshot,
   MILESTONES, milestoneLabel, milestoneTier,
@@ -53,45 +54,52 @@ const UnlockedMilestoneTile: React.FC<UnlockedMilestoneTileProps> = ({
   const primary = palette?.primary || '#8B5CF6';
   const secondary = palette?.secondary || '#22D3EE';
   return (
-    <div
-      className="relative overflow-hidden rounded-xl border p-3 flex items-center gap-3 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
-      style={{
-        borderColor: `${primary}66`,
-        backgroundImage: `linear-gradient(115deg, ${primary}18, transparent 48%, ${secondary}12)`,
-      }}
-    >
-      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: `linear-gradient(180deg, ${primary}, ${secondary})` }} />
-      {release?.cover_art_url ? (
-        <img
-          src={release.cover_art_url}
-          alt={`${release.title} cover art`}
-          loading="lazy"
-          className="h-14 w-14 rounded-lg object-cover shrink-0 ring-1 ring-white/10"
-        />
-      ) : (
-        <div
-          className="h-14 w-14 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: `linear-gradient(135deg, ${primary}30, ${secondary}20` }}
-        >
-          <Disc3 className="h-5 w-5 text-muted-foreground" />
+    <article className="group relative isolate overflow-hidden rounded-2xl border border-border bg-card transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+      <div className="relative h-52 overflow-hidden bg-neutral-950">
+        {release?.cover_art_url ? (
+          <img
+            src={release.cover_art_url}
+            alt={release.title ? release.title + ' cover art' : 'Release cover art'}
+            loading="lazy"
+            className="absolute inset-0 h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-105"
+          />
+        ) : (
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, ' + primary + ', ' + secondary + ')' }} />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black/10" />
+        <div className="absolute left-4 top-4 flex items-center gap-2">
+          <span className="rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white backdrop-blur-sm">
+            {tier} award
+          </span>
         </div>
-      )}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-base font-bold tracking-tight">{streamsLabel} streams</span>
+        <div className="absolute bottom-4 left-4 right-4">
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.22em] text-white/70">Milestone unlocked</p>
+          <p className="text-4xl font-black leading-none tracking-tight text-white sm:text-5xl">{streamsLabel}</p>
+          <p className="mt-1 text-sm font-bold uppercase tracking-[0.22em] text-white/90">streams</p>
         </div>
-        <p className="text-xs text-foreground/85 truncate">{title}</p>
-        <p className="text-[11px] text-muted-foreground">
-          {new Date(achievement.awarded_at).toLocaleDateString()} · {fmtNum(Number(achievement.streams_at_award))} streams
-        </p>
+        <div className="absolute bottom-0 left-0 h-1.5 w-full" style={{ background: 'linear-gradient(90deg, ' + primary + ', ' + secondary + ')' }} />
       </div>
-      <div className="flex flex-col items-end gap-1.5 shrink-0">
-        <Badge variant="secondary" className="text-[10px]">{tier}</Badge>
-        <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" onClick={onShare}>
-          <Share2 className="h-3 w-3 mr-1" /> Share
-        </Button>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="truncate text-base font-bold">{title}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Unlocked {new Date(achievement.awarded_at).toLocaleDateString()}
+            </p>
+          </div>
+          <div className="shrink-0 rounded-xl px-3 py-2 text-right" style={{ backgroundColor: primary + '18', color: primary }}>
+            <p className="text-[9px] font-black uppercase tracking-wider">Total</p>
+            <p className="text-sm font-black tabular-nums">{fmtNum(Number(achievement.streams_at_award))}</p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+          <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-muted-foreground">MALPINOH DISTRO</span>
+          <Button size="sm" onClick={onShare} className="h-8 rounded-full px-4 text-xs">
+            <Share2 className="mr-1.5 h-3.5 w-3.5" /> Create promo
+          </Button>
+        </div>
       </div>
-    </div>
+    </article>
   );
 };
 
@@ -257,7 +265,7 @@ const Achievements: React.FC = () => {
                 No milestones yet. Your first badge unlocks at 100 lifetime streams.
               </p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid gap-4 sm:grid-cols-2">
                 {unlocked.map((a) => {
                   const rel: any = a.release_id ? releaseMap.get(a.release_id) : null;
                   const tier = milestoneTier(Number(a.milestone));
