@@ -29,24 +29,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
-        // Only synchronous state updates
-        setSession(newSession);
-        setUser(newSession?.user ?? null);
-        setIsLoading(false);
-      }
-    );
+    let active = true;
+    let receivedAuthEvent = false;
 
-    // THEN check for existing session (only once on mount)
-    supabase.auth.getSession().then(({ data: { session: existingSession } }) => {
-      setSession(existingSession);
-      setUser(existingSession?.user ?? null);
+    // Subscribe before restoring the session so login/logout events are not missed.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      receivedAuthEvent = true;
+      if (!active) return;
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
       setIsLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    // A slow initial session lookup must not overwrite a newer auth event.
+    supabase.auth.getSession().then(({ data: { session: existingSession }, error }) => {
+      if (!active || receivedAuthEvent) return;
+      if (error) console.warn('Could not restore authentication session:', error.message);
+      setSession(existingSession);
+      setUser(existingSession?.user ?? null);
+      setIsLoading(false);
+    }).catch((error) => {
+      if (!active || receivedAuthEvent) return;
+      console.error('Could not restore authentication session:', error);
+      setSession(null);
+      setUser(null);
+      setIsLoading(false);
+    });
+
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Check renewal eligibility whenever an artist signs in or an existing session is restored.
