@@ -71,7 +71,7 @@ const faqs = [
   },
   {
     q: 'What does distribution cost?',
-    a: 'Plans are priced in USD: $10 per release, $24 per month for the Monthly Plan, or $50 per year for Unlimited Artists. See the pricing page for full details.',
+    a: 'Plans are priced in USD: $10 per release, $24 per year for one artist, or $50 per year for unlimited artists. Each additional artist on the $24 annual plan costs ₦10,000. See the pricing page for full details.',
   },
 ];
 
