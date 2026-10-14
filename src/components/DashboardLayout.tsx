@@ -67,6 +67,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     };
   }, []);
   const [seenFeatures, setSeenFeatures] = useState<string[]>([]);
+  const [showPricingAnnouncement, setShowPricingAnnouncement] = useState(true);
+  useEffect(() => {
+    try { setShowPricingAnnouncement(localStorage.getItem('malpinohdistro:pricing-update-2026') !== 'dismissed'); } catch { /* keep announcement visible */ }
+  }, []);
+  const dismissPricingAnnouncement = () => {
+    setShowPricingAnnouncement(false);
+    try { localStorage.setItem('malpinohdistro:pricing-update-2026', 'dismissed'); } catch { /* no-op */ }
+  };
   const featureKey = user?.id ? 'malpinohdistro:new-features:v1:' + user.id : null;
   useEffect(() => {
     if (!featureKey) { setSeenFeatures([]); return; }
@@ -328,6 +336,18 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
 
         {/* Page Content */}
         <main className="min-w-0 w-full max-w-full p-3 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] sm:p-4 lg:p-8 lg:pb-8">
+          {showPricingAnnouncement && (
+            <section className="mb-5 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:p-5" aria-label="New MALPINOHdistro pricing announcement">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-semibold text-foreground">New lower pricing and platform upgrades</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Pay $10 per release, get 1 artist for $24/year, or choose $50/year for unlimited artists and releases. Additional artists on the $24 plan cost ₦10,000 each. Recent upgrades also improve draft saving, upload handling, team roles, and account switching.</p>
+                  <Link to="/pricing" className="mt-2 inline-flex text-sm font-medium text-primary underline underline-offset-4">View updated plans</Link>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={dismissPricingAnnouncement} aria-label="Dismiss pricing announcement">Dismiss</Button>
+              </div>
+            </section>
+          )}
           {children}
         </main>
       </div>

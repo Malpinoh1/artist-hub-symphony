@@ -14,10 +14,10 @@ interface Props {
 const OPTIONS = [
   { code: 'per_release', name: 'Pay Per Release', price: 10, period: 'one-time', icon: CreditCard,
     perks: ['Submit 1 release', 'No subscription', 'Pay only when you release'] },
-  { code: 'annual', name: 'Monthly Plan', price: 24, period: 'per month', icon: Calendar, highlight: true,
-    perks: ['Up to 15 releases per subscription period', 'All major DSPs', 'Priority support'] },
+  { code: 'annual', name: '1 Artist Annual', price: 24, period: 'per year', icon: Calendar, highlight: true,
+    perks: ['1 artist account for 1 year', 'Additional artist: ₦10,000 each', 'All major DSPs', 'Priority support'] },
   { code: 'unlimited', name: 'Unlimited Artists', price: 50, period: 'per year', icon: Infinity,
-    perks: ['Unlimited artists and releases', 'Highest priority', 'Premium support'] },
+    perks: ['1 year of distribution', 'Unlimited artist accounts and releases', 'Highest priority', 'Premium support'] },
 ];
 
 const ReleaseSubmissionGateModal: React.FC<Props> = ({ open, onOpenChange }) => {
