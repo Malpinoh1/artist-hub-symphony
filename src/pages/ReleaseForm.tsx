@@ -48,8 +48,13 @@ const ReleaseForm = () => {
   const [coverArt, setCoverArt] = useState<File | null>(null);
   const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
   const [coverArtUrlRef] = useState<{ current: string | null }>({ current: null });
+  const coverUploadPromiseRef = useRef<Promise<string | null> | null>(null);
+  const latestCoverArtRef = useRef<File | null>(null);
   const [audioFiles, setAudioFiles] = useState<File[]>([]);
+  const latestAudioFilesRef = useRef<File[]>([]);
+  latestAudioFilesRef.current = audioFiles;
   const [audioFileUrlsRef] = useState<{ current: string[] }>({ current: [] });
+  const audioUploadPromiseRef = useRef<Promise<string[]> | null>(null);
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,53 +99,51 @@ const ReleaseForm = () => {
     }
   }, [draftLoaded, draft, resumed, isResumeIntent, coverArtUrlRef, audioFileUrlsRef]);
 
-  // Drafts are saved only when the user clicks "Save Draft" or starts submission.
-  // Upload cover-art the moment it's chosen so it survives payment redirect.
-  const coverUploadingRef = useRef(false);
+  // Draft data is manual-save only. File uploads run separately and are awaited before
+  // saving/submitting so stale background uploads cannot silently lose the selected files.
+  latestCoverArtRef.current = coverArt;
   useEffect(() => {
-    if (!coverArt || !user || coverUploadingRef.current) return;
-    coverUploadingRef.current = true;
-    (async () => {
-      try {
-        const path = `${user.id}/${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
-        const { error } = await supabase.storage.from('release_artwork').upload(path, coverArt, { cacheControl: '3600', upsert: false });
-        if (error) throw error;
-        const { data: urlData } = supabase.storage.from('release_artwork').getPublicUrl(path);
-        coverArtUrlRef.current = urlData?.publicUrl ?? null;
-      } catch (e: any) {
-        console.error('Background cover upload failed:', e);
-      } finally {
-        coverUploadingRef.current = false;
-      }
+    if (!coverArt || !user) return;
+    const selectedFile = coverArt;
+    const upload = (async () => {
+      const path = `${user.id}/${Date.now()}_cover.${selectedFile.name.split('.').pop()}`;
+      const { error } = await supabase.storage.from('release_artwork').upload(path, selectedFile, { cacheControl: '3600', upsert: false });
+      if (error) throw new Error(`Cover art upload failed: ${error.message}`);
+      const { data: urlData } = supabase.storage.from('release_artwork').getPublicUrl(path);
+      return urlData?.publicUrl ?? null;
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    coverUploadPromiseRef.current = upload;
+    upload.then((url) => {
+      if (latestCoverArtRef.current === selectedFile) coverArtUrlRef.current = url;
+    }).catch((error) => {
+      console.error('Background cover upload failed:', error);
+    });
   }, [coverArt, user?.id]);
 
-  // Upload audio files the moment they're chosen.
-  const audioUploadingRef = useRef(false);
   useEffect(() => {
-    if (!audioFiles.length || !user || audioUploadingRef.current) return;
-    if (audioFiles.length === audioFileUrlsRef.current.length) return;
-    audioUploadingRef.current = true;
-    (async () => {
-      try {
-        const urls: string[] = [];
-        for (let i = 0; i < audioFiles.length; i++) {
-          const f = audioFiles[i];
-          const path = `${user.id}/${Date.now()}_${i}_${f.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-          const { error } = await supabase.storage.from('audio_files').upload(path, f, { cacheControl: '3600', upsert: false });
-          if (error) throw error;
-          const { data: urlData } = supabase.storage.from('audio_files').getPublicUrl(path);
-          urls.push(urlData?.publicUrl || '');
-        }
-        audioFileUrlsRef.current = urls;
-      } catch (e: any) {
-        console.error('Background audio upload failed:', e);
-      } finally {
-        audioUploadingRef.current = false;
+    if (!audioFiles.length || !user) {
+      if (audioFiles.length === 0) audioFileUrlsRef.current = [];
+      return;
+    }
+    const selectedFiles = audioFiles;
+    const upload = (async () => {
+      const urls: string[] = [];
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        const path = `${user.id}/${Date.now()}_${i}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+        const { error } = await supabase.storage.from('audio_files').upload(path, file, { cacheControl: '3600', upsert: false });
+        if (error) throw new Error(`Audio upload failed: ${error.message}`);
+        const { data: urlData } = supabase.storage.from('audio_files').getPublicUrl(path);
+        urls.push(urlData?.publicUrl || '');
       }
+      return urls;
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    audioUploadPromiseRef.current = upload;
+    upload.then((urls) => {
+      if (latestAudioFilesRef.current === selectedFiles) audioFileUrlsRef.current = urls;
+    }).catch((error) => {
+      console.error('Background audio upload failed:', error);
+    });
   }, [audioFiles, user?.id]);
 
   useEffect(() => {
@@ -178,6 +181,7 @@ const ReleaseForm = () => {
     setFormData((prev: any) => ({ ...prev, [field]: value }));
   };
   const handleCoverArtChange = (file: File | null, preview: string | null) => {
+    latestCoverArtRef.current = file;
     setCoverArt(file);
     setCoverArtPreview(preview);
     if (!file) coverArtUrlRef.current = null;
@@ -194,15 +198,45 @@ const ReleaseForm = () => {
   });
 
   const handleManualSave = async () => {
-    const id = await saveNow(draftPayload(), true);
-    if (id) toast({ title: 'Draft saved', description: 'You can leave and continue this release later.' });
-    else toast({ title: 'Could not save draft', description: 'Please check your connection and try again.', variant: 'destructive' });
+    try {
+      if (coverArt && coverUploadPromiseRef.current) {
+        coverArtUrlRef.current = await coverUploadPromiseRef.current;
+        if (!coverArtUrlRef.current) throw new Error('Cover art upload did not return a file URL.');
+      }
+      if (audioFiles.length && audioUploadPromiseRef.current) {
+        const uploadedUrls = await audioUploadPromiseRef.current;
+        if (latestAudioFilesRef.current === audioFiles) audioFileUrlsRef.current = uploadedUrls;
+      }
+      if (coverArt && !coverArtUrlRef.current) throw new Error('Please wait for the cover art upload to finish and try again.');
+      if (audioFiles.length && audioFileUrlsRef.current.length !== audioFiles.length) throw new Error('Please wait for all audio uploads to finish and try again.');
+      const id = await saveNow(draftPayload(), true);
+      if (id) toast({ title: 'Draft saved', description: 'You can leave and continue this release later.' });
+      else toast({ title: 'Could not save draft', description: 'Please check your connection and try again.', variant: 'destructive' });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Please retry the upload and save again.';
+      toast({ title: 'Could not save draft', description: message, variant: 'destructive' });
+    }
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate('/auth'); return; }
+
+    // Wait for selected files before persisting the draft or opening a payment redirect.
+    try {
+      if (coverArt && coverUploadPromiseRef.current) {
+        coverArtUrlRef.current = await coverUploadPromiseRef.current;
+      }
+      if (audioFiles.length && audioUploadPromiseRef.current) {
+        const uploadedUrls = await audioUploadPromiseRef.current;
+        if (latestAudioFilesRef.current === audioFiles) audioFileUrlsRef.current = uploadedUrls;
+      }
+    } catch (uploadError) {
+      const message = uploadError instanceof Error ? uploadError.message : 'A selected file failed to upload.';
+      toast({ title: 'Upload incomplete', description: message, variant: 'destructive' });
+      return;
+    }
 
     // Pre-flight payment gate check
     try {
@@ -249,6 +283,7 @@ const ReleaseForm = () => {
       // Use already-uploaded URLs; fall back to per-submit upload if missing.
       setUploadProgress({ step: 'cover' });
       let coverArtUrl = coverArtUrlRef.current;
+      if (coverArt && !coverArtUrl) throw new Error('Cover art upload is not complete. Please retry selecting the file.');
       if (!coverArtUrl && coverArt) {
         const path = `${userId}/${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
         const { error: coverErr } = await supabase.storage.from('release_artwork').upload(path, coverArt, { cacheControl: '3600', upsert: false });

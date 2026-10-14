@@ -48,10 +48,11 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
     if (authUser) {
       setCurrentUser(authUser);
       const storedAccountId = localStorage.getItem('currentAccountId');
-      const accountId = storedAccountId || authUser.id;
-      setCurrentAccountId(accountId);
+      // Do not expose a persisted team account until current access is revalidated.
+      setCurrentAccountId(null);
+      setIsLoading(true);
       // Defer to break synchronous chain per auth-rate-limiting-prevention
-      setTimeout(() => fetchTeamAccounts(authUser.id), 0);
+      setTimeout(() => fetchTeamAccounts(authUser.id, storedAccountId), 0);
     } else {
       setCurrentUser(null);
       setCurrentAccountId(null);
@@ -61,7 +62,7 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
     }
   }, [authUser, authLoading]);
 
-  const fetchTeamAccounts = async (userId: string) => {
+  const fetchTeamAccounts = async (userId: string, preferredAccountId?: string | null) => {
     try {
       const { data, error } = await supabase
         .from('account_access')
@@ -70,12 +71,17 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
 
       if (error) {
         console.error('Error fetching team accounts:', error);
+        setTeamAccounts([]);
+        setCurrentAccountId(userId);
+        localStorage.setItem('currentAccountId', userId);
         setIsLoading(false);
         return;
       }
 
       if (!data || data.length === 0) {
         setTeamAccounts([]);
+        setCurrentAccountId(userId);
+        localStorage.setItem('currentAccountId', userId);
         setIsLoading(false);
         return;
       }
@@ -110,14 +116,36 @@ export const AccountProvider: React.FC<AccountProviderProps> = ({ children }) =>
       });
 
       setTeamAccounts(accounts);
+      const allowedAccountIds = new Set([userId, ...accounts.map(account => account.account_owner_id)]);
+      const requestedAccountId = preferredAccountId ?? localStorage.getItem('currentAccountId');
+      const nextAccountId = requestedAccountId && allowedAccountIds.has(requestedAccountId)
+        ? requestedAccountId
+        : userId;
+      setCurrentAccountId(nextAccountId);
+      localStorage.setItem('currentAccountId', nextAccountId);
     } catch (error) {
       console.error('Error fetching team accounts:', error);
+      setTeamAccounts([]);
+      setCurrentAccountId(userId);
+      localStorage.setItem('currentAccountId', userId);
     } finally {
       setIsLoading(false);
     }
   };
 
   const switchAccount = (accountId: string) => {
+    const allowed = accountId === currentUser?.id ||
+      teamAccounts.some(account => account.account_owner_id === accountId);
+    if (!allowed) {
+      localStorage.setItem('currentAccountId', currentUser?.id || '');
+      toast({
+        title: 'Account access unavailable',
+        description: 'Your access to that account could not be verified. Switched back to your personal account.',
+        variant: 'destructive',
+      });
+      if (currentUser?.id) setCurrentAccountId(currentUser.id);
+      return;
+    }
     setCurrentAccountId(accountId);
     localStorage.setItem('currentAccountId', accountId);
     
