@@ -12,12 +12,12 @@ interface Props {
 }
 
 const OPTIONS = [
-  { code: 'per_release', name: 'Pay Per Release', price: 14, period: 'one-time', icon: CreditCard,
+  { code: 'per_release', name: 'Pay Per Release', price: 10, period: 'one-time', icon: CreditCard,
     perks: ['Submit 1 release', 'No subscription', 'Pay only when you release'] },
-  { code: 'annual', name: 'Annual', price: 36, period: 'per year', icon: Calendar, highlight: true,
-    perks: ['Unlimited releases for 1 year', 'All major DSPs', 'Priority support'] },
-  { code: 'unlimited', name: 'Unlimited', price: 100, period: 'per year', icon: Infinity,
-    perks: ['Unlimited releases', 'Highest priority', 'Lifetime distribution care'] },
+  { code: 'annual', name: 'Monthly Plan', price: 24, period: 'per month', icon: Calendar, highlight: true,
+    perks: ['Up to 15 releases per subscription period', 'All major DSPs', 'Priority support'] },
+  { code: 'unlimited', name: 'Unlimited Artists', price: 50, period: 'per year', icon: Infinity,
+    perks: ['Unlimited artists and releases', 'Highest priority', 'Premium support'] },
 ];
 
 const ReleaseSubmissionGateModal: React.FC<Props> = ({ open, onOpenChange }) => {
