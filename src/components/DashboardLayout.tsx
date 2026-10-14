@@ -341,7 +341,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-foreground">New lower pricing and platform upgrades</p>
-                  <p className="mt-1 text-sm text-muted-foreground">Pay $10 per release, get 1 artist for $24/year, or choose $50/year for unlimited artists and releases. Additional artists on the $24 plan cost ₦10,000 each.</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Pay $10 per release, get 1 artist for $24/year, or choose $50/year for unlimited artists and releases. Additional artists on the $24 plan cost ₦10,000 each. Recent upgrades also improve draft saving, upload handling, team roles, and account switching.</p>
                   <Link to="/pricing" className="mt-2 inline-flex text-sm font-medium text-primary underline underline-offset-4">View updated plans</Link>
                 </div>
                 <Button type="button" variant="ghost" size="sm" onClick={dismissPricingAnnouncement} aria-label="Dismiss pricing announcement">Dismiss</Button>
