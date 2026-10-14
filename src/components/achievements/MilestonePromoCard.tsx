@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Download, Share2, Loader2, Square, RectangleVertical } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { milestoneLabel, milestoneTier } from '@/hooks/useReportedStats';
+import { loadCoverPalette } from '@/lib/coverPalette';
 
 type Format = 'square' | 'story';
 
@@ -138,7 +139,13 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     const logo = await loadImage(BRAND_LOGO_URL);
 
     const tier = milestoneTier(data.milestone);
-    const [c1, c2] = TIER_ACCENT[tier] || TIER_ACCENT.Diamond;
+    const fallbackAccent = TIER_ACCENT[tier] || TIER_ACCENT.Diamond;
+    const [cover, palette] = await Promise.all([
+      data.coverUrl ? loadImage(data.coverUrl) : Promise.resolve(null),
+      loadCoverPalette(data.coverUrl),
+    ]);
+    const c1 = palette?.primary || fallbackAccent[0];
+    const c2 = palette?.secondary || fallbackAccent[1];
     const isStory = format === 'story';
 
     // Background — deep black/purple base
@@ -237,8 +244,6 @@ const MilestonePromoCard: React.FC<Props> = ({ data, open, onOpenChange }) => {
     ctx.letterSpacing = `${Math.max(2, Math.round(w * 0.003))}px`;
     ctx.fillText('MILESTONE UNLOCKED', w / 2, artY - Math.round(w * 0.025));
     ctx.letterSpacing = '0px';
-
-    const cover = data.coverUrl ? await loadImage(data.coverUrl) : null;
 
     // Embedded watermark: draw the original logo into the canvas itself so it survives PNG export.
     ctx.save();
