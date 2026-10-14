@@ -124,11 +124,6 @@ const Auth = () => {
       return;
     }
 
-    if (!emailOptIn) {
-      setError("You must agree to receive updates and emails from MALPINOHDISTRO");
-      return;
-    }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address");
@@ -584,7 +579,7 @@ const Auth = () => {
                           disabled={loading}
                         />
                         <span className="text-sm text-gray-700">
-                          I agree to receive updates and emails from MALPINOHDISTRO. <span className="text-red-500">*</span>
+                          I agree to receive optional updates and marketing emails from MALPINOHDISTRO.
                         </span>
                       </label>
                     </div>
