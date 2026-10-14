@@ -27,6 +27,74 @@ const tierStyles: Record<string, string> = {
   Diamond: 'from-primary/40 to-fuchsia-500/10 text-primary border-primary/40',
 };
 
+
+interface UnlockedMilestoneTileProps {
+  achievement: any;
+  release: any;
+  tier: string;
+  title: string;
+  streamsLabel: string;
+  artistName: string;
+  onShare: () => void;
+}
+
+const UnlockedMilestoneTile: React.FC<UnlockedMilestoneTileProps> = ({
+  achievement, release, tier, title, streamsLabel, onShare,
+}) => {
+  const [palette, setPalette] = useState<{ primary: string; secondary: string } | null>(null);
+  useEffect(() => {
+    let active = true;
+    loadCoverPalette(release?.cover_art_url).then((value) => {
+      if (active) setPalette(value);
+    });
+    return () => { active = false; };
+  }, [release?.cover_art_url]);
+
+  const primary = palette?.primary || '#8B5CF6';
+  const secondary = palette?.secondary || '#22D3EE';
+  return (
+    <div
+      className="relative overflow-hidden rounded-xl border p-3 flex items-center gap-3 bg-card transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md"
+      style={{
+        borderColor: `${primary}66`,
+        backgroundImage: `linear-gradient(115deg, ${primary}18, transparent 48%, ${secondary}12)`,
+      }}
+    >
+      <div className="absolute left-0 top-0 bottom-0 w-1" style={{ background: `linear-gradient(180deg, ${primary}, ${secondary})` }} />
+      {release?.cover_art_url ? (
+        <img
+          src={release.cover_art_url}
+          alt={`${release.title} cover art`}
+          loading="lazy"
+          className="h-14 w-14 rounded-lg object-cover shrink-0 ring-1 ring-white/10"
+        />
+      ) : (
+        <div
+          className="h-14 w-14 rounded-lg flex items-center justify-center shrink-0"
+          style={{ background: `linear-gradient(135deg, ${primary}30, ${secondary}20` }}
+        >
+          <Disc3 className="h-5 w-5 text-muted-foreground" />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2 mb-0.5">
+          <span className="text-base font-bold tracking-tight">{streamsLabel} streams</span>
+        </div>
+        <p className="text-xs text-foreground/85 truncate">{title}</p>
+        <p className="text-[11px] text-muted-foreground">
+          {new Date(achievement.awarded_at).toLocaleDateString()} · {fmtNum(Number(achievement.streams_at_award))} streams
+        </p>
+      </div>
+      <div className="flex flex-col items-end gap-1.5 shrink-0">
+        <Badge variant="secondary" className="text-[10px]">{tier}</Badge>
+        <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" onClick={onShare}>
+          <Share2 className="h-3 w-3 mr-1" /> Share
+        </Button>
+      </div>
+    </div>
+  );
+};
+
 const Achievements: React.FC = () => {
   const { user } = useAuth();
   const { getEffectiveAccountId } = useTeamPermissions();
@@ -195,43 +263,23 @@ const Achievements: React.FC = () => {
                   const tier = milestoneTier(Number(a.milestone));
                   const achievementTitle = a.track_title || rel?.title || 'Catalogue';
                   return (
-                    <div key={a.id} className={`rounded-xl border bg-gradient-to-br p-3 flex items-center gap-3 ${tierStyles[tier]}`}>
-                      {rel?.cover_art_url ? (
-                        <img src={rel.cover_art_url} alt={`${rel.title} cover art`} loading="lazy"
-                          className="h-14 w-14 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="h-14 w-14 rounded-lg bg-muted flex items-center justify-center shrink-0">
-                          <Disc3 className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-base font-bold">{milestoneLabel(Number(a.milestone))} streams</p>
-                        <p className="text-xs text-foreground/80 truncate">{achievementTitle}</p>
-                        <p className="text-[11px] text-muted-foreground">
-                          {new Date(a.awarded_at).toLocaleDateString()} · {fmtNum(Number(a.streams_at_award))} streams
-                        </p>
-                      </div>
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <Badge variant="secondary" className="text-[10px]">{tier}</Badge>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          className="h-7 px-2 text-[11px]"
-                          onClick={() =>
-                            setShareCard({
-                              milestone: Number(a.milestone),
-                              streamsAtAward: Number(a.streams_at_award),
-                              awardedAt: a.awarded_at,
-                              releaseTitle: achievementTitle,
-                              coverUrl: rel?.cover_art_url || null,
-                              artistName: resolvePromoArtistName(rel?.artist_name, rel?.artist_account_id),
-                            })
-                          }
-                        >
-                          <Share2 className="h-3 w-3 mr-1" /> Share
-                        </Button>
-                      </div>
-                    </div>
+                    <UnlockedMilestoneTile
+                      key={a.id}
+                      achievement={a}
+                      release={rel}
+                      tier={tier}
+                      title={achievementTitle}
+                      streamsLabel={milestoneLabel(Number(a.milestone))}
+                      artistName={resolvePromoArtistName(rel?.artist_name, rel?.artist_account_id)}
+                      onShare={() => setShareCard({
+                        milestone: Number(a.milestone),
+                        streamsAtAward: Number(a.streams_at_award),
+                        awardedAt: a.awarded_at,
+                        releaseTitle: achievementTitle,
+                        coverUrl: rel?.cover_art_url || null,
+                        artistName: resolvePromoArtistName(rel?.artist_name, rel?.artist_account_id),
+                      })}
+                    />
 
                   );
                 })}
