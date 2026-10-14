@@ -71,7 +71,7 @@ const faqs = [
   },
   {
     q: 'What does distribution cost?',
-    a: 'Plans are priced in USD: pay per release, an annual plan, or an unlimited plan. Full details are on the pricing page.',
+    a: 'Plans are priced in USD: $10 per release, $24 per month for the Monthly Plan, or $50 per year for Unlimited Artists. See the pricing page for full details.',
   },
 ];
 
