@@ -30,7 +30,7 @@ const ReleasesContent = () => {
 
   return (
     <div>
-      <section className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-6xl">
+      <section className="container mx-auto px-3 sm:px-4 py-6 sm:py-8 max-w-6xl" data-tour="releases">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-6 sm:mb-8">
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-display font-bold text-foreground mb-1 sm:mb-2">
@@ -40,7 +40,7 @@ const ReleasesContent = () => {
                 Manage and track all your music releases
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-col sm:flex-row gap-2" data-tour="releases-create">
               <Button asChild variant="outline" className="gap-2 w-full sm:w-auto min-h-[44px]">
                 <Link to="/release-metadata-completion">Complete metadata requests</Link>
               </Button>
