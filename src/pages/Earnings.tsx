@@ -63,7 +63,7 @@ const EarningsContent = () => {
               pendingEarnings: summary.pendingEarnings,
               creditBalance: summary.creditBalance
             }}
-          />
+          /></div>
 
           <div className="mt-8" data-tour="earnings-tabs">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
