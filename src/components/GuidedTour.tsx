@@ -111,6 +111,7 @@ export default function GuidedTour() {
     let retryTimer = 0;
     let measureTimer = 0;
     let observer: MutationObserver | undefined;
+    let targetFound = false;
     let cancelled = false;
 
     const findTarget = () => Array.from(
@@ -123,7 +124,7 @@ export default function GuidedTour() {
     });
 
     const seekAndScroll = () => {
-      if (cancelled) return;
+      if (cancelled || targetFound) return;
       const el = findTarget();
       if (!el && attempts++ < 60) {
         // Dashboard cards and page sections can appear only after asynchronous data loads.
@@ -131,6 +132,8 @@ export default function GuidedTour() {
         return;
       }
       if (el) {
+        targetFound = true;
+        observer?.disconnect();
         // Native scrollIntoView scrolls the document and nested overflow containers.
         el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         measureTimer = window.setTimeout(() => {
