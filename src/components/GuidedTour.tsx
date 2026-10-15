@@ -99,9 +99,29 @@ export default function GuidedTour() {
     if (open && window.innerWidth < 1024) window.dispatchEvent(new Event('malpinohdistro:open-mobile-menu'));
   }, [open, index]);
 
+  // Scroll each new tour target into view before measuring it. This also handles
+  // targets below the fold and targets inside nested scroll containers.
   useEffect(() => {
     if (!open) return;
-    const timer = window.setTimeout(() => locate(true), 150);
+    const timer = window.setTimeout(() => {
+      const el = Array.from(document.querySelectorAll<HTMLElement>('[data-tour="' + step.id + '"]')).find((node) => {
+        const rect = node.getBoundingClientRect();
+        const style = window.getComputedStyle(node);
+        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+      });
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        window.setTimeout(() => locate(true), 400);
+      } else {
+        locate(true);
+      }
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [open, index, location.pathname]);
+
+  useEffect(() => {
+    if (!open) return;
+    const timer = window.setTimeout(() => locate(false), 150);
     const update = () => locate(false);
     window.addEventListener('resize', update);
     window.addEventListener('scroll', update, true);
