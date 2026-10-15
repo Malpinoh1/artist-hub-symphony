@@ -37,7 +37,7 @@ export default function GuidedTour() {
   const panel = useRef<HTMLDivElement>(null);
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const started = useRef(false);
-  const key = user?.id ? 'malpinohdistro:tour:v1:' + user.id : null;
+  const key = user?.id ? 'malpinohdistro:tour:v2:' + user.id : null;
   const step = steps[index];
 
   const locate = (reset = false) => {
