@@ -95,8 +95,12 @@ export default function GuidedTour() {
     return () => window.removeEventListener('malpinohdistro:replay-tour', replay);
   }, []);
 
+  // The tour highlights page content, so keep the mobile navigation drawer closed.
+  // Opening it here covers the page and prevents users from seeing the target section.
   useEffect(() => {
-    if (open && window.innerWidth < 1024) window.dispatchEvent(new Event('malpinohdistro:open-mobile-menu'));
+    if (open && window.innerWidth < 1024) {
+      window.dispatchEvent(new Event('malpinohdistro:close-mobile-menu'));
+    }
   }, [open, index]);
 
   // Wait for route content to mount, then scroll the active target into view.
@@ -106,6 +110,8 @@ export default function GuidedTour() {
     let attempts = 0;
     let retryTimer = 0;
     let measureTimer = 0;
+    let observer: MutationObserver | undefined;
+    let targetFound = false;
     let cancelled = false;
 
     const findTarget = () => Array.from(
@@ -118,26 +124,44 @@ export default function GuidedTour() {
     });
 
     const seekAndScroll = () => {
-      if (cancelled) return;
+      if (cancelled || targetFound) return;
       const el = findTarget();
-      if (!el && attempts++ < 20) {
-        retryTimer = window.setTimeout(seekAndScroll, 150);
+      if (!el && attempts++ < 60) {
+        // Dashboard cards and page sections can appear only after asynchronous data loads.
+        retryTimer = window.setTimeout(seekAndScroll, 200);
         return;
       }
       if (el) {
-        // Native scrollIntoView scrolls the page and any nested overflow container.
+        targetFound = true;
+        observer?.disconnect();
+        // Native scrollIntoView scrolls the document and nested overflow containers.
         el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
         measureTimer = window.setTimeout(() => {
-          if (!cancelled) locate(true);
-        }, 650);
+          if (cancelled) return;
+          // Recheck after scrolling; keep retrying briefly if layout/data loading shifted the target.
+          locate(true);
+          const rect = el.getBoundingClientRect();
+          if ((rect.top < 0 || rect.bottom > window.innerHeight) && attempts++ < 10) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+            measureTimer = window.setTimeout(() => {
+              if (!cancelled) locate(true);
+            }, 350);
+          }
+        }, 800);
       } else {
         locate(true);
       }
     };
 
+    // Observe late-mounted content as well as polling, so loading sections are not missed.
+    observer = new MutationObserver(() => {
+      if (!cancelled) seekAndScroll();
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
     retryTimer = window.setTimeout(seekAndScroll, 100);
     return () => {
       cancelled = true;
+      observer?.disconnect();
       window.clearTimeout(retryTimer);
       window.clearTimeout(measureTimer);
     };
