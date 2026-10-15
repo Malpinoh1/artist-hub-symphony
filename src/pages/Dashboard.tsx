@@ -219,7 +219,7 @@ const DashboardContent = () => {
             totalPlays={stats.totalPlays}
             totalEarnings={stats.totalEarnings}
             loading={loading}
-          />
+          /></div>
 
           {/* Reported performance from processed royalty statements */}
           <div className="mt-8 mb-8" data-tour="dashboard-performance">
