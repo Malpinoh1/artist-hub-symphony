@@ -56,16 +56,16 @@ const EarningsContent = () => {
             <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400">Manage your earnings and payment methods</p>
           </div>
 
-          <StatsCards 
+          <div data-tour="earnings"><StatsCards 
             stats={{
               totalEarnings: summary.totalEarnings,
               availableBalance: summary.availableBalance,
               pendingEarnings: summary.pendingEarnings,
               creditBalance: summary.creditBalance
             }}
-          />
+          /></div>
 
-          <div className="mt-8">
+          <div className="mt-8" data-tour="earnings-tabs">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
               <TabsList className="mb-6 flex h-auto max-w-full flex-wrap gap-1 sm:mb-8">
                 <TabsTrigger value="overview" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">

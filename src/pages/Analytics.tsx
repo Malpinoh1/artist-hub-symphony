@@ -220,7 +220,7 @@ const AnalyticsContent = () => {
 
   return (
     <div>
-      <section className="container mx-auto px-4 py-8">
+      <section className="container mx-auto px-4 py-8" data-tour="analytics">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-3xl md:text-4xl font-display font-semibold text-slate-900 dark:text-white mb-0">Analytics Dashboard</h1>
             <Button

@@ -5,10 +5,19 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 
 const steps = [
-  { id: 'dashboard', title: 'Your dashboard', text: 'Start here for an overview of your account and music activity.', href: '/dashboard' },
-  { id: 'releases', title: 'Manage releases', text: 'Upload music, review release details, and follow release status.', href: '/releases' },
-  { id: 'analytics', title: 'Analytics', text: 'Review the performance information available to your account.', href: '/analytics' },
-  { id: 'earnings', title: 'Royalties', text: 'Review earnings and transaction history.', href: '/earnings' },
+  { id: 'dashboard', title: 'Your dashboard', text: 'Start here for a snapshot of your music business and account activity.', href: '/dashboard' },
+  { id: 'dashboard-actions', title: 'Quick actions', text: 'Start a release submission, open your release catalog, or jump straight to analytics from these shortcuts.', href: '/dashboard' },
+  { id: 'dashboard-stats', title: 'Performance at a glance', text: 'These summary cards help you track releases, activity, streams, and earnings in one place.', href: '/dashboard' },
+  { id: 'dashboard-performance', title: 'Reported performance', text: 'Explore performance figures processed from your reported royalty statements.', href: '/dashboard' },
+  { id: 'dashboard-releases', title: 'Recent releases', text: 'Review your latest releases and their current status. Use View All to open the full catalog.', href: '/dashboard' },
+  { id: 'releases', title: 'Your release catalog', text: 'Find submitted music and check its current distribution status.', href: '/releases' },
+  { id: 'releases-create', title: 'Create a release', text: 'Use New Release to begin a submission. This action depends on your account permissions.', href: '/releases' },
+  { id: 'release-wizard', title: 'Release submission wizard', text: 'Work through release setup one step at a time, from album information to final review.', href: '/release-form' },
+  { id: 'release-details', title: 'Album information', text: 'Enter accurate release details and metadata so stores can identify and display your music correctly.', href: '/release-form' },
+  { id: 'analytics', title: 'Analytics overview', text: 'Review streaming performance reported for platforms and releases available to your account.', href: '/analytics' },
+  { id: 'analytics-tracks', title: 'Track performance', text: 'Compare your strongest releases and inspect available stream totals and trends.', href: '/analytics' },
+  { id: 'earnings', title: 'Royalties and earnings', text: 'See your earnings summary and understand available, pending, and total balances.', href: '/earnings' },
+  { id: 'earnings-tabs', title: 'Explore earnings tools', text: 'Switch between stream analytics, activity, statements, and withdrawal options.', href: '/earnings' },
   { id: 'artist-hub', title: 'Artist Hub', text: 'Explore the artist tools available in MALPINOHdistro.', href: '/artist-hub' },
   { id: 'collective', title: 'Collective', text: 'Open the Collective area available to your account.', href: '/collective/center' },
   { id: 'achievements', title: 'Achievements', text: 'Review available milestones and recognition.', href: '/achievements' },
