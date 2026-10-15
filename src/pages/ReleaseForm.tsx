@@ -437,7 +437,7 @@ const ReleaseForm = () => {
   };
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4" data-tour="release-wizard">
       <AnimatedCard>
         <div className="max-w-4xl mx-auto">
           {currentStep <= 5 && (
