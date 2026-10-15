@@ -99,24 +99,48 @@ export default function GuidedTour() {
     if (open && window.innerWidth < 1024) window.dispatchEvent(new Event('malpinohdistro:open-mobile-menu'));
   }, [open, index]);
 
-  // Scroll each new tour target into view before measuring it. This also handles
-  // targets below the fold and targets inside nested scroll containers.
+  // Wait for route content to mount, then scroll the active target into view.
+  // Some pages load their content asynchronously, so a single short timeout is not enough.
   useEffect(() => {
     if (!open) return;
-    const timer = window.setTimeout(() => {
-      const el = Array.from(document.querySelectorAll<HTMLElement>('[data-tour="' + step.id + '"]')).find((node) => {
-        const rect = node.getBoundingClientRect();
-        const style = window.getComputedStyle(node);
-        return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-      });
+    let attempts = 0;
+    let retryTimer = 0;
+    let measureTimer = 0;
+    let cancelled = false;
+
+    const findTarget = () => Array.from(
+      document.querySelectorAll<HTMLElement>('[data-tour="' + step.id + '"]')
+    ).find((node) => {
+      const style = window.getComputedStyle(node);
+      const rect = node.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        rect.width > 0 && rect.height > 0;
+    });
+
+    const seekAndScroll = () => {
+      if (cancelled) return;
+      const el = findTarget();
+      if (!el && attempts++ < 20) {
+        retryTimer = window.setTimeout(seekAndScroll, 150);
+        return;
+      }
       if (el) {
+        // Native scrollIntoView scrolls the page and any nested overflow container.
         el.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        window.setTimeout(() => locate(true), 400);
+        measureTimer = window.setTimeout(() => {
+          if (!cancelled) locate(true);
+        }, 650);
       } else {
         locate(true);
       }
-    }, 180);
-    return () => window.clearTimeout(timer);
+    };
+
+    retryTimer = window.setTimeout(seekAndScroll, 100);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(retryTimer);
+      window.clearTimeout(measureTimer);
+    };
   }, [open, index, location.pathname]);
 
   useEffect(() => {

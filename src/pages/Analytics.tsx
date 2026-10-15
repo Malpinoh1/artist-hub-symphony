@@ -269,7 +269,7 @@ const AnalyticsContent = () => {
 
               {/* Top Tracks */}
               <h2 className="text-2xl font-display font-semibold text-slate-900 dark:text-white mb-4">Top Tracks</h2>
-              <div className="glass-panel overflow-hidden mb-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
+              <div data-tour="analytics-tracks" className="glass-panel overflow-hidden mb-12 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-sm">
                 <div className="overflow-x-auto">
                   {topTracks.length > 0 ? (
                     <table className="w-full">
