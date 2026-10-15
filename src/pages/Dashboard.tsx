@@ -144,7 +144,7 @@ const DashboardContent = () => {
   return (
     <div>
       <section className="container mx-auto w-full max-w-6xl px-0 py-4 sm:px-4 sm:py-8">
-          <div className="mb-8">
+          <div className="mb-8" data-tour="dashboard-actions">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h1 className="mb-2 break-words text-2xl font-display font-bold text-foreground sm:text-3xl md:text-4xl">
@@ -213,7 +213,7 @@ const DashboardContent = () => {
           </div>
 
           {/* Stats */}
-          <DashboardStats
+          <div data-tour="dashboard-stats"><DashboardStats
             totalReleases={stats.totalReleases}
             activeReleases={stats.activeReleases}
             totalPlays={stats.totalPlays}
@@ -222,7 +222,7 @@ const DashboardContent = () => {
           />
 
           {/* Reported performance from processed royalty statements */}
-          <div className="mt-8 mb-8">
+          <div className="mt-8 mb-8" data-tour="dashboard-performance">
             <h2 className="text-2xl font-display font-semibold text-foreground mb-4">
               Reported Performance
             </h2>
@@ -234,7 +234,7 @@ const DashboardContent = () => {
 
           {/* Recent Releases */}
           <div className="mb-8">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div data-tour="dashboard-releases" className="mb-6 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-display font-semibold text-foreground">
                 Recent Releases
               </h2>
