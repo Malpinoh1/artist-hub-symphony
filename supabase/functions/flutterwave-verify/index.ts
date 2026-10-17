@@ -70,7 +70,40 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     raw_response: { ...tx, checkout_meta: payment.raw_response?.checkout_meta || {} },
   }).eq("id", payment.id);
 
+  // Credit-balance payments clear only the amount that was actually paid.
+  // The transaction reference and successful-payment status make this path idempotent.
+  if (paymentMeta.is_credit_payment === true) {
+    const paidCreditUsd = Number(paymentMeta.credit_amount_usd ?? payment.amount_usd);
+    if (!Number.isFinite(paidCreditUsd) || paidCreditUsd <= 0) {
+      return { ok: false, error: "Credit payment amount is invalid. Contact support." };
+    }
+    const { data: artist, error: artistErr } = await admin
+      .from("artists").select("credit_balance").eq("id", payment.user_id).maybeSingle();
+    if (artistErr || !artist) return { ok: false, error: "Could not update credit balance. Contact support." };
+
+    const currentBalance = Number(artist.credit_balance || 0);
+    const newBalance = Math.max(0, Math.round((currentBalance - paidCreditUsd) * 100) / 100);
+    const { error: balanceErr } = await admin.from("artists")
+      .update({ credit_balance: newBalance }).eq("id", payment.user_id);
+    if (balanceErr) return { ok: false, error: "Payment received, but credit balance update failed. Contact support." };
+
+    const { error: txErr } = await admin.from("credit_transactions").insert({
+      artist_id: payment.user_id,
+      amount: Math.min(currentBalance, paidCreditUsd),
+      type: "credit_paid",
+      description: `Outstanding account credit paid via Flutterwave (reference: ${reference})`,
+    });
+    if (txErr) console.error("Credit payment transaction log failed", txErr);
+
+    await notifyUser(admin, payment.user_id, "successful", {
+      ...payment, plans: { name: "Outstanding credit balance" },
+      raw_response: { ...tx, checkout_meta: paymentMeta, credit_balance_after_payment: newBalance },
+    });
+    return { ok: true, payment_id: payment.id, kind: "credit_balance", credit_balance: newBalance };
+  }
+
   const plan = payment.plans;
+  if (!plan) return { ok: false, error: "Payment plan not found. Contact support." };
 
   // PAY-PER-RELEASE: grant a single-use release credit, no subscription change
   if (plan.code === "per_release") {
