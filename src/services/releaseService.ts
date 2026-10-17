@@ -42,6 +42,7 @@ export type Release = {
     isrc?: string | null;
     explicit_content?: boolean;
     featured_artists?: string[];
+    performers?: string[];
   }>;
   storeSelections?: Array<{
     id: string;
@@ -97,7 +98,7 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
       const [{ data: linksData, error: linksError }, { data: tracksData, error: tracksError }] = await Promise.all([
         (supabase as any).from('streaming_links').select('*').in('release_id', releaseIds),
         (supabase as any).from('release_tracks')
-          .select('id, release_id, track_number, title, duration, isrc, explicit_content, featured_artists')
+          .select('id, release_id, track_number, title, duration, isrc, explicit_content, featured_artists, performers')
           .in('release_id', releaseIds)
           .order('track_number', { ascending: true })
       ]);
@@ -135,7 +136,8 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
             duration: track.duration,
             isrc: track.isrc,
             explicit_content: track.explicit_content,
-            featured_artists: track.featured_artists || []
+            featured_artists: track.featured_artists || [],
+            performers: track.performers || []
           }))
       };
     });
@@ -328,7 +330,8 @@ export async function submitRelease(
         duration: track.duration,
         isrc: track.isrc,
         explicit_content: track.explicit_content || false,
-        featured_artists: track.featured_artists || []
+        featured_artists: track.featured_artists || [],
+        performers: track.performers || []
       }));
 
       await supabase.from('release_tracks').insert(trackRecords);
@@ -394,7 +397,7 @@ export async function fetchReleaseDetails(releaseId: string): Promise<Release | 
 
     const { data: trackData, error: tracksError } = await supabase
       .from('release_tracks')
-      .select('id, track_number, title, duration, isrc, explicit_content, featured_artists')
+      .select('id, track_number, title, duration, isrc, explicit_content, featured_artists, performers')
       .eq('release_id', releaseId)
       .order('track_number', { ascending: true });
 
