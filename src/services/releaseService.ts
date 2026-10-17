@@ -91,16 +91,19 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
 
     const releaseIds = releases.map(release => release.id);
     let streamingLinks: any[] = [];
+    let releaseTracks: any[] = [];
     
     if (releaseIds.length > 0) {
-      const { data: linksData, error: linksError } = await (supabase as any)
-        .from('streaming_links')
-        .select('*')
-        .in('release_id', releaseIds);
+      const [{ data: linksData, error: linksError }, { data: tracksData, error: tracksError }] = await Promise.all([
+        (supabase as any).from('streaming_links').select('*').in('release_id', releaseIds),
+        (supabase as any).from('release_tracks')
+          .select('id, release_id, track_number, title, duration, isrc, explicit_content, featured_artists')
+          .in('release_id', releaseIds)
+          .order('track_number', { ascending: true })
+      ]);
         
-      if (!linksError && linksData) {
-        streamingLinks = linksData;
-      }
+      if (!linksError && linksData) streamingLinks = linksData;
+      if (!tracksError && tracksData) releaseTracks = tracksData;
     }
     
     return releases.map(release => {
@@ -122,7 +125,18 @@ export async function fetchUserReleases(userId: string): Promise<Release[]> {
         releaseDate: release.release_date,
         streamingLinks: releaseLinks,
         upc: release.upc,
-        isrc: release.isrc
+        isrc: release.isrc,
+        tracks: releaseTracks
+          .filter((track: any) => track.release_id === release.id)
+          .map((track: any) => ({
+            id: track.id,
+            track_number: track.track_number,
+            title: track.title,
+            duration: track.duration,
+            isrc: track.isrc,
+            explicit_content: track.explicit_content,
+            featured_artists: track.featured_artists || []
+          }))
       };
     });
   } catch (error) {
