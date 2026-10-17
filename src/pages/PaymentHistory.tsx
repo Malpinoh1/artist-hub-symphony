@@ -27,6 +27,8 @@ const PaymentHistory = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'successful' | 'pending' | 'failed'>('all');
   const [renewing, setRenewing] = useState(false);
+  const [creditBalance, setCreditBalance] = useState(0);
+  const [payingCredit, setPayingCredit] = useState(false);
 
   const load = async () => {
     if (!user) return;
@@ -35,11 +37,13 @@ const PaymentHistory = () => {
       .then(({ error }) => { if (error) console.warn('Renewal notification check did not complete:', error.message); })
       .catch((error) => console.warn('Renewal notification check did not complete:', error));
     setLoading(true);
-    const [{ data: pays }, { data: subs }] = await Promise.all([
+    const [{ data: pays }, { data: subs }, { data: artist }] = await Promise.all([
       supabase.from('payments').select('*, plans(name)').eq('user_id', user.id).order('created_at', { ascending: false }),
       supabase.from('subscriptions').select('*, plans(name, price_usd)').eq('user_id', user.id).order('end_date', { ascending: false }).limit(1),
+      supabase.from('artists').select('credit_balance').eq('id', user.id).maybeSingle(),
     ]);
     setPayments((pays as any) || []);
+    setCreditBalance(Number(artist?.credit_balance || 0));
     let currentSub = ((subs as any) || [])[0] || null;
 
     // Backward compatibility: older accounts may only have a legacy subscribers row.
@@ -94,6 +98,19 @@ const PaymentHistory = () => {
     }
   };
 
+  const handlePayCreditBalance = async () => {
+    if (!user || creditBalance <= 0) return;
+    setPayingCredit(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('credit-balance-initiate', { body: {} });
+      if (error || !data?.link) throw new Error(data?.error || error?.message || 'Could not start credit payment');
+      window.location.href = data.link;
+    } catch (e: any) {
+      toast.error(e?.message || 'Could not start credit payment');
+      setPayingCredit(false);
+    }
+  };
+
   const toggleAutoRenew = async (val: boolean) => {
     if (!sub) return;
     const { error } = await supabase.from('subscriptions').update({ auto_renew: val }).eq('id', sub.id);
@@ -131,6 +148,21 @@ const PaymentHistory = () => {
         <h1 className="text-2xl sm:text-3xl font-display font-bold">Billing & Payments</h1>
         <p className="text-muted-foreground text-sm mt-1">Manage your subscription and view past payments.</p>
       </div>
+
+      {creditBalance > 0 && (
+        <div className="glass-panel min-w-0 rounded-2xl border border-amber-500/40 p-4 sm:p-6 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-semibold flex items-center gap-2"><CreditCard className="h-5 w-5" /> Outstanding Credit Balance</h2>
+              <p className="text-sm text-muted-foreground mt-1">Pay the outstanding amount to clear this balance from your account.</p>
+              <p className="text-2xl font-bold mt-3">${creditBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD</p>
+            </div>
+            <button disabled={payingCredit} onClick={handlePayCreditBalance} className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-5 py-2.5 font-medium disabled:opacity-50">
+              {payingCredit ? <><Loader2 className="h-4 w-4 animate-spin" />Starting checkout…</> : <><CreditCard className="h-4 w-4" />Pay Balance</>}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="glass-panel min-w-0 rounded-2xl p-4 sm:p-6">
         <h2 className="text-lg font-semibold mb-4 flex items-center gap-2"><CreditCard className="h-5 w-5" /> Current Plan</h2>
