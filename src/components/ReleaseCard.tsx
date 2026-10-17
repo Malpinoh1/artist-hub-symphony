@@ -110,7 +110,10 @@ export default function ReleaseCard({
   };
 
   const performers = Array.from(new Set(
-    (releaseData.tracks || []).flatMap(track => track.performers?.length ? track.performers : (track.featured_artists || [])).filter(Boolean)
+    (releaseData.tracks || []).flatMap(track => track.performers || []).filter(Boolean)
+  ));
+  const featuredArtists = Array.from(new Set(
+    (releaseData.tracks || []).flatMap(track => track.featured_artists || []).filter(Boolean)
   ));
   const canEdit = releaseData.status === 'Pending' || releaseData.status === 'pending';
   const canRequestEdit = releaseData.status === 'Approved' || releaseData.status === 'approved';
@@ -136,9 +139,12 @@ export default function ReleaseCard({
               <CardTitle className="text-lg leading-tight">
                 {releaseData.title}
               </CardTitle>
-              {performers.length > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Performed by {performers.join(' & ')}
+              <p className="text-xs text-muted-foreground mt-1">
+                Performed by {(performers.length > 0 ? performers : [releaseData.artist].filter(Boolean)).join(' & ')}
+              </p>
+              {featuredArtists.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  feat. {featuredArtists.join(', ')}
                 </p>
               )}
               <div className="flex items-center gap-2 mt-1">
