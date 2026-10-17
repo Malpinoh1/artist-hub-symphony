@@ -310,8 +310,10 @@ const ReleaseDetails = () => {
                                   <Music className="w-4 h-4 text-muted-foreground shrink-0" />
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium truncate">{track.title}</p>
-                                    {track.featured_artists && track.featured_artists.length > 0 && (
-                                      <p className="text-xs text-muted-foreground">feat. {track.featured_artists.join(', ')}</p>
+                                    {(track.performers?.length ? track.performers : (track.featured_artists?.length ? track.featured_artists : [release.artist])).length > 0 && (
+                                      <p className="text-xs text-muted-foreground">
+                                        Performed by {(track.performers?.length ? track.performers : (track.featured_artists?.length ? track.featured_artists : [release.artist])).join(' & ')}
+                                      </p>
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
