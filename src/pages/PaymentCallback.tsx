@@ -30,7 +30,10 @@ const PaymentCallback = () => {
           return;
         }
         setStatus('success');
-        setMessage('Payment verified — your account is unlocked.');
+        const isCreditPayment = String(tx_ref || '').startsWith('MDH-CREDIT-');
+        setMessage(isCreditPayment
+          ? 'Your credit balance payment was verified and your outstanding balance has been updated.'
+          : 'Payment verified — your account is unlocked.');
 
         // Check for an in-progress release draft → if present, auto-resume.
         const { data: sessionData } = await supabase.auth.getSession();
@@ -77,7 +80,7 @@ const PaymentCallback = () => {
                   ) : (
                     <Link to="/dashboard" className="bg-primary text-primary-foreground py-3 rounded-lg font-medium">Go to Dashboard</Link>
                   )}
-                  <Link to="/settings/payments" className="text-sm text-muted-foreground underline">View payment history</Link>
+                  <Link to="/settings/payments" className="text-sm text-muted-foreground underline">{params.get('tx_ref')?.startsWith('MDH-CREDIT-') ? 'View updated balance' : 'View payment history'}</Link>
                 </div>
               </>
             )}
