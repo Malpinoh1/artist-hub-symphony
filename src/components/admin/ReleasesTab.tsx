@@ -524,8 +524,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                     <span className="text-muted-foreground font-mono w-6 text-right">{track.track_number}.</span>
                     <div className="flex-1 min-w-0">
                       <span className="font-medium truncate block">{track.title}</span>
-                      {(track.performers?.length ? track.performers : (track.featured_artists || [])).length > 0 && (
-                        <span className="text-xs text-muted-foreground">Performed by {(track.performers?.length ? track.performers : (track.featured_artists || [])).join(' & ')}</span>
+                      {!!track.performers?.length && (
+                        <span className="text-xs text-muted-foreground">Performed by {track.performers.join(' & ')}</span>
+                      )}
+                      {!!track.featured_artists?.length && (
+                        <span className="text-xs text-muted-foreground">feat. {track.featured_artists.join(', ')}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
