@@ -168,7 +168,7 @@ const ReleaseDetails = () => {
                             {release.explicit_content && <Badge variant="destructive">Explicit</Badge>}
                           </div>
                           <h1 className="text-2xl sm:text-3xl font-bold text-foreground">{release.title}</h1>
-                          <p className="text-lg text-muted-foreground">by {release.artist}</p>
+                          <p className="text-lg text-muted-foreground">by {Array.from(new Set((release.tracks || []).flatMap(track => track.performers || []).filter(Boolean))).join(' & ') || release.artist}</p>
                         </div>
 
                         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
