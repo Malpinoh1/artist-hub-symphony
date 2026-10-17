@@ -22,7 +22,7 @@ interface Release {
   cover_art_url?: string;
   description?: string;
   total_tracks?: number;
-  tracks?: { featured_artists?: string[] }[];
+  tracks?: { performers?: string[]; featured_artists?: string[] }[];
   created_at?: string;
   platforms?: string[];
   artist_id?: string;
@@ -109,8 +109,8 @@ export default function ReleaseCard({
     });
   };
 
-  const featuredArtists = Array.from(new Set(
-    (releaseData.tracks || []).flatMap(track => track.featured_artists || []).filter(Boolean)
+  const performers = Array.from(new Set(
+    (releaseData.tracks || []).flatMap(track => track.performers?.length ? track.performers : (track.featured_artists || [])).filter(Boolean)
   ));
   const canEdit = releaseData.status === 'Pending' || releaseData.status === 'pending';
   const canRequestEdit = releaseData.status === 'Approved' || releaseData.status === 'approved';
@@ -136,9 +136,9 @@ export default function ReleaseCard({
               <CardTitle className="text-lg leading-tight">
                 {releaseData.title}
               </CardTitle>
-              {featuredArtists.length > 0 && (
+              {performers.length > 0 && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  feat. {featuredArtists.join(', ')}
+                  Performed by {performers.join(' & ')}
                 </p>
               )}
               <div className="flex items-center gap-2 mt-1">
