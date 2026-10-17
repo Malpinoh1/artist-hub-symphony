@@ -195,15 +195,20 @@ async function notifyUser(admin: any, userId: string, kind: "successful" | "fail
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const planName = payment.plans?.name || "subscription";
     const isRenewalPayment = payment.raw_response?.checkout_meta?.is_renewal === true;
+    const isCreditPayment = payment.raw_response?.checkout_meta?.is_credit_payment === true;
     const amountLabel = payment.currency === "NGN"
       ? `₦${Number(payment.amount_charged).toLocaleString("en-NG")}`
       : `${payment.amount_usd}`;
     const subject = kind === "successful"
-      ? (isRenewalPayment ? "Subscription renewed — MALPINOHdistro" : "Payment successful — subscription activated")
+      ? (isCreditPayment ? "Credit balance paid — MALPINOHdistro" : isRenewalPayment ? "Subscription renewed — MALPINOHdistro" : "Payment successful — subscription activated")
       : "Payment failed";
+    const successfulMessage = isCreditPayment
+      ? "Your outstanding account credit payment was successful and your credit balance has been updated."
+      : `Your payment of <strong>${amountLabel}</strong> for the <strong>${isRenewalPayment ? "3-month subscription renewal" : planName + " plan"}</strong> was successful. Your subscription is active until ${payment.raw_response?.subscription_end || "the date shown in your dashboard"}.`;
+    const failedPurpose = isCreditPayment ? "your outstanding credit balance" : isRenewalPayment ? "subscription renewal" : "the " + planName + " plan";
     const html = kind === "successful"
-      ? `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>${amountLabel}</strong> for the <strong>${isRenewalPayment ? "3-month subscription renewal" : planName + " plan"}</strong> was successful. Your subscription is active until ${payment.raw_response?.subscription_end || "the date shown in your dashboard"}.</p><p>— MALPINOHdistro</p>`
-      : `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>${amountLabel}</strong> for ${isRenewalPayment ? "subscription renewal" : "the " + planName + " plan"} could not be completed. Please try again.</p><p>— MALPINOHdistro</p>`;
+      ? `<p>Hi ${artist?.name || ""},</p><p>${successfulMessage}</p><p>Amount received: <strong>${amountLabel}</strong>.</p><p>— MALPINOHdistro</p>`
+      : `<p>Hi ${artist?.name || ""},</p><p>Your payment of <strong>${amountLabel}</strong> for ${failedPurpose} could not be completed. Please try again.</p><p>— MALPINOHdistro</p>`;
     await fetch(`${supabaseUrl}/functions/v1/send-email`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}` },
