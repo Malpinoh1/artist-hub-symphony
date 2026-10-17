@@ -63,13 +63,6 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     return { ok: false, error: "Payment unsuccessful or amount mismatch" };
   }
 
-  await admin.from("payments").update({
-    status: "successful",
-    flutterwave_transaction_id: String(tx.id),
-    payment_method: tx.payment_type,
-    raw_response: { ...tx, checkout_meta: payment.raw_response?.checkout_meta || {} },
-  }).eq("id", payment.id);
-
   // Credit-balance payments clear only the amount that was actually paid.
   // The transaction reference and successful-payment status make this path idempotent.
   if (paymentMeta.is_credit_payment === true) {
@@ -77,30 +70,29 @@ async function processVerification(admin: any, transactionId?: string, txRef?: s
     if (!Number.isFinite(paidCreditUsd) || paidCreditUsd <= 0) {
       return { ok: false, error: "Credit payment amount is invalid. Contact support." };
     }
-    const { data: artist, error: artistErr } = await admin
-      .from("artists").select("credit_balance").eq("id", payment.user_id).maybeSingle();
-    if (artistErr || !artist) return { ok: false, error: "Could not update credit balance. Contact support." };
-
-    const currentBalance = Number(artist.credit_balance || 0);
-    const newBalance = Math.max(0, Math.round((currentBalance - paidCreditUsd) * 100) / 100);
-    const { error: balanceErr } = await admin.from("artists")
-      .update({ credit_balance: newBalance }).eq("id", payment.user_id);
-    if (balanceErr) return { ok: false, error: "Payment received, but credit balance update failed. Contact support." };
-
-    const { error: txErr } = await admin.from("credit_transactions").insert({
-      artist_id: payment.user_id,
-      amount: Math.min(currentBalance, paidCreditUsd),
-      type: "credit_paid",
-      description: `Outstanding account credit paid via Flutterwave (reference: ${reference})`,
+    const { data: newBalance, error: settleError } = await admin.rpc("settle_credit_balance_payment", {
+      p_payment_id: payment.id,
+      p_transaction_id: String(tx.id),
+      p_payment_method: tx.payment_type || "unknown",
+      p_raw_response: { ...tx, checkout_meta: paymentMeta },
     });
-    if (txErr) console.error("Credit payment transaction log failed", txErr);
-
+    if (settleError) {
+      console.error("Could not settle credit balance payment", settleError);
+      return { ok: false, error: "Payment verified but account balance could not be updated. Please contact support or retry verification." };
+    }
     await notifyUser(admin, payment.user_id, "successful", {
       ...payment, plans: { name: "Outstanding credit balance" },
       raw_response: { ...tx, checkout_meta: paymentMeta, credit_balance_after_payment: newBalance },
     });
     return { ok: true, payment_id: payment.id, kind: "credit_balance", credit_balance: newBalance };
   }
+
+  await admin.from("payments").update({
+    status: "successful",
+    flutterwave_transaction_id: String(tx.id),
+    payment_method: tx.payment_type,
+    raw_response: { ...tx, checkout_meta: payment.raw_response?.checkout_meta || {} },
+  }).eq("id", payment.id);
 
   const plan = payment.plans;
   if (!plan) return { ok: false, error: "Payment plan not found. Contact support." };
