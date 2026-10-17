@@ -43,7 +43,7 @@ const ReleaseForm = () => {
   const [loadingArtists, setLoadingArtists] = useState(true);
 
   const [formData, setFormData] = useState<any>(DEFAULT_FORM);
-  const [tracks, setTracks] = useState<any[]>([{ track_number: 1, title: '', explicit_content: false, featured_artists: [] }]);
+  const [tracks, setTracks] = useState<any[]>([{ track_number: 1, title: '', explicit_content: false, performers: [], featured_artists: [] }]);
 
   const [coverArt, setCoverArt] = useState<File | null>(null);
   const [coverArtPreview, setCoverArtPreview] = useState<string | null>(null);
