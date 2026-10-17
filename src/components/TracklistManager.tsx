@@ -14,7 +14,8 @@ interface Track {
   duration?: number;
   isrc?: string;
   explicit_content: boolean;
-  featured_artists: string[];
+  performers: string[];
+  featured_artists?: string[];
 }
 
 interface TracklistManagerProps {
@@ -59,6 +60,7 @@ export function TracklistManager({ releaseType, tracks, onTracksChange, disabled
       track_number: localTracks.length + 1,
       title: '',
       explicit_content: false,
+      performers: [],
       featured_artists: []
     };
 
@@ -87,7 +89,7 @@ export function TracklistManager({ releaseType, tracks, onTracksChange, disabled
   const updateTrack = (index: number, field: keyof Track, value: any) => {
     const updatedTracks = [...localTracks];
     
-    if (field === 'featured_artists' && typeof value === 'string') {
+    if ((field === 'performers' || field === 'featured_artists') && typeof value === 'string') {
       // Handle featured artists as comma-separated string
       updatedTracks[index] = {
         ...updatedTracks[index],
@@ -206,14 +208,15 @@ export function TracklistManager({ releaseType, tracks, onTracksChange, disabled
               </div>
 
               <div>
-                <Label htmlFor={`track-featured-${index}`}>Featured Artists</Label>
+                <Label htmlFor={`track-performers-${index}`}>Performers</Label>
                 <Input
-                  id={`track-featured-${index}`}
-                  value={track.featured_artists.join(', ')}
-                  onChange={(e) => updateTrack(index, 'featured_artists', e.target.value)}
-                  placeholder="Artist 1, Artist 2"
+                  id={`track-performers-${index}`}
+                  value={(track.performers || []).join(', ')}
+                  onChange={(e) => updateTrack(index, 'performers', e.target.value)}
+                  placeholder="SHEGLASS, DJ YK MULE"
                   disabled={disabled}
                 />
+                <p className="text-xs text-muted-foreground mt-1">Enter every performing artist, separated by commas.</p>
               </div>
             </div>
 
