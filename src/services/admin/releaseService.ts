@@ -44,7 +44,6 @@ export interface Release {
     explicit_content?: boolean;
     featured_artists?: string[];
     performers?: string[];
-    performers?: string[];
   }[];
 }
 
