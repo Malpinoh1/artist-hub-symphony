@@ -43,6 +43,7 @@ export interface Release {
     isrc?: string | null;
     explicit_content?: boolean;
     featured_artists?: string[];
+    performers?: string[];
   }[];
 }
 
@@ -83,7 +84,7 @@ export async function fetchAdminReleases() {
         admin_notes,
         platforms,
         artists(id, name, email),
-        release_tracks(id, track_number, title, duration, isrc, explicit_content, featured_artists)
+        release_tracks(id, track_number, title, duration, isrc, explicit_content, featured_artists, performers)
       `)
       .order('release_date', { ascending: false });
       
