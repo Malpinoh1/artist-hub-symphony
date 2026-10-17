@@ -30,6 +30,9 @@ verify_jwt = false
 [functions.flutterwave-verify]
 verify_jwt = false
 
+[functions.credit-balance-initiate]
+verify_jwt = true
+
 [functions.subscription-maintenance]
 verify_jwt = false
 
