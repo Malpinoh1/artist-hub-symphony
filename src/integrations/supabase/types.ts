@@ -2304,6 +2304,7 @@ export type Database = {
           duration: number | null
           explicit_content: boolean | null
           featured_artists: string[] | null
+          performers: string[]
           id: string
           isrc: string | null
           release_id: string
@@ -2315,6 +2316,7 @@ export type Database = {
           duration?: number | null
           explicit_content?: boolean | null
           featured_artists?: string[] | null
+          performers?: string[]
           id?: string
           isrc?: string | null
           release_id: string
