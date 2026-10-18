@@ -18,9 +18,9 @@ async function generateGeminiReply(
   articles: { title: string; category: string; body: string; source_url: string }[],
 ): Promise<string | null> {
   const redact = (value: string) => value
-    .replace(/\b(password|passcode|one[- ]time code|verification code|otp)\s*[:=]?\s*[^\s,;]+/gi, "$1: [redacted]")
+    .replace(/\b(password|passcode|one[- ]time code|verification code|otp|cvv|security code|bank account(?: number)?|account number|routing number|sort code|iban)\s*[:=]?\s*[^\s,;]+/gi, "$1: [redacted]")
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email redacted]")
-    .replace(/\b(?:\d[ -]*?){13,19}\b/g, "[possible card number redacted]")
+    .replace(/\b(?:\d[ -]*?){8,19}\b/g, "[possible sensitive number redacted]")
     .slice(0, 4000);
 
   const knowledge = articles.map((article) => ({
