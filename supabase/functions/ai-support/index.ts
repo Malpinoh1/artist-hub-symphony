@@ -252,27 +252,4 @@ Deno.serve(async (req: Request) => {
     reply,
     sources: rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
   });
-  const { error: assistantMessageError } = await admin.from("ai_support_messages").insert({
-    conversation_id: conversationId,
-    user_id: user.id,
-    role: "assistant",
-    content: reply,
-  });
-  if (assistantMessageError) {
-    console.error("AI Support assistant message save failed:", assistantMessageError.message);
-    return json({ error: "The answer was generated but couldn't be saved. Please try again." }, 500);
-  }
-
-  await admin
-    .from("ai_support_conversations")
-    .update({ updated_at: new Date().toISOString() })
-    .eq("id", conversationId)
-    .eq("user_id", user.id);
-
-  return json({
-    ok: true,
-    conversationId,
-    reply,
-    sources: rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
-  });
 });
