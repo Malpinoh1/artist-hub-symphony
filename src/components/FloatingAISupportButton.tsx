@@ -22,7 +22,7 @@ const renderMiniContent = (content: string): ReactNode => {
     .replace(/\\n/g, "\n")
     .replace(/\\+\r?\n/g, "\n")
     .replace(/\\+([*_[\]()])/g, "$1")
-    .replace(/^\s*svg(?=To\b)/i, "")
+    .replace(/^\s*svg(?=[A-Z])/i, "")
     .trim();
 
   const renderInline = (text: string, keyPrefix: string): React.ReactNode[] => {
@@ -259,14 +259,21 @@ const FloatingAISupportButton = () => {
       const settingsIntent = /\b(change|update|edit|modify|manage)\b.{0,60}\b(account|profile|settings|username|bio|website|notifications|preferences)\b/i.test(content) ||
         /\b(account settings|profile settings|change my username|update my bio|edit my profile)\b/i.test(content);
       const releaseIntent = /\b(start|create|prepare|upload|submit|release|distribute)\b/i.test(content) && /\b(music|song|track|album|single|release)\b/i.test(content);
+      const continuingRelease = releaseComposerOpen && !!user && !settingsIntent;
       setPendingSettingsPermission(settingsIntent && !!user);
-      if (settingsIntent) setSettingsAccessGranted(false);
-      setReleaseComposerOpen(releaseIntent && !!user && !settingsIntent);
+      if (settingsIntent) {
+        setSettingsAccessGranted(false);
+        setReleaseComposerOpen(false);
+      } else if (releaseIntent && user) {
+        setReleaseComposerOpen(true);
+      }
       setMessages((current) => [...current, { id: `assistant-${Date.now()}`, role: "assistant", content: settingsIntent
         ? "Before I access or change your profile settings, may I have your permission? Nothing will change until you approve the specific edits."
         : releaseIntent && user
-          ? "Let's prepare a release draft here. Fill in the details and attach your cover art and audio files below. I'll save a draft for you to review; I won't submit it."
-          : data.reply }]);
+          ? "Let's prepare your release draft here. Fill in the metadata and attach your cover art and audio files in the form below. I'll save a draft for review, not submit it."
+          : continuingRelease
+            ? "Great — the release form is ready below. Start with the release title, genre, release date, and track title, then attach your cover art and audio files. I'll keep everything in this chat while we prepare your draft."
+            : data.reply }]);
     } catch (error) {
       const detail = error instanceof Error ? error.message : "Please try again.";
       setMessages((current) => [...current, { id: `error-${Date.now()}`, role: "assistant", content: `I couldn't complete that request. ${detail} You can continue in the full Support chat.` }]);
