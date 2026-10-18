@@ -408,7 +408,7 @@ const ReleaseForm = () => {
       case 1:
         return <StepAlbumInfo formData={formData} onInputChange={handleInputChange} artistAccounts={artistAccounts} selectedArtistAccount={selectedArtistAccount} onArtistAccountChange={setSelectedArtistAccount} onNext={nextStep} />;
       case 2:
-        return <StepTrackUpload formData={formData} tracks={tracks} onTracksChange={setTracks} audioFiles={audioFiles} onAudioFilesChange={setAudioFiles} onNext={nextStep} onPrev={prevStep} />;
+        return <StepTrackUpload formData={formData} tracks={tracks} onTracksChange={setTracks} audioFiles={audioFiles} existingAudioUrls={audioFileUrlsRef.current} onAudioFilesChange={setAudioFiles} onNext={nextStep} onPrev={prevStep} />;
       case 3:
         return <StepAlbumArtwork formData={formData} onInputChange={handleInputChange} coverArt={coverArt} coverArtPreview={coverArtPreview} onCoverArtChange={handleCoverArtChange} onNext={nextStep} onPrev={prevStep} />;
       case 4:
