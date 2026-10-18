@@ -14,6 +14,7 @@ import AdminProtectedRoute from "./components/AdminProtectedRoute";
 import PublicRoute from "./components/PublicRoute";
 import DashboardLayout from "./components/DashboardLayout";
 import MobileBottomNav from "./components/MobileBottomNav";
+import FloatingAISupportButton from "./components/FloatingAISupportButton";
 import React, { Suspense } from "react";
 
 // Lazy-loaded pages
@@ -173,6 +174,7 @@ const AppContent = () => {
 
       {/* Bottom nav only for mobile dashboard */}
       <MobileBottomNav />
+      <FloatingAISupportButton />
     </Suspense>
   );
 };
