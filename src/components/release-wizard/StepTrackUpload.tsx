@@ -9,12 +9,13 @@ interface StepTrackUploadProps {
   tracks: any[];
   onTracksChange: (tracks: any[]) => void;
   audioFiles: File[];
+  existingAudioUrls?: string[];
   onAudioFilesChange: (files: File[]) => void;
   onNext: () => void;
   onPrev: () => void;
 }
 
-export function StepTrackUpload({ formData, tracks, onTracksChange, audioFiles, onAudioFilesChange, onNext, onPrev }: StepTrackUploadProps) {
+export function StepTrackUpload({ formData, tracks, onTracksChange, audioFiles, existingAudioUrls = [], onAudioFilesChange, onNext, onPrev }: StepTrackUploadProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
 
   const handleAudioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -28,7 +29,7 @@ export function StepTrackUpload({ formData, tracks, onTracksChange, audioFiles, 
     onAudioFilesChange(audioFiles.filter((_, i) => i !== index));
   };
 
-  const canProceed = tracks.length > 0 && tracks.every(t => t.title.trim()) && audioFiles.length > 0;
+  const canProceed = tracks.length > 0 && tracks.every(t => t.title.trim()) && (audioFiles.length > 0 || existingAudioUrls.length > 0);
 
   return (
     <div className="space-y-6">
@@ -57,6 +58,16 @@ export function StepTrackUpload({ formData, tracks, onTracksChange, audioFiles, 
             <p className="text-xs text-muted-foreground">WAV, MP3, FLAC — Max 50MB per file</p>
             <input ref={audioInputRef} type="file" accept="audio/wav,audio/mpeg,audio/flac" onChange={handleAudioChange} multiple className="hidden" />
           </div>
+          {audioFiles.length === 0 && existingAudioUrls.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <h4 className="font-medium text-sm">Saved audio files</h4>
+              {existingAudioUrls.map((url, i) => (
+                <div key={url + i} className="rounded-lg bg-muted p-3 text-xs text-muted-foreground">
+                  Audio file {i + 1} is already uploaded and attached to this saved draft.
+                </div>
+              ))}
+            </div>
+          )}
           {audioFiles.length > 0 && (
             <div className="mt-4 space-y-2">
               <h4 className="font-medium text-sm">Uploaded ({audioFiles.length})</h4>
