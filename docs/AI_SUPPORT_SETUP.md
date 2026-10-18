@@ -3,7 +3,7 @@
 ## What this adds
 
 - An authenticated AI Support page at `/ai-support`.
-- A Supabase Edge Function named `ai-support` for AI replies and support-ticket creation.
+- A Supabase Edge Function named `ai-support` for knowledge-base search, grounded replies, and support-ticket creation.
 - Private conversation/message tables and a small editable support-article table.
 - A sidebar entry for AI Support.
 
@@ -31,15 +31,15 @@ The function uses the caller's bearer token and verifies it with Supabase Auth. 
 
 The function uses `verify_jwt = false` because it performs explicit token verification itself. Do not remove the in-function `auth.getUser(token)` check. If the project moves to Supabase's newer publishable/secret key model, revisit Edge Function key handling before disabling legacy keys.
 
-The initial assistant only answers from published support articles and creates support tickets. It does not read private release/account records or submit/edit releases. The knowledge articles are seeded from the current Help Center and should be reviewed by the MALPINOHdistro team before production launch.
+The assistant only answers from published support articles using keyword/synonym matching and creates support tickets. It does not call an external AI model and does not need an AI API key. It does not read private release/account records or submit/edit releases. The knowledge articles are seeded from the current Help Center and should be reviewed by the MALPINOHdistro team before production launch.
 
 ## Manual smoke tests
 
 - Signed-out request to `ai-support` is rejected.
-- Signed-in user can start a conversation and receive a model answer.
+- Signed-in user can start a conversation and receive a knowledge-base answer without any AI-provider API key.
 - Conversation ID belonging to another user is rejected.
 - Empty and oversized messages are rejected.
 - Ticket creation uses the authenticated user's ID and rejects invalid categories/priorities.
 - A created ticket appears in the existing Support Center.
 - Chat and ticket rate limits return a clear message.
-- Missing `OPENAI_API_KEY` produces a safe configuration error without exposing secrets.
+- Unknown questions receive a clear fallback instead of invented platform policy.
