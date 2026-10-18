@@ -49,7 +49,7 @@ const FloatingAISupportButton = () => {
     setLoadingHistory(true);
     void (async () => {
       try {
-        const { data: conversation } = await supabase
+        const { data: conversation } = await supportHistoryClient
           .from("ai_support_conversations")
           .select("id")
           .eq("user_id", user.id)
@@ -58,7 +58,7 @@ const FloatingAISupportButton = () => {
           .limit(1)
           .maybeSingle();
         if (!conversation || cancelled) return;
-        const { data: savedMessages } = await supabase
+        const { data: savedMessages } = await supportHistoryClient
           .from("ai_support_messages")
           .select("id,role,content")
           .eq("conversation_id", conversation.id)
