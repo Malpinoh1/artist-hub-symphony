@@ -285,6 +285,9 @@ Deno.serve(async (req: Request) => {
     previousAssistantMessage = [...recentMessages].reverse()
       .find((item) => item.role === "assistant")?.content ?? "";
   }
+  // The current user message has not been persisted yet; append it so Gemini
+  // always receives the latest turn and can answer even in a brand-new chat.
+  recentMessages.push({ role: "user", content: message });
   const isAcknowledgement = /^(ok|okay|thanks|thank you|got it|alright|all right|sure|understood|cool|great)[!.?,\s]*$/i.test(message.trim());
   const tokens = [...new Set(normalizedMessage.split(/\s+/).filter((word) => word.length >= 2 && !stopWords.has(word)))];
   const expandedTerms = new Set(tokens);
@@ -429,8 +432,10 @@ Deno.serve(async (req: Request) => {
     ok: true,
     conversationId,
     reply,
-    sources: replySources.length ? replySources : isStartRelease
-      ? [{ title: "Open the release submission wizard", source_url: "/release-form" }]
-      : rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
+    sources: replySources.length ? replySources : aiGeneratedReply
+      ? []
+      : isStartRelease
+        ? [{ title: "Open the release submission wizard", source_url: "/release-form" }]
+        : rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
   });
 });
