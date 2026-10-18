@@ -93,7 +93,7 @@ export function StepAlbumArtwork({ formData, onInputChange, coverArt, coverArtPr
 
       <div className="flex justify-between">
         <Button type="button" variant="outline" onClick={onPrev}><ChevronLeft className="w-4 h-4 mr-2" /> Back</Button>
-        <Button type="button" onClick={onNext} disabled={!coverArt}>Continue to Distribution <ChevronRight className="w-4 h-4 ml-2" /></Button>
+        <Button type="button" onClick={onNext} disabled={!coverArt && !coverArtPreview}>Continue to Distribution <ChevronRight className="w-4 h-4 ml-2" /></Button>
       </div>
     </div>
   );
