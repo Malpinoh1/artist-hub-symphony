@@ -70,6 +70,20 @@ Deno.serve(async (req: Request) => {
     if (!CATEGORIES.has(category)) return json({ error: "Choose a valid ticket category." }, 400);
     if (!PRIORITIES.has(priority)) return json({ error: "Choose a valid ticket priority." }, 400);
 
+    const ticketWindowStart = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const { count: recentTicketCount, error: ticketRateError } = await admin
+      .from("support_tickets")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .gte("created_at", ticketWindowStart);
+    if (ticketRateError) {
+      console.error("AI Support ticket rate check failed:", ticketRateError.message);
+      return json({ error: "We couldn't verify ticket limits. Please try again shortly." }, 500);
+    }
+    if ((recentTicketCount ?? 0) >= 5) {
+      return json({ error: "You've created several tickets recently. Please wait a few minutes or continue in the Support Center." }, 429);
+    }
+
     const { data: ticket, error } = await admin
       .from("support_tickets")
       .insert({
@@ -99,6 +113,21 @@ Deno.serve(async (req: Request) => {
   const message = typeof body.message === "string" ? body.message.trim() : "";
   if (!message || message.length > MAX_MESSAGE_LENGTH) {
     return json({ error: `Message must be between 1 and ${MAX_MESSAGE_LENGTH} characters.` }, 400);
+  }
+
+  const chatWindowStart = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+  const { count: recentChatCount, error: chatRateError } = await admin
+    .from("ai_support_messages")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
+    .eq("role", "user")
+    .gte("created_at", chatWindowStart);
+  if (chatRateError) {
+    console.error("AI Support chat rate check failed:", chatRateError.message);
+    return json({ error: "We couldn't verify request limits. Please try again shortly." }, 500);
+  }
+  if ((recentChatCount ?? 0) >= 20) {
+    return json({ error: "You've reached the temporary AI Support message limit. Please wait a few minutes or create a support ticket." }, 429);
   }
 
   let conversationId = typeof body.conversationId === "string" ? body.conversationId : "";
