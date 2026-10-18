@@ -131,6 +131,32 @@ Deno.serve(async (req: Request) => {
 
   const action = typeof body.action === "string" ? body.action : "chat";
 
+  if (action === "update_profile") {
+    if (body.confirmed !== true) return json({ error: "Explicit user confirmation is required before changing account settings." }, 403);
+    if (!body.changes || typeof body.changes !== "object" || Array.isArray(body.changes)) return json({ error: "Provide the account settings you want to update." }, 400);
+    const allowedFields = new Set(["full_name", "username", "bio", "website", "email_notifications", "marketing_emails"]);
+    const changes = body.changes as Record<string, unknown>;
+    const keys = Object.keys(changes);
+    if (!keys.length || keys.some((key) => !allowedFields.has(key))) return json({ error: "One or more requested settings cannot be changed through AI Support." }, 400);
+    const { data: currentProfile, error: profileLookupError } = await admin.from("profiles").select("id,user_id,full_name,username,bio,website,email_notifications,marketing_emails").eq("id", user.id).maybeSingle();
+    if (profileLookupError) { console.error("AI Support profile lookup failed:", profileLookupError.message); return json({ error: "We couldn't load your current profile. Please try again." }, 500); }
+    const nextProfile: Record<string, unknown> = { id: user.id, user_id: user.id, full_name: currentProfile?.full_name ?? String(user.user_metadata?.full_name ?? user.email?.split("@")[0] ?? ""), username: currentProfile?.username ?? String(user.email ?? ""), bio: currentProfile?.bio ?? "", website: currentProfile?.website ?? "", email_notifications: currentProfile?.email_notifications ?? true, marketing_emails: currentProfile?.marketing_emails ?? true };
+    for (const [key, value] of Object.entries(changes)) {
+      if (["full_name", "username", "bio", "website"].includes(key)) {
+        if (typeof value !== "string" || value.length > (key === "bio" ? 1000 : 180)) return json({ error: "Invalid value for " + key.replace(/_/g, " ") + "." }, 400);
+        const cleanValue = value.trim();
+        if ((key === "full_name" || key === "username") && !cleanValue) return json({ error: key.replace(/_/g, " ") + " cannot be empty." }, 400);
+        if (key === "website" && cleanValue) { try { const parsed = new URL(cleanValue); if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("Invalid protocol"); } catch { return json({ error: "Website must be a valid http or https URL." }, 400); } }
+        nextProfile[key] = cleanValue;
+      } else {
+        if (typeof value !== "boolean") return json({ error: "Invalid value for " + key.replace(/_/g, " ") + "." }, 400);
+        nextProfile[key] = value;
+      }
+    }
+    const { data: updatedProfile, error: profileUpdateError } = await admin.from("profiles").upsert(nextProfile, { onConflict: "id" }).select("full_name,username,bio,website,email_notifications,marketing_emails").single();
+    if (profileUpdateError || !updatedProfile) { console.error("AI Support profile update failed:", profileUpdateError?.message); return json({ error: "We couldn't save those settings. Please try again." }, 500); }
+    return json({ ok: true, profile: updatedProfile, message: "Your approved profile settings have been saved." });
+  }
   if (action === "create_ticket") {
     const subject = typeof body.subject === "string" ? body.subject.trim() : "";
     const description = typeof body.description === "string" ? body.description.trim() : "";
@@ -334,6 +360,7 @@ Deno.serve(async (req: Request) => {
   let reply: string;
   let replySources: { title: string; source_url: string }[] = [];
   const cleanMessage = message.toLowerCase().trim().replace(/[^a-z0-9\s'-]/g, " ").replace(/\s+/g, " ");
+  const isSettingsChangeIntent = /\b(change|update|edit|modify|manage)\b.*\b(account|profile|settings|username|bio|website|notifications|preferences)\b/i.test(cleanMessage) || /\b(account settings|profile settings|change my username|update my bio|edit my profile)\b/i.test(cleanMessage);
   const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|howdy|hiya|yo)[!.?,\s]*$/i.test(message.trim());
   const isStartRelease = /\b(start|create|new|submit|send|upload|distribute|release|put out|drop)\b/i.test(cleanMessage) &&
     /\b(my music|new music|my song|my track|my album|my single|a release|new release|music for release|release my|send.*music|submit.*music|upload.*music|release wizard|my next song|my next track)\b/i.test(cleanMessage);
@@ -412,6 +439,13 @@ Deno.serve(async (req: Request) => {
     replySources = [{ title: "Manage team access", source_url: "/team" }, { title: "Team access guide", source_url: "/team/guide" }];
   }
 
+  if (isSettingsChangeIntent) {
+    reply = "I can help update your profile and notification preferences. Before I access or change those settings, may I have your permission? Nothing will be changed unless you approve the specific edits.";
+    replySources = [];
+  } else if (isStartRelease && !isReleaseStatus) {
+    reply = "Let\'s prepare your release right here. I can collect the release details and upload your cover art and audio into a saved draft. You\'ll review the full release and confirm submission in the release wizard; I won\'t submit it without your final action.";
+    replySources = [{ title: "Continue to release review", source_url: "/release-form?resume=1" }];
+  }
   const { error: assistantMessageError } = await admin.from("ai_support_messages").insert({
     conversation_id: conversationId,
     user_id: user.id,
