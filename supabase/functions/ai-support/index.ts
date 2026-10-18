@@ -446,6 +446,13 @@ Deno.serve(async (req: Request) => {
     reply = "Let\'s prepare your release right here. I can collect the release details and upload your cover art and audio into a saved draft. You\'ll review the full release and confirm submission in the release wizard; I won\'t submit it without your final action.";
     replySources = [{ title: "Continue to release review", source_url: "/release-form?resume=1" }];
   }
+
+  // Answer basic, non-sensitive company ownership questions from verified platform context.
+  const isOwnershipQuestion = /\b(who\s+(?:is|owns|founded|created|started)\s+(?:the\s+)?(?:owner\s+of\s+)?(?:this\s+)?(?:platform|company|business|malpinohdistro)|who\s+is\s+the\s+(?:owner|founder|creator)\b|(?:owner|founder|creator)\s+of\s+(?:this\s+)?(?:platform|company|business|malpinohdistro)|who\s+owns\s+malpinohdistro)\b/i.test(cleanMessage);
+  if (isOwnershipQuestion) {
+    reply = "MALPINOHdistro was founded and is owned by its founder, who created the platform. I don’t have a verified public name for the owner in my support information, so I won’t guess. For official ownership details, please contact MALPINOHdistro support.";
+    replySources = [];
+  }
   const { error: assistantMessageError } = await admin.from("ai_support_messages").insert({
     conversation_id: conversationId,
     user_id: user.id,
