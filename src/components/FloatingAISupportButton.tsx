@@ -124,7 +124,7 @@ const FloatingAISupportButton = () => {
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15"><Sparkles className="h-5 w-5" /></span>
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">MALPINOHdistro Support</p>
-                <p className="text-xs opacity-80">AI assistant · Chat saved to your account</p>
+                <p className="text-xs opacity-80">AI assistant · Your chats are saved</p>
               </div>
             </div>
             <div className="flex shrink-0 items-center gap-1">
@@ -143,6 +143,7 @@ const FloatingAISupportButton = () => {
                 </div>
               </div>
             ))}
+            {messages.length >= 10 && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3"><p className="text-xs text-muted-foreground">This is a longer conversation. Open the full chat to keep going with more space and your saved history.</p><Button type="button" size="sm" className="mt-2 w-full" onClick={openFullChat}>Continue in full chat <ExternalLink className="ml-2 h-3.5 w-3.5" /></Button></div>}
             {sending && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Thinking…</p>}
             <div ref={endRef} />
           </div>
