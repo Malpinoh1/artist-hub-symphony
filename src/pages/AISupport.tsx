@@ -29,10 +29,16 @@ const renderAssistantContent = (content: string): string => {
   const escapeHtml = (value: string) =>
     value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  let html = escapeHtml(content);
-  // Some stored replies contain escaped Markdown markers; normalize those first.
-  html = html.replace(/\\\*\\\*(.+?)\\\*\\\*/g, "**$1**")
-    .replace(/\\\*(.+?)\\\*/g, "*$1*");
+  // Normalize escaped Markdown and line breaks before rendering model replies.
+  const normalizedContent = content
+    .replace(/\\n/g, "\n")
+    .replace(/\\\r?\n/g, "\n")
+    .replace(/\\\*/g, "*")
+    .replace(/\\\[/g, "[")
+    .replace(/\\\]/g, "]")
+    .replace(/\\\(/g, "(")
+    .replace(/\\\)/g, ")");
+  let html = escapeHtml(normalizedContent);
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g, (_match, label: string, url: string) => {
     const safeUrl = url.startsWith("/") || /^https?:\/\//i.test(url) ? url : "";
     return safeUrl ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + label + "</a>" : label;
