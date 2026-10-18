@@ -89,6 +89,36 @@ const PageLoader = () => (
   </div>
 );
 
+// Keep a floating-widget render failure from unmounting the dashboard.
+type FloatingSupportBoundaryState = { hasError: boolean };
+class FloatingSupportErrorBoundary extends React.Component<{ children: React.ReactNode }, FloatingSupportBoundaryState> {
+  state: FloatingSupportBoundaryState = { hasError: false };
+
+  static getDerivedStateFromError(): FloatingSupportBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error("Floating AI Support failed to render:", error, info.componentStack);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <a
+          href="/support"
+          className="fixed bottom-6 right-6 z-[60] rounded-full border bg-background px-4 py-3 text-sm font-semibold shadow-xl"
+          aria-label="Open Support because AI Support is unavailable"
+        >
+          AI Support unavailable · Open Support
+        </a>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 // Wrapper for dashboard pages
 const DashboardPage = ({ children }: { children: React.ReactNode }) => (
   <ProtectedRoute>
@@ -174,7 +204,7 @@ const AppContent = () => {
 
       {/* Bottom nav only for mobile dashboard */}
       <MobileBottomNav />
-      <FloatingAISupportButton />
+      <FloatingSupportErrorBoundary><FloatingAISupportButton /></FloatingSupportErrorBoundary>
     </Suspense>
   );
 };
