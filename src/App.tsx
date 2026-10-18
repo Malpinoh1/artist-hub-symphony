@@ -57,6 +57,7 @@ const PasswordReset = React.lazy(() => import("./pages/PasswordReset"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide"));
 const Support = React.lazy(() => import("./pages/Support"));
+const AISupport = React.lazy(() => import("./pages/AISupport"));
 const Transactions = React.lazy(() => import("./pages/Transactions"));
 const ArtistRoyaltySplits = React.lazy(() => import("./pages/ArtistRoyaltySplits"));
 const ArtistHub = React.lazy(() => import("./pages/ArtistHub"));
@@ -150,6 +151,7 @@ const AppContent = () => {
         <Route path="/team/guide" element={<DashboardPage><TeamGuide /></DashboardPage>} />
         <Route path="/team/accept-invitation" element={<AcceptInvitation />} />
         <Route path="/support" element={<DashboardPage><Support /></DashboardPage>} />
+        <Route path="/ai-support" element={<DashboardPage><AISupport /></DashboardPage>} />
         <Route path="/transactions" element={<DashboardPage><Transactions /></DashboardPage>} />
         <Route path="/royalty-splits" element={<DashboardPage><ArtistRoyaltySplits /></DashboardPage>} />
         <Route path="/artist-hub" element={<DashboardPage><ArtistHub /></DashboardPage>} />
