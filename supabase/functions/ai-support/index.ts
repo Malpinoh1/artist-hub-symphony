@@ -193,6 +193,19 @@ Deno.serve(async (req: Request) => {
     ["metadata", "artist", "title", "genre", "credits", "composer", "isrc", "upc"],
   ];
   const stopWords = new Set(["the", "and", "for", "with", "you", "your", "how", "what", "when", "where", "why", "can", "could", "would", "does", "this", "that", "from", "have", "need", "want", "about", "please", "tell", "help", "into", "are", "is", "was", "my", "our", "i", "me", "to", "of", "in", "on", "it", "do", "a", "an"]);
+  let previousAssistantMessage = "";
+  if (conversationId) {
+    const { data: previousMessages } = await admin
+      .from("ai_support_messages")
+      .select("content")
+      .eq("conversation_id", conversationId)
+      .eq("user_id", user.id)
+      .eq("role", "assistant")
+      .order("created_at", { ascending: false })
+      .limit(1);
+    previousAssistantMessage = String(previousMessages?.[0]?.content ?? "");
+  }
+  const isAcknowledgement = /^(ok|okay|thanks|thank you|got it|alright|all right|sure|understood|cool|great)[!.?,\s]*$/i.test(message.trim());
   const tokens = [...new Set(normalizedMessage.split(/\s+/).filter((word) => word.length >= 2 && !stopWords.has(word)))];
   const expandedTerms = new Set(tokens);
   for (const group of synonymGroups) {
@@ -218,15 +231,66 @@ Deno.serve(async (req: Request) => {
     .slice(0, 3);
 
   let reply: string;
-  if (rankedArticles.length > 0 && rankedArticles[0].score >= 2) {
+  let replySources: { title: string; source_url: string }[] = [];
+  const cleanMessage = message.toLowerCase().trim().replace(/[^a-z0-9\s'-]/g, " ").replace(/\s+/g, " ");
+  const isGreeting = /^(hi|hello|hey|good morning|good afternoon|good evening|howdy|hiya|yo)[!.?,\s]*$/i.test(message.trim());
+  const isStartRelease = /\b(start|create|new|submit|send|upload|distribute|release|put out|drop)\b/i.test(cleanMessage) &&
+    /\b(my music|new music|my song|my track|my album|my single|a release|new release|music for release|release my|send.*music|submit.*music|upload.*music|release wizard|my next song|my next track)\b/i.test(cleanMessage);
+  const isReleaseTypeAnswer = /^(single|ep|album|an ep|a single|an album|one song|one track|mixtape)$/i.test(cleanMessage) &&
+    /single|ep|album|release|music|track/i.test(previousAssistantMessage);
+  const isAudioArtworkAnswer = /^(yes|yeah|yep|both|i have them|ready|not yet|no|nope|still working|almost|audio only|artwork only)$/i.test(cleanMessage) &&
+    /audio files|cover artwork|audio and.*artwork|finished.*audio/i.test(previousAssistantMessage);
+  const isAccountStatement = /\b(account statement|royalty statement|earnings statement|statement of account|transaction statement|download.*statement|request.*statement|generate.*statement|my statement|financial statement)\b/i.test(cleanMessage);
+  const isCreditPayment = /\b(credit balance|outstanding balance|account credit|clear.*credit|clear.*balance|pay.*credit|pay.*balance|settle.*balance|settle.*credit|debt on my account|money i owe|amount i owe)\b/i.test(cleanMessage);
+  const isSubscriptionPayment = /\b(subscription|subscribe|renewal|renew|membership)\b/i.test(cleanMessage) && /\b(pay|payment|renew|subscribe|expired|plan|checkout|fee|billing)\b/i.test(cleanMessage);
+  const isWithdrawalRequest = /\b(withdraw|withdrawal|cash out|payout|take out my earnings)\b/i.test(cleanMessage);
+  const isEarningsSummary = /\b(earnings summary|summary of.*earnings|summar(y|ize|ise).*earnings|how much.*earned|total earnings|my earnings|earning balance|available balance|pending earnings|royalties earned|income summary)\b/i.test(cleanMessage);
+  const isBillingHistory = /\b(payment history|payment receipt|subscription receipt|proof of payment|past payments|billing history|transaction history)\b/i.test(cleanMessage);
+  if (isGreeting) {
+    reply = "Hi! 👋 Welcome to MALPINOHdistro. I can help you prepare a release, understand audio and artwork requirements, check release guidance, manage team access, and find answers about earnings or your account. What are you working on today?";
+  } else if (isStartRelease) {
+    reply = "Absolutely — let's get your new music ready for distribution. First, what are you releasing: a single (one track), an EP, or an album? I'll guide you one step at a time. You can start the secure [Release Form](/release-form) whenever you're ready; you don't need to figure out every step at once.";
+  } else if (isReleaseTypeAnswer) {
+    const releaseKind = /ep/i.test(cleanMessage) ? "EP" : /album|mixtape/i.test(cleanMessage) ? "album" : "single";
+    reply = "Great — we'll prepare your " + releaseKind + ". Next, have you finished the audio files and cover artwork, or are you still preparing them? Once I know that, I'll tell you the best next step. You can continue in the [Release Form](/release-form).";
+  } else if (isAudioArtworkAnswer) {
+    if (/not yet|nope|still working|almost|audio only|artwork only/i.test(cleanMessage)) {
+      reply = "No problem — it's better to prepare everything carefully before submission. The release form will show the current audio and artwork requirements. The Help Center's current audio guidance says WAV, 16-bit, 44.1 kHz; please confirm that in the form in case requirements have changed. Which part are you still preparing: the audio, the cover artwork, or both?";
+    } else {
+      reply = "Great — you're ready to begin entering your release details. Open the [Release Form](/release-form) and start with Album Info: release title and type, artist name, genre, language, credits, and planned release date. If possible, choose a date at least 21 days ahead to allow review and store processing. Tell me when you're on the first step and I'll help with it.";
+    }
+  } else if (isAcknowledgement && /release form|release wizard|ready to begin|release submission/i.test(previousAssistantMessage)) {
+    reply = "Sounds good. Let's take it one step at a time: open the [Release Form](/release-form), then choose your release type and enter the basic release details. What step do you see on your screen right now?";
+  } else if (isAcknowledgement) {
+    reply = "You're welcome! What would you like to work on next? I can help with release preparation, audio or cover artwork, release status guidance, earnings and withdrawals, account access, or team permissions.";
+  } else if (rankedArticles.length > 0 && rankedArticles[0].score >= 2) {
     const best = rankedArticles[0];
     const bodyText = String(best.body ?? "").trim();
-    const additional = rankedArticles.length > 1 && rankedArticles[1].score >= rankedArticles[0].score * 0.7
-      ? `\n\n**Related guidance — ${rankedArticles[1].title}**\n${String(rankedArticles[1].body ?? "").trim()}`
-      : "";
-    reply = `**${best.title}**\n\n${bodyText}${additional}\n\nIf this doesn't answer your question, you can create a support ticket and our team can follow up.`;
+    reply = "**" + String(best.title ?? "MALPINOHdistro Help") + "**\n\n" + bodyText + "\n\nIf you tell me what part you're stuck on, I'll help with that specific step. If the issue needs account access or can't be verified here, you can create a support ticket.";
   } else {
-    reply = "I couldn't find a confirmed answer to that in the MALPINOHdistro Help Center yet, and I don't want to guess. Try asking about release preparation, audio or artwork requirements, release status, earnings and withdrawals, account access, or team permissions. If your question is account-specific or urgent, please create a support ticket so our team can help.";
+    reply = "I don't have a verified answer for that exact question in the current Help Center, and I don't want to guess. Could you tell me a little more about what you're trying to do? I can help with release preparation, audio and artwork, release status guidance, earnings and withdrawals, account access, and team permissions. For private account-specific issues, create a support ticket so the team can check it securely.";
+  }
+
+
+  // Financial actions route users to existing authenticated dashboard pages.
+  if (isAccountStatement) {
+    reply = "Of course. Open [Earnings & Payments](/earnings) and choose the Statements tab to view available royalty statements or use the statement generator if available for your account. For income, withdrawals, and subscription payment records, open [Transaction History](/transactions). Are you looking for a royalty statement or a full transaction history?";
+    replySources = [{ title: "Earnings and royalty statements", source_url: "/earnings" }, { title: "Transaction history", source_url: "/transactions" }];
+  } else if (isCreditPayment) {
+    reply = "To clear an outstanding account credit, open [Billing & Payments](/billing) and look for Outstanding Credit Balance. If a balance is shown, select Pay Balance to start the secure checkout. Use only the checkout inside MALPINOHdistro, and don't share card details in this chat. If you don't see the balance or payment option, tell me what appears on the page.";
+    replySources = [{ title: "Billing and outstanding credit balance", source_url: "/billing" }];
+  } else if (isSubscriptionPayment) {
+    reply = "You can make or renew a subscription payment from [Billing & Payments](/billing). Check Current Plan first; if renewal is available, use the renewal button. If you need a new or different plan, open [Pricing](/pricing). Follow the in-app checkout and wait for confirmation before trying again to avoid duplicate payments. Are you renewing your current plan or choosing a new one?";
+    replySources = [{ title: "Billing and subscription payments", source_url: "/billing" }, { title: "Subscription plans", source_url: "/pricing" }];
+  } else if (isWithdrawalRequest) {
+    reply = "I can guide you through requesting a withdrawal. Open [Earnings & Payments](/earnings) and choose the Withdraw tab. Review your available balance, any credit deduction, the withdrawal limits, and your payout details before submitting. Chatting with me does not submit the request; wait for the dashboard's success confirmation. If you see an error, tell me the message, but don't share full bank or card details here.";
+    replySources = [{ title: "Request a withdrawal", source_url: "/earnings" }];
+  } else if (isEarningsSummary) {
+    reply = "Your earnings summary is available in [Earnings & Payments](/earnings). The overview shows total earnings, available balance, pending earnings, credit balance, and recent activity. The Statements and Withdraw tabs provide more detail. Please use the signed-in dashboard for the latest amounts; I won't guess your personal figures in chat. Which figure would you like me to explain?";
+    replySources = [{ title: "Earnings summary and balances", source_url: "/earnings" }];
+  } else if (isBillingHistory) {
+    reply = "Review subscription payments and download receipts in [Billing & Payments](/billing). For earnings, withdrawals, and broader transaction activity, open [Transaction History](/transactions). Check the record's status before treating a payment as complete. If a payment is pending or you think you were charged twice, I can help prepare a support request.";
+    replySources = [{ title: "Billing and payment receipts", source_url: "/billing" }, { title: "Transaction history", source_url: "/transactions" }];
   }
 
   const { error: assistantMessageError } = await admin.from("ai_support_messages").insert({
@@ -250,6 +314,8 @@ Deno.serve(async (req: Request) => {
     ok: true,
     conversationId,
     reply,
-    sources: rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
+    sources: replySources.length ? replySources : isStartRelease
+      ? [{ title: "Open the release submission wizard", source_url: "/release-form" }]
+      : rankedArticles.map(({ title, source_url }) => ({ title, source_url })),
   });
 });
