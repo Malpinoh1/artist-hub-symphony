@@ -408,7 +408,14 @@ const AISupport = () => {
                       ? "bg-primary text-primary-foreground"
                       : "border bg-card text-card-foreground"
                   }`}>
-                    {message.role === "assistant" ? (\n                      <div className="support-message-content break-words [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:underline [&_a]:underline-offset-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: renderAssistantContent(message.content) }} />\n                    ) : (\n                      <p className="whitespace-pre-wrap break-words">{message.content}</p>\n                    )}
+                    {message.role === "assistant" ? (
+                      <div
+                        className="support-message-content break-words [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:underline [&_a]:underline-offset-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5"
+                        dangerouslySetInnerHTML={{ __html: renderAssistantContent(message.content) }}
+                      />
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    )}
                     {message.sources && message.sources.length > 0 && (
                       <div className="mt-3 border-t border-border/70 pt-2">
                         <p className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
