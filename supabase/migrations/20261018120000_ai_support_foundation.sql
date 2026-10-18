@@ -49,13 +49,6 @@ create policy "Users can read own AI support conversations"
   for select to authenticated
   using ((select auth.uid()) = user_id);
 
-drop policy if exists "Users can update own AI support conversations" on public.ai_support_conversations;
-create policy "Users can update own AI support conversations"
-  on public.ai_support_conversations
-  for update to authenticated
-  using ((select auth.uid()) = user_id)
-  with check ((select auth.uid()) = user_id);
-
 drop policy if exists "Users can read messages in own AI support conversations" on public.ai_support_messages;
 create policy "Users can read messages in own AI support conversations"
   on public.ai_support_messages
@@ -76,7 +69,6 @@ create policy "Authenticated users can read published AI support articles"
   using (published = true);
 
 grant select on public.ai_support_conversations to authenticated;
-grant update (title, status, updated_at) on public.ai_support_conversations to authenticated;
 grant select on public.ai_support_messages to authenticated;
 grant select on public.ai_support_articles to authenticated;
 
