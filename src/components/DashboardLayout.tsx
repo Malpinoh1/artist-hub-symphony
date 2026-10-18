@@ -44,7 +44,6 @@ const sidebarNav = [
 // Staff roles (finance/distribution managers) only see the admin panel
 const staffNav = [
   { name: 'Admin Panel', href: '/admin', icon: LayoutDashboard },
-  { name: 'AI Support', href: '/ai-support', icon: Sparkles },
 ];
 
 interface DashboardLayoutProps {
