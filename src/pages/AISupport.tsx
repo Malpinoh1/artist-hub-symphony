@@ -31,6 +31,7 @@ type ChatMessage = {
 };
 
 const starterPrompts = [
+  "Help me submit my music for release",
   "How do I prepare a release for distribution?",
   "What artwork and audio files do I need?",
   "How can I check my release status?",
