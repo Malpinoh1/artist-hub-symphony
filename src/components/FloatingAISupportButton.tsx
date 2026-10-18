@@ -29,6 +29,18 @@ const FloatingAISupportButton = () => {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
   const historyAttemptedRef = useRef(false);
+  const previousUserIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const nextUserId = user?.id ?? null;
+    if (previousUserIdRef.current === nextUserId) return;
+    previousUserIdRef.current = nextUserId;
+    historyAttemptedRef.current = false;
+    setConversationId(null);
+    setMessages([welcomeMessage]);
+    setInput("");
+    setOpen(false);
+  }, [user?.id]);
 
   useEffect(() => {
     if (!open || !user || conversationId || historyAttemptedRef.current) return;
