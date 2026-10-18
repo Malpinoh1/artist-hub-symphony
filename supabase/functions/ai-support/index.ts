@@ -314,7 +314,7 @@ Deno.serve(async (req: Request) => {
     .slice(0, 3);
 
   const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
-  const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-2.5-flash";
+  const geminiModel = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.8-flash";
   let aiGeneratedReply: string | null = null;
   if (geminiApiKey) {
     aiGeneratedReply = await generateGeminiReply(
