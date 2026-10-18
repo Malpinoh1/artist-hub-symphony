@@ -246,6 +246,10 @@ Deno.serve(async (req: Request) => {
   const isWithdrawalRequest = /\b(withdraw|withdrawal|cash out|payout|take out my earnings)\b/i.test(cleanMessage);
   const isEarningsSummary = /\b(earnings summary|summary of.*earning(s)?|summar(y|ize|ise).*earning(s)?|my account earning(s)?|account earning(s)?|how much.*earned|total earnings|my earnings|earning balance|available balance|pending earnings|royalties earned|income summary)\b/i.test(cleanMessage);
   const isBillingHistory = /\b(payment history|payment receipt|subscription receipt|proof of payment|past payments|billing history|transaction history)\b/i.test(cleanMessage);
+  const isReleaseStatus = /\b(my release status|status of my release|release status|where is my release|is my release approved|has my release|release still pending|release under review|release processing|release rejected|release approved|when will my release|when is my release going live|release not live|song not on spotify|music not on stores)\b/i.test(cleanMessage);
+  const isAudioArtworkHelp = /\b(audio|wav|artwork|cover art|cover image|audio file|track upload|upload error|file format|image size|artwork size)\b/i.test(cleanMessage) &&
+    /\b(requirement|specification|specs|format|size|dimension|resolution|upload|error|fail|rejected|problem|issue|quality|wrong|prepare|ready|not working|why|how|what|cannot|can't|doesn't|won't)\b/i.test(cleanMessage);
+  const isTeamAccessHelp = /\b(team access|team member|invite|invitation|viewer|manager|admin role|permissions|permission|team role|label team|add.*member|invite.*team|team invitation)\b/i.test(cleanMessage);
   if (isGreeting) {
     reply = "Hi! 👋 Welcome to MALPINOHdistro. I can help you prepare a release, understand audio and artwork requirements, check release guidance, manage team access, and find answers about earnings or your account. What are you working on today?";
   } else if (isStartRelease) {
@@ -291,6 +295,18 @@ Deno.serve(async (req: Request) => {
   } else if (isBillingHistory) {
     reply = "Review subscription payments and download receipts in [Billing & Payments](/billing). For earnings, withdrawals, and broader transaction activity, open [Transaction History](/transactions). Check the record's status before treating a payment as complete. If a payment is pending or you think you were charged twice, I can help prepare a support request.";
     replySources = [{ title: "Billing and payment receipts", source_url: "/billing" }, { title: "Transaction history", source_url: "/transactions" }];
+  }
+
+
+  if (!isAccountStatement && !isCreditPayment && !isSubscriptionPayment && !isWithdrawalRequest && !isEarningsSummary && !isBillingHistory && isReleaseStatus) {
+    reply = "I can explain the release process, but I can't verify your live release status from this chat. Open [My Releases](/releases), select the release, and check its current status and any review notes. If it is still processing, timing can vary by review and store delivery; estimates are not guarantees. If it was rejected or needs changes, follow the notes shown on the release. Tell me the status label you see and I can explain the next step.";
+    replySources = [{ title: "View your releases and status", source_url: "/releases" }];
+  } else if (!isAccountStatement && !isCreditPayment && !isSubscriptionPayment && !isWithdrawalRequest && !isEarningsSummary && !isBillingHistory && isAudioArtworkHelp) {
+    reply = "Let's narrow it down. Current Help Center audio guidance is WAV, 16-bit, 44.1 kHz; confirm the exact requirements shown in the release form before uploading. For cover artwork, use square artwork and check the form's current dimensions and file-type rules. If an upload fails, check the format, dimensions, file size, and connection, then try again. Which are you having trouble with: audio, cover artwork, or the upload itself? You can paste the error message after removing private information.";
+    replySources = [{ title: "Open the release form", source_url: "/release-form" }, { title: "Audio and artwork help", source_url: "/help" }];
+  } else if (!isAccountStatement && !isCreditPayment && !isSubscriptionPayment && !isWithdrawalRequest && !isEarningsSummary && !isBillingHistory && isTeamAccessHelp) {
+    reply = "I can help with team access. Open [Team Management](/team) to invite or manage team members. MALPINOHdistro supports Viewer, Manager, and Admin roles, with different levels of access; choose the least-privileged role that lets the person do their work. Invitations are time-limited (currently 7 days), so an expired invite may need to be sent again. Are you trying to invite someone, change a role, or fix an invitation that isn't working?";
+    replySources = [{ title: "Manage team access", source_url: "/team" }, { title: "Team access guide", source_url: "/team/guide" }];
   }
 
   const { error: assistantMessageError } = await admin.from("ai_support_messages").insert({
