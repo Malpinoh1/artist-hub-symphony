@@ -86,7 +86,8 @@ const FloatingAISupportButton = () => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages, sending, open]);
 
-  if (!user || location.pathname.startsWith("/ai-support")) return null;
+  // Keep the launcher visible on public pages too; saved-history loading remains account-aware.
+  if (location.pathname.startsWith("/ai-support")) return null;
 
   const startNewChat = () => {
     historyAttemptedRef.current = true;
