@@ -1,4 +1,5 @@
 import React, { FormEvent, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import DOMPurify from "dompurify";
 import {
   AlertCircle,
@@ -7,6 +8,8 @@ import {
   Bot,
   CheckCircle2,
   Loader2,
+  History,
+  MessageSquarePlus,
   Send,
   Sparkles,
   Ticket,
@@ -79,6 +82,7 @@ type ChatMessage = {
   content: string;
   sources?: Source[];
 };
+type SavedConversation = { id: string; title: string; updated_at: string; status: string };
 
 const starterPrompts = [
   "Help me submit my music for release",
@@ -105,6 +109,10 @@ const getInvokeErrorMessage = async (error: unknown, data: any): Promise<string>
 const AISupport = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedConversationId = searchParams.get("conversationId");
+  const [conversations, setConversations] = useState<SavedConversation[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -126,6 +134,75 @@ const AISupport = () => {
     priority: "medium",
   });
   const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    setHistoryLoading(true);
+    void (async () => {
+      try {
+        const { data: savedConversations, error: historyError } = await supabase
+          .from("ai_support_conversations")
+          .select("id,title,updated_at,status")
+          .eq("user_id", user.id)
+          .order("updated_at", { ascending: false })
+          .limit(50);
+        if (historyError) throw historyError;
+        if (!cancelled) setConversations((savedConversations ?? []) as SavedConversation[]);
+      } catch {
+        if (!cancelled) setConversations([]);
+      } finally {
+        if (!cancelled) setHistoryLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, conversationId]);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    void (async () => {
+      if (!requestedConversationId) {
+        setConversationId(null);
+        setMessages([{
+          id: "welcome",
+          role: "assistant",
+          content: "Hi! I'm MALPINOHdistro AI Support. I can help explain platform features, release preparation, and common support questions. If I can't verify an answer, I can help you open a ticket with our support team.",
+        }]);
+        return;
+      }
+      const { data: savedConversation, error: conversationError } = await supabase
+        .from("ai_support_conversations")
+        .select("id")
+        .eq("id", requestedConversationId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (conversationError || !savedConversation) {
+        toast({ title: "Conversation not found", description: "It may have been removed or you may not have access to it.", variant: "destructive" });
+        setSearchParams({});
+        return;
+      }
+      const { data: savedMessages, error: messagesError } = await supabase
+        .from("ai_support_messages")
+        .select("id,role,content")
+        .eq("conversation_id", requestedConversationId)
+        .order("created_at", { ascending: true })
+        .limit(300);
+      if (cancelled) return;
+      if (messagesError) {
+        toast({ title: "Couldn't load chat", description: "Please try opening this conversation again.", variant: "destructive" });
+        return;
+      }
+      setConversationId(requestedConversationId);
+      setMessages((savedMessages ?? []).map((message) => ({
+        id: message.id,
+        role: message.role as "user" | "assistant",
+        content: message.content,
+      })));
+    })();
+    return () => { cancelled = true; };
+  }, [user?.id, requestedConversationId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -166,6 +243,9 @@ const AISupport = () => {
       }
 
       setConversationId(data.conversationId);
+      if (data.conversationId && data.conversationId !== requestedConversationId) {
+        setSearchParams({ conversationId: data.conversationId });
+      }
       setMessages((current) => [
         ...current,
         {
@@ -188,6 +268,18 @@ const AISupport = () => {
     } finally {
       setSending(false);
     }
+  };
+
+  const startNewConversation = () => {
+    setConversationId(null);
+    setMessages([{
+      id: "welcome", role: "assistant",
+      content: "Hi! I'm MALPINOHdistro AI Support. I can help explain platform features, release preparation, and common support questions. If I can't verify an answer, I can help you open a ticket with our support team.",
+    }]);
+    setInput("");
+    setTicketCreated(null);
+    setShowTicketForm(false);
+    setSearchParams({});
   };
 
   const openTicketForm = () => {
@@ -274,6 +366,9 @@ const AISupport = () => {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button variant="default" onClick={startNewConversation}>
+            <MessageSquarePlus className="mr-2 h-4 w-4" /> New chat
+          </Button>
           <Button variant="outline" asChild>
             <Link to="/support"><ArrowLeft className="mr-2 h-4 w-4" /> Support Center</Link>
           </Button>
@@ -439,6 +534,27 @@ const AISupport = () => {
         </Card>
 
         <aside className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-base"><History className="h-4 w-4" /> Your conversations</CardTitle>
+              <CardDescription>Saved automatically so you can return anytime.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {historyLoading && <p className="text-xs text-muted-foreground">Loading saved chats…</p>}
+              {!historyLoading && conversations.length === 0 && <p className="text-xs text-muted-foreground">Your chats will appear here after you send your first message.</p>}
+              {conversations.map((conversation) => (
+                <Button key={conversation.id} type="button" variant={conversation.id === conversationId ? "secondary" : "ghost"}
+                  className="h-auto w-full justify-start whitespace-normal py-2 text-left"
+                  onClick={() => setSearchParams({ conversationId: conversation.id })}>
+                  <div className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{conversation.title || "Support conversation"}</span>
+                    <span className="mt-0.5 block text-xs text-muted-foreground">{new Date(conversation.updated_at).toLocaleDateString()} · {conversation.status === "open" ? "Ongoing" : "Saved"}</span>
+                  </div>
+                </Button>
+              ))}
+              <p className="pt-1 text-[11px] leading-4 text-muted-foreground">Chats are saved to your account. They may be reviewed to improve support quality; they are not used to automatically train the AI model.</p>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Try asking</CardTitle>
