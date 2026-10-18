@@ -143,7 +143,7 @@ const AISupport = () => {
     setHistoryLoading(true);
     void (async () => {
       try {
-        const { data: savedConversations, error: historyError } = await supabase
+        const { data: savedConversations, error: historyError } = await supportHistoryClient
           .from("ai_support_conversations")
           .select("id,title,updated_at,status")
           .eq("user_id", user.id)
@@ -173,7 +173,7 @@ const AISupport = () => {
         }]);
         return;
       }
-      const { data: savedConversation, error: conversationError } = await supabase
+      const { data: savedConversation, error: conversationError } = await supportHistoryClient
         .from("ai_support_conversations")
         .select("id")
         .eq("id", requestedConversationId)
@@ -185,7 +185,7 @@ const AISupport = () => {
         setSearchParams({});
         return;
       }
-      const { data: savedMessages, error: messagesError } = await supabase
+      const { data: savedMessages, error: messagesError } = await supportHistoryClient
         .from("ai_support_messages")
         .select("id,role,content")
         .eq("conversation_id", requestedConversationId)
