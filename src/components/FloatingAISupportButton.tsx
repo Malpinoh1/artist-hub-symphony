@@ -86,6 +86,7 @@ const FloatingAISupportButton = () => {
   const [releaseDraftData, setReleaseDraftData] = useState({ title: "", release_type: "single", genre: "", release_date: "", artist_name: "", primary_language: "English", description: "", explicit_content: false, track_title: "" });
   const [releaseCoverFile, setReleaseCoverFile] = useState<File | null>(null);
   const [releaseAudioFiles, setReleaseAudioFiles] = useState<File[]>([]);
+  const [releaseTrackTitles, setReleaseTrackTitles] = useState<string[]>([]);
 
   const endRef = useRef<HTMLDivElement>(null);
   const historyAttemptedRef = useRef(false);
@@ -189,7 +190,9 @@ const FloatingAISupportButton = () => {
     if (!releaseCoverFile || !releaseAudioFiles.length) {
       toast({ title: "Add your files", description: "Choose cover artwork and at least one audio file before saving the draft.", variant: "destructive" }); return;
     }
+    if (!["image/jpeg", "image/png"].includes(releaseCoverFile.type)) { toast({ title: "Unsupported cover art", description: "Please choose a JPG or PNG image.", variant: "destructive" }); return; }
     if (releaseCoverFile.size > 15 * 1024 * 1024) { toast({ title: "Cover art is too large", description: "Cover art must be 15 MB or smaller.", variant: "destructive" }); return; }
+    if (releaseAudioFiles.some((file) => !["wav", "mp3", "flac"].includes(file.name.split(".").pop()?.toLowerCase() ?? ""))) { toast({ title: "Unsupported audio format", description: "Please upload WAV, MP3, or FLAC files.", variant: "destructive" }); return; }
     if (releaseAudioFiles.some((file) => file.size > 50 * 1024 * 1024)) { toast({ title: "Audio file is too large", description: "Each audio file must be 50 MB or smaller.", variant: "destructive" }); return; }
     setUploadingReleaseDraft(true);
     try {
@@ -227,7 +230,7 @@ const FloatingAISupportButton = () => {
         cover_art_url: coverPublic.publicUrl, audio_file_urls: audioUrls, current_step: 1, selected_artist_account: "self",
       }).select("id").single();
       if (draftError || !savedDraft) throw new Error(draftError?.message || "Could not save your release draft.");
-      setReleaseComposerOpen(false); setReleaseCoverFile(null); setReleaseAudioFiles([]);
+      setReleaseComposerOpen(false); setReleaseCoverFile(null); setReleaseAudioFiles([]); setReleaseTrackTitles([]);
       setMessages((current) => [...current, { id: `assistant-release-${Date.now()}`, role: "assistant", content: `Your release draft “${releaseDraftData.title.trim()}” is saved, and ${audioUrls.length} audio file(s) plus the cover art have been uploaded. It has not been submitted. Continue in the release wizard to review distribution stores, confirm all metadata, and submit when you're ready.` }]);
       toast({ title: "Release draft saved", description: "Your files are uploaded. Review the draft before submitting." });
     } catch (error) { toast({ title: "Could not save release draft", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" }); }
@@ -331,8 +334,13 @@ const FloatingAISupportButton = () => {
                 <label className="block space-y-1"><span className="text-xs font-medium">Description</span><textarea rows={2} className="w-full rounded-md border bg-background px-3 py-2" value={releaseDraftData.description} onChange={(event) => setReleaseDraftData((current) => ({ ...current, description: event.target.value }))} placeholder="Optional release description" /></label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={releaseDraftData.explicit_content} onChange={(event) => setReleaseDraftData((current) => ({ ...current, explicit_content: event.target.checked }))} /> Contains explicit content</label>
                 <label className="block space-y-1"><span className="text-xs font-medium">Cover art * (JPG/PNG, max 15 MB)</span><input required type="file" accept="image/jpeg,image/png" className="block w-full text-xs" onChange={(event) => setReleaseCoverFile(event.target.files?.[0] ?? null)} /></label>
-                <label className="block space-y-1"><span className="text-xs font-medium">Audio files * (WAV/MP3/FLAC, max 50 MB each)</span><input required type="file" multiple accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac" className="block w-full text-xs" onChange={(event) => setReleaseAudioFiles(Array.from(event.target.files ?? []))} /></label>
+                <label className="block space-y-1"><span className="text-xs font-medium">Audio files * (WAV/MP3/FLAC, max 50 MB each)</span><input required type="file" multiple accept="audio/wav,audio/mpeg,audio/flac,.wav,.mp3,.flac" className="block w-full text-xs" onChange={(event) => { const files = Array.from(event.target.files ?? []); setReleaseAudioFiles(files); setReleaseTrackTitles(files.map((file) => file.name.replace(/\\.[^.]+$/, "").replace(/[_-]+/g, " "))); }} /></label>
                 {releaseAudioFiles.length > 0 && <p className="text-xs text-muted-foreground">{releaseAudioFiles.length} audio file(s) selected: {releaseAudioFiles.map((file) => file.name).join(", ")}</p>}
+                {releaseAudioFiles.length > 1 && releaseAudioFiles.map((file, index) => index === 0 ? null : (
+                  <label key={file.name + index} className="block space-y-1"><span className="text-xs font-medium">Track {index + 1} title</span>
+                    <input className="w-full rounded-md border bg-background px-3 py-2" value={releaseTrackTitles[index] ?? ""} onChange={(event) => setReleaseTrackTitles((current) => { const next = [...current]; next[index] = event.target.value; return next; })} />
+                  </label>
+                ))}
                 <div className="flex gap-2"><Button type="submit" size="sm" disabled={uploadingReleaseDraft}>{uploadingReleaseDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft &amp; upload files</Button><Button type="button" size="sm" variant="outline" onClick={() => setReleaseComposerOpen(false)}>Cancel</Button></div>
               </form>
             )}
