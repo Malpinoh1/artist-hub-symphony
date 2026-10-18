@@ -28,6 +28,8 @@ import { useToast } from "@/hooks/use-toast";
 
 
 
+const supportHistoryClient = supabase as any;
+
 const renderAssistantContent = (content: string): string => {
   const escapeHtml = (value: string) =>
     value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
