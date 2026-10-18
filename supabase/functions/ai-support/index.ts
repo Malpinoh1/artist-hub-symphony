@@ -241,10 +241,10 @@ Deno.serve(async (req: Request) => {
   const isAudioArtworkAnswer = /^(yes|yeah|yep|both|i have them|ready|not yet|no|nope|still working|almost|audio only|artwork only)$/i.test(cleanMessage) &&
     /audio files|cover artwork|audio and.*artwork|finished.*audio/i.test(previousAssistantMessage);
   const isAccountStatement = /\b(account statement|royalty statement|earnings statement|statement of account|transaction statement|download.*statement|request.*statement|generate.*statement|my statement|financial statement)\b/i.test(cleanMessage);
-  const isCreditPayment = /\b(credit balance|outstanding balance|account credit|clear.*credit|clear.*balance|pay.*credit|pay.*balance|settle.*balance|settle.*credit|debt on my account|money i owe|amount i owe)\b/i.test(cleanMessage);
+  const isCreditPayment = /\b(credit balance|outstanding balance|account credit|credit on (my|the|their) account|clear.*credit|clear.*balance|clear my credit|pay.*credit|pay.*balance|settle.*balance|settle.*credit|debt on my account|money i owe|amount i owe)\b/i.test(cleanMessage);
   const isSubscriptionPayment = /\b(subscription|subscribe|renewal|renew|membership)\b/i.test(cleanMessage) && /\b(pay|payment|renew|subscribe|expired|plan|checkout|fee|billing)\b/i.test(cleanMessage);
   const isWithdrawalRequest = /\b(withdraw|withdrawal|cash out|payout|take out my earnings)\b/i.test(cleanMessage);
-  const isEarningsSummary = /\b(earnings summary|summary of.*earnings|summar(y|ize|ise).*earnings|how much.*earned|total earnings|my earnings|earning balance|available balance|pending earnings|royalties earned|income summary)\b/i.test(cleanMessage);
+  const isEarningsSummary = /\b(earnings summary|summary of.*earning(s)?|summar(y|ize|ise).*earning(s)?|my account earning(s)?|account earning(s)?|how much.*earned|total earnings|my earnings|earning balance|available balance|pending earnings|royalties earned|income summary)\b/i.test(cleanMessage);
   const isBillingHistory = /\b(payment history|payment receipt|subscription receipt|proof of payment|past payments|billing history|transaction history)\b/i.test(cleanMessage);
   if (isGreeting) {
     reply = "Hi! 👋 Welcome to MALPINOHdistro. I can help you prepare a release, understand audio and artwork requirements, check release guidance, manage team access, and find answers about earnings or your account. What are you working on today?";
