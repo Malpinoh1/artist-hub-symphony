@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
+import { FormEvent, Fragment, ReactNode, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bot, ChevronDown, ExternalLink, Loader2, MessageCircle, Plus, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ const renderMiniContent = (content: string): ReactNode => {
     .replace(/^\s*svg(?=[A-Z])/i, "")
     .trim();
 
-  const renderInline = (text: string, keyPrefix: string): React.ReactNode[] => {
+  const renderInline = (text: string, keyPrefix: string): ReactNode[] => {
     const parts = text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\))/g).filter(Boolean);
     return parts.map((part, index) => {
       const key = keyPrefix + "-" + index;
@@ -39,7 +39,7 @@ const renderMiniContent = (content: string): ReactNode => {
           ? <a key={key} href={link[2]} className="font-medium text-primary underline underline-offset-2">{link[1]}</a>
           : <a key={key} href={link[2]} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">{link[1]}</a>;
       }
-      return <React.Fragment key={key}>{part}</React.Fragment>;
+      return <Fragment key={key}>{part}</Fragment>;
     });
   };
 
