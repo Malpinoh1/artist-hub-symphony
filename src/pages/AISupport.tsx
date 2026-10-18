@@ -1,4 +1,5 @@
 import React, { FormEvent, useEffect, useRef, useState } from "react";
+import DOMPurify from "dompurify";
 import {
   AlertCircle,
   ArrowLeft,
@@ -21,6 +22,49 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+
+
+
+const renderAssistantContent = (content: string): string => {
+  const escapeHtml = (value: string) =>
+    value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  let html = escapeHtml(content);
+  // Some stored replies contain escaped Markdown markers; normalize those first.
+  html = html.replace(/\\\*\\\*(.+?)\\\*\\\*/g, "**$1**")
+    .replace(/\\\*(.+?)\\\*/g, "*$1*");
+  html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g, (_match, label: string, url: string) => {
+    const safeUrl = url.startsWith("/") || /^https?:\/\//i.test(url) ? url : "";
+    return safeUrl ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + label + "</a>" : label;
+  });
+  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  const lines = html.split(/\n/);
+  let inList = false;
+  const rendered: string[] = [];
+  for (const line of lines) {
+    const item = line.match(/^\s*[-*]\s+(.+)$/);
+    if (item) {
+      if (!inList) rendered.push("<ul>");
+      inList = true;
+      rendered.push("<li>" + item[1] + "</li>");
+    } else {
+      if (inList) rendered.push("</ul>");
+      inList = false;
+      if (/^\s*\d+\.\s+/.test(line)) {
+        rendered.push("<p>" + line.replace(/^\s*\d+\.\s+/, "• ") + "</p>");
+      } else if (line.trim()) {
+        rendered.push("<p>" + line + "</p>");
+      }
+    }
+  }
+  if (inList) rendered.push("</ul>");
+  return DOMPurify.sanitize(rendered.join(""), {
+    ALLOWED_TAGS: ["p", "strong", "em", "br", "a", "ul", "ol", "li"],
+    ALLOWED_ATTR: ["href", "target", "rel"],
+    ALLOW_DATA_ATTR: false,
+  });
+};
 
 type Source = { title: string; source_url: string | null };
 type ChatMessage = {
@@ -261,7 +305,7 @@ const AISupport = () => {
                       ? "bg-primary text-primary-foreground"
                       : "border bg-card text-card-foreground"
                   }`}>
-                    <p className="whitespace-pre-wrap break-words">{message.content}</p>
+                    {message.role === "assistant" ? (\n                      <div className="support-message-content break-words [&_p]:mb-2 [&_p:last-child]:mb-0 [&_a]:underline [&_a]:underline-offset-2 [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5" dangerouslySetInnerHTML={{ __html: renderAssistantContent(message.content) }} />\n                    ) : (\n                      <p className="whitespace-pre-wrap break-words">{message.content}</p>\n                    )}
                     {message.sources && message.sources.length > 0 && (
                       <div className="mt-3 border-t border-border/70 pt-2">
                         <p className="mb-1 flex items-center gap-1 text-xs font-medium text-muted-foreground">
