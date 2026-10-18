@@ -50,4 +50,4 @@ verify_jwt = false
 verify_jwt = true
 
 [functions.ai-support]
-verify_jwt = true
+verify_jwt = false
