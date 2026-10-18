@@ -302,6 +302,14 @@ const FloatingAISupportButton = () => {
           <div className="flex-1 space-y-3 overflow-y-auto p-3" aria-live="polite">
             {loadingHistory && <p className="text-center text-xs text-muted-foreground">Loading your recent chat…</p>}
 
+            {messages.map((message) => (
+              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2.5 text-sm leading-5 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
+                  {message.role === "assistant" && <Bot className="mb-1 inline h-4 w-4 text-primary" />}
+                  {message.role === "assistant" ? renderMiniContent(message.content) : message.content}
+                </div>
+              </div>
+            ))}
             {pendingSettingsPermission && user && (
               <div className="rounded-xl border border-primary/20 bg-background p-3 text-sm shadow-sm">
                 <p className="font-semibold">Permission to access account settings</p>
@@ -344,14 +352,6 @@ const FloatingAISupportButton = () => {
                 <div className="flex gap-2"><Button type="submit" size="sm" disabled={uploadingReleaseDraft}>{uploadingReleaseDraft ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Save draft &amp; upload files</Button><Button type="button" size="sm" variant="outline" onClick={() => setReleaseComposerOpen(false)}>Cancel</Button></div>
               </form>
             )}
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2.5 text-sm leading-5 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
-                  {message.role === "assistant" && <Bot className="mb-1 inline h-4 w-4 text-primary" />}
-                  {message.role === "assistant" ? renderMiniContent(message.content) : message.content}
-                </div>
-              </div>
-            ))}
             {messages.length >= 10 && <div className="rounded-lg border border-primary/20 bg-primary/5 p-3"><p className="text-xs text-muted-foreground">This is a longer conversation. Open the full chat to keep going with more space and your saved history.</p><Button type="button" size="sm" className="mt-2 w-full" onClick={openFullChat}>Continue in full chat <ExternalLink className="ml-2 h-3.5 w-3.5" /></Button></div>}
             {messages.some((message) => message.id.startsWith("assistant-release-")) && <Button type="button" className="w-full" onClick={() => { setOpen(false); navigate("/release-form?resume=1"); }}>Continue in release wizard</Button>}
             {sending && <p className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Thinking…</p>}
