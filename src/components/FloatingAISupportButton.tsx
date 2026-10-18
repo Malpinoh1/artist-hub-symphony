@@ -373,7 +373,7 @@ const FloatingAISupportButton = () => {
           </div>
         </section>
       )}
-      <Button type="button" onClick={() => setOpen((current) => !current)}
+      <Button type="button" onClick={(event) => { event.preventDefault(); event.stopPropagation(); setOpen((current) => !current); }}
         aria-label={open ? "Close AI Support chat" : "Open MALPINOHdistro AI Support"}
         title="Need help? Chat with AI Support"
         className="fixed bottom-[calc(5.75rem+env(safe-area-inset-bottom,0px))] right-4 z-[60] inline-flex min-h-12 items-center gap-2.5 rounded-full px-4 py-3 text-sm font-semibold shadow-xl shadow-primary/25 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.98] sm:bottom-6 sm:right-6 sm:px-5">
