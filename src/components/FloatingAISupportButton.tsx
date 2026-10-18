@@ -16,6 +16,56 @@ const welcomeMessage: MiniMessage = {
   content: "Hi! I'm MALPINOHdistro AI Support. Ask me about releases, distribution, or your account.",
 };
 
+const renderMiniContent = (content: string): React.ReactNode => {
+  const normalized = content
+    .replace(/\\r\\n/g, "\n")
+    .replace(/\\n/g, "\n")
+    .replace(/\\+\r?\n/g, "\n")
+    .replace(/\\+([*_[\]()])/g, "$1")
+    .replace(/^\s*svg(?=To\b)/i, "")
+    .trim();
+
+  const renderInline = (text: string, keyPrefix: string): React.ReactNode[] => {
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|\[[^\]]+\]\((?:https?:\/\/[^)\s]+|\/[^)\s]*)\))/g).filter(Boolean);
+    return parts.map((part, index) => {
+      const key = keyPrefix + "-" + index;
+      const bold = part.match(/^\*\*(.+)\*\*$/);
+      if (bold) return <strong key={key} className="font-semibold">{bold[1]}</strong>;
+      const italic = part.match(/^\*([^*]+)\*$/);
+      if (italic) return <em key={key}>{italic[1]}</em>;
+      const link = part.match(/^\[([^\]]+)\]\(((?:https?:\/\/|\/)[^)\s]*)\)$/);
+      if (link) {
+        return link[2].startsWith("/")
+          ? <a key={key} href={link[2]} className="font-medium text-primary underline underline-offset-2">{link[1]}</a>
+          : <a key={key} href={link[2]} target="_blank" rel="noopener noreferrer" className="font-medium text-primary underline underline-offset-2">{link[1]}</a>;
+      }
+      return <React.Fragment key={key}>{part}</React.Fragment>;
+    });
+  };
+
+  return <div className="space-y-2">
+    {normalized.split("\n").map((line, index) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <div key={"line-" + index} className="h-1" />;
+      const ordered = trimmed.match(/^(\d+)[.)]\s+(.+)$/);
+      const unordered = trimmed.match(/^[-*]\s+(.+)$/);
+      if (ordered) {
+        return <div key={"line-" + index} className="flex items-start gap-2">
+          <span className="font-semibold text-primary">{ordered[1]}.</span>
+          <span className="min-w-0 flex-1">{renderInline(ordered[2], "ordered-" + index)}</span>
+        </div>;
+      }
+      if (unordered) {
+        return <div key={"line-" + index} className="flex items-start gap-2">
+          <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary/70" />
+          <span className="min-w-0 flex-1">{renderInline(unordered[1], "unordered-" + index)}</span>
+        </div>;
+      }
+      return <p key={"line-" + index}>{renderInline(trimmed, "text-" + index)}</p>;
+    })}
+  </div>;
+};
+
 const FloatingAISupportButton = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -154,7 +204,7 @@ const FloatingAISupportButton = () => {
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`max-w-[88%] whitespace-pre-wrap break-words rounded-2xl px-3 py-2.5 text-sm leading-5 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"}`}>
                   {message.role === "assistant" && <Bot className="mb-1 inline h-4 w-4 text-primary" />}
-                  {message.content}
+                  {message.role === "assistant" ? renderMiniContent(message.content) : message.content}
                 </div>
               </div>
             ))}
