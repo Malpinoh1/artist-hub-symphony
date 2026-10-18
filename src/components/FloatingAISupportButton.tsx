@@ -26,10 +26,12 @@ const FloatingAISupportButton = () => {
   const [sending, setSending] = useState(false);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const endRef = useRef<HTMLDivElement>(null);
+  const historyAttemptedRef = useRef(false);
 
   useEffect(() => {
-    if (!open || !user || conversationId || loadingHistory) return;
+    if (!open || !user || conversationId || historyAttemptedRef.current) return;
     let cancelled = false;
+    historyAttemptedRef.current = true;
     setLoadingHistory(true);
     void (async () => {
       try {
@@ -64,7 +66,7 @@ const FloatingAISupportButton = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, [open, user, conversationId, loadingHistory]);
+  }, [open, user, conversationId]);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -73,6 +75,7 @@ const FloatingAISupportButton = () => {
   if (!user || location.pathname.startsWith("/ai-support")) return null;
 
   const startNewChat = () => {
+    historyAttemptedRef.current = true;
     setConversationId(null);
     setMessages([welcomeMessage]);
     setInput("");
