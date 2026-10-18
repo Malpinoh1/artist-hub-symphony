@@ -35,6 +35,7 @@ const sidebarNav = [
   { name: 'Artist Hub', href: '/artist-hub', icon: BadgeCheck },
   { name: 'Achievements', href: '/achievements', icon: Trophy },
   { name: 'Collective', href: '/collective/center', icon: Sparkles },
+  { name: 'AI Support', href: '/ai-support', icon: Sparkles },
   { name: 'Billing', href: '/billing', icon: CreditCard },
 
   { name: 'Settings', href: '/settings', icon: Settings },
@@ -43,6 +44,7 @@ const sidebarNav = [
 // Staff roles (finance/distribution managers) only see the admin panel
 const staffNav = [
   { name: 'Admin Panel', href: '/admin', icon: LayoutDashboard },
+  { name: 'AI Support', href: '/ai-support', icon: Sparkles },
 ];
 
 interface DashboardLayoutProps {
