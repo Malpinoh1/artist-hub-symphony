@@ -7,6 +7,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+const supportHistoryClient = supabase as any;
+
 type MiniMessage = { id: string; role: "user" | "assistant"; content: string };
 const welcomeMessage: MiniMessage = {
   id: "welcome",
