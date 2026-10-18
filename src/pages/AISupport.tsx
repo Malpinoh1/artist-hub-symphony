@@ -34,49 +34,66 @@ const renderAssistantContent = (content: string): string => {
   const escapeHtml = (value: string) =>
     value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-  // Normalize escaped Markdown and line breaks before rendering model replies.
+
+  // Normalize escaped Markdown so replies never expose literal \*\* or \[...\].
   const normalizedContent = content
+    .replace(/\\r\\n/g, "\n")
     .replace(/\\n/g, "\n")
-    .replace(/\\\r?\n/g, "\n")
-    .replace(/\\\*/g, "*")
-    .replace(/\\\[/g, "[")
-    .replace(/\\\]/g, "]")
-    .replace(/\\\(/g, "(")
-    .replace(/\\\)/g, ")");
+    .replace(/\\+\r?\n/g, "\n")
+    .replace(/\\+([*_[\]()])/g, "$1")
+    .replace(/^\s*svg(?=To\b)/i, "")
+    .trim();
+
   let html = escapeHtml(normalizedContent);
   html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+|\/[^)\s]*)\)/g, (_match, label: string, url: string) => {
     const safeUrl = url.startsWith("/") || /^https?:\/\//i.test(url) ? url : "";
-    return safeUrl ? '<a href="' + safeUrl + '" target="_blank" rel="noopener noreferrer">' + label + "</a>" : label;
+    return safeUrl ? '<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + label + "</a>" : label;
   });
-  html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+  html = html
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
     .replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+
   const lines = html.split(/\n/);
-  let inList = false;
   const rendered: string[] = [];
-  for (const line of lines) {
-    const item = line.match(/^\s*[-*]\s+(.+)$/);
-    if (item) {
-      if (!inList) rendered.push("<ul>");
-      inList = true;
-      rendered.push("<li>" + item[1] + "</li>");
-    } else {
-      if (inList) rendered.push("</ul>");
-      inList = false;
-      if (/^\s*\d+\.\s+/.test(line)) {
-        rendered.push("<p>" + line.replace(/^\s*\d+\.\s+/, "• ") + "</p>");
-      } else if (line.trim()) {
-        rendered.push("<p>" + line + "</p>");
-      }
+  let listType: "ul" | "ol" | null = null;
+  const closeList = () => {
+    if (listType) rendered.push("</" + listType + ">");
+    listType = null;
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.trim();
+    if (!line) {
+      closeList();
+      continue;
     }
+
+    const unordered = line.match(/^[-*]\s+(.+)$/);
+    const ordered = line.match(/^\d+[.)]\s+(.+)$/);
+    if (unordered || ordered) {
+      const nextType = unordered ? "ul" : "ol";
+      if (listType !== nextType) {
+        closeList();
+        rendered.push("<" + nextType + ">");
+        listType = nextType;
+      }
+      rendered.push("<li>" + (unordered?.[1] ?? ordered?.[1]) + "</li>");
+      continue;
+    }
+
+    closeList();
+    const heading = line.match(/^#{1,3}\s+(.+)$/);
+    if (heading) rendered.push("<p><strong>" + heading[1] + "</strong></p>");
+    else rendered.push("<p>" + line + "</p>");
   }
-  if (inList) rendered.push("</ul>");
+  closeList();
+
   return DOMPurify.sanitize(rendered.join(""), {
     ALLOWED_TAGS: ["p", "strong", "em", "br", "a", "ul", "ol", "li"],
     ALLOWED_ATTR: ["href", "target", "rel"],
     ALLOW_DATA_ATTR: false,
   });
 };
-
 type Source = { title: string; source_url: string | null };
 type ChatMessage = {
   id: string;
