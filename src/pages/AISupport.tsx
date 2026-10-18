@@ -37,6 +37,20 @@ const starterPrompts = [
   "I need help with my account",
 ];
 
+const getInvokeErrorMessage = async (error: unknown, data: any): Promise<string> => {
+  if (typeof data?.error === "string" && data.error) return data.error;
+  const context = (error as { context?: unknown } | null)?.context;
+  if (context && typeof (context as Response).clone === "function") {
+    try {
+      const payload = await (context as Response).clone().json();
+      if (typeof payload?.error === "string") return payload.error;
+    } catch {
+      // Fall back to the SDK error message when the response isn't JSON.
+    }
+  }
+  return error instanceof Error ? error.message : "Please try again shortly.";
+};
+
 const AISupport = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -97,7 +111,7 @@ const AISupport = () => {
         },
       });
       if (error || !data?.ok || typeof data?.reply !== "string") {
-        throw new Error(data?.error ?? error?.message ?? "AI Support is temporarily unavailable.");
+        throw new Error(await getInvokeErrorMessage(error, data) || "AI Support is temporarily unavailable.");
       }
 
       setConversationId(data.conversationId);
@@ -158,7 +172,7 @@ const AISupport = () => {
         },
       });
       if (error || !data?.ok || !data?.ticket?.id) {
-        throw new Error(data?.error ?? error?.message ?? "We couldn't create your ticket.");
+        throw new Error(await getInvokeErrorMessage(error, data) || "We couldn't create your ticket.");
       }
 
       setTicketCreated(data.ticket.id);
