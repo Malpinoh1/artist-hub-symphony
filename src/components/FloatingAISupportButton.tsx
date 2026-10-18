@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, ReactNode, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bot, ChevronDown, ExternalLink, Loader2, MessageCircle, Plus, Send, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ const welcomeMessage: MiniMessage = {
   content: "Hi! I'm MALPINOHdistro AI Support. Ask me about releases, distribution, or your account.",
 };
 
-const renderMiniContent = (content: string): React.ReactNode => {
+const renderMiniContent = (content: string): ReactNode => {
   const normalized = content
     .replace(/\\r\\n/g, "\n")
     .replace(/\\n/g, "\n")
