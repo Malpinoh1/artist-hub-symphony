@@ -22,6 +22,7 @@ const renderMiniContent = (content: string): ReactNode => {
     .replace(/\\n/g, "\n")
     .replace(/\\+\r?\n/g, "\n")
     .replace(/\\+([*_[\]()])/g, "$1")
+    .replace(/^\s*svg\s*(?:\r?\n|$)/i, "")
     .replace(/^\s*svg(?=[A-Z])/i, "")
     .trim();
 
