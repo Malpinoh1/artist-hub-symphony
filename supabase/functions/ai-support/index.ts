@@ -196,7 +196,7 @@ Deno.serve(async (req: Request) => {
   const tokens = [...new Set(normalizedMessage.split(/\s+/).filter((word) => word.length >= 2 && !stopWords.has(word)))];
   const expandedTerms = new Set(tokens);
   for (const group of synonymGroups) {
-    if (group.some((term) => tokens.some((token) => token === term || (token.length > 4 && term.startsWith(token)))) {
+    if (group.some((term) => tokens.some((token) => token === term || (token.length > 4 && term.startsWith(token))))) {
       group.forEach((term) => expandedTerms.add(term));
     }
   }
