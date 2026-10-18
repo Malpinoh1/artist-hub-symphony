@@ -552,7 +552,7 @@ const AISupport = () => {
                   </div>
                 </Button>
               ))}
-              <p className="pt-1 text-[11px] leading-4 text-muted-foreground">Chats are saved to your account. They may be reviewed to improve support quality; they are not used to automatically train the AI model.</p>
+              <p className="pt-1 text-[11px] leading-4 text-muted-foreground">Chats are saved to your account for reference. Using them to improve AI requires a separate review and privacy process; they are not used for automatic model training.</p>
             </CardContent>
           </Card>
           <Card>
