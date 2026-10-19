@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "12.2.3"
   }
   public: {
     Tables: {
@@ -77,6 +77,60 @@ export type Database = {
         }
         Relationships: []
       }
+      achievement_email_deliveries: {
+        Row: {
+          achievement_id: string
+          artist_id: string
+          attempt_count: number
+          created_at: string
+          last_error: string | null
+          provider_message_id: string | null
+          recipient_email: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          achievement_id: string
+          artist_id: string
+          attempt_count?: number
+          created_at?: string
+          last_error?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          achievement_id?: string
+          artist_id?: string
+          attempt_count?: number
+          created_at?: string
+          last_error?: string | null
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_email_deliveries_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: true
+            referencedRelation: "stream_achievements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_email_deliveries_artist_id_fkey"
+            columns: ["artist_id"]
+            isOneToOne: false
+            referencedRelation: "artists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activity_logs: {
         Row: {
           activity_type: string
@@ -118,6 +172,104 @@ export type Database = {
           },
         ]
       }
+      ai_support_articles: {
+        Row: {
+          body: string
+          category: string
+          created_at: string
+          id: string
+          published: boolean
+          slug: string
+          source_url: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          category?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug: string
+          source_url?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          category?: string
+          created_at?: string
+          id?: string
+          published?: boolean
+          slug?: string
+          source_url?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      ai_support_conversations: {
+        Row: {
+          created_at: string
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_support_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_support_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_support_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       artist_accounts: {
         Row: {
           artist_email: string | null
@@ -127,6 +279,7 @@ export type Database = {
           genre: string | null
           id: string
           owner_id: string
+          signing_status: string
           updated_at: string
         }
         Insert: {
@@ -137,6 +290,7 @@ export type Database = {
           genre?: string | null
           id?: string
           owner_id: string
+          signing_status?: string
           updated_at?: string
         }
         Update: {
@@ -147,6 +301,7 @@ export type Database = {
           genre?: string | null
           id?: string
           owner_id?: string
+          signing_status?: string
           updated_at?: string
         }
         Relationships: []
@@ -343,6 +498,7 @@ export type Database = {
       artists: {
         Row: {
           account_name: string | null
+          account_type: string
           available_balance: number | null
           ban_reason: string | null
           created_at: string | null
@@ -358,6 +514,7 @@ export type Database = {
         }
         Insert: {
           account_name?: string | null
+          account_type?: string
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
@@ -373,6 +530,7 @@ export type Database = {
         }
         Update: {
           account_name?: string | null
+          account_type?: string
           available_balance?: number | null
           ban_reason?: string | null
           created_at?: string | null
@@ -561,6 +719,7 @@ export type Database = {
       collective_applications: {
         Row: {
           admin_notes: string | null
+          applicant_message: string | null
           city: string | null
           contribution: string
           country: string
@@ -584,6 +743,7 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          applicant_message?: string | null
           city?: string | null
           contribution: string
           country: string
@@ -607,6 +767,7 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
+          applicant_message?: string | null
           city?: string | null
           contribution?: string
           country?: string
@@ -2257,6 +2418,158 @@ export type Database = {
         }
         Relationships: []
       }
+      release_metadata_completion_requests: {
+        Row: {
+          account_owner_id: string | null
+          admin_notes: string | null
+          artist_account_id: string | null
+          artist_name: string
+          artwork_credits: string | null
+          completed_release_id: string | null
+          copyright_info: string | null
+          cover_art_url: string | null
+          created_at: string
+          description: string | null
+          explicit_content: boolean | null
+          genre: string | null
+          id: string
+          metadata_answers: Json
+          missing_fields: string[]
+          primary_language: string | null
+          producer_credits: string | null
+          release_date: string | null
+          release_title: string
+          release_type: string
+          required_tracks: Json
+          songwriter_credits: string | null
+          status: string
+          submitted_at: string | null
+          territory: string | null
+          upc: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_owner_id?: string | null
+          admin_notes?: string | null
+          artist_account_id?: string | null
+          artist_name: string
+          artwork_credits?: string | null
+          completed_release_id?: string | null
+          copyright_info?: string | null
+          cover_art_url?: string | null
+          created_at?: string
+          description?: string | null
+          explicit_content?: boolean | null
+          genre?: string | null
+          id?: string
+          metadata_answers?: Json
+          missing_fields?: string[]
+          primary_language?: string | null
+          producer_credits?: string | null
+          release_date?: string | null
+          release_title: string
+          release_type?: string
+          required_tracks?: Json
+          songwriter_credits?: string | null
+          status?: string
+          submitted_at?: string | null
+          territory?: string | null
+          upc?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_owner_id?: string | null
+          admin_notes?: string | null
+          artist_account_id?: string | null
+          artist_name?: string
+          artwork_credits?: string | null
+          completed_release_id?: string | null
+          copyright_info?: string | null
+          cover_art_url?: string | null
+          created_at?: string
+          description?: string | null
+          explicit_content?: boolean | null
+          genre?: string | null
+          id?: string
+          metadata_answers?: Json
+          missing_fields?: string[]
+          primary_language?: string | null
+          producer_credits?: string | null
+          release_date?: string | null
+          release_title?: string
+          release_type?: string
+          required_tracks?: Json
+          songwriter_credits?: string | null
+          status?: string
+          submitted_at?: string | null
+          territory?: string | null
+          upc?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_metadata_completion_requests_artist_account_id_fkey"
+            columns: ["artist_account_id"]
+            isOneToOne: false
+            referencedRelation: "artist_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "release_metadata_completion_requests_completed_release_id_fkey"
+            columns: ["completed_release_id"]
+            isOneToOne: false
+            referencedRelation: "releases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      release_metadata_notification_delivery: {
+        Row: {
+          channel: string
+          created_at: string
+          error_message: string | null
+          id: string
+          provider_message_id: string | null
+          recipient_email: string | null
+          request_id: string
+          sent_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          request_id: string
+          sent_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          provider_message_id?: string | null
+          recipient_email?: string | null
+          request_id?: string
+          sent_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "release_metadata_notification_delivery_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "release_metadata_completion_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       release_store_selections: {
         Row: {
           created_at: string
@@ -2304,9 +2617,9 @@ export type Database = {
           duration: number | null
           explicit_content: boolean | null
           featured_artists: string[] | null
-          performers: string[]
           id: string
           isrc: string | null
+          performers: string[]
           release_id: string
           title: string
           track_number: number
@@ -2316,9 +2629,9 @@ export type Database = {
           duration?: number | null
           explicit_content?: boolean | null
           featured_artists?: string[] | null
-          performers?: string[]
           id?: string
           isrc?: string | null
+          performers?: string[]
           release_id: string
           title: string
           track_number: number
@@ -2330,6 +2643,7 @@ export type Database = {
           featured_artists?: string[] | null
           id?: string
           isrc?: string | null
+          performers?: string[]
           release_id?: string
           title?: string
           track_number?: number
@@ -2347,14 +2661,14 @@ export type Database = {
       releases: {
         Row: {
           admin_notes: string | null
-          artist_id: string
           artist_account_id: string | null
+          artist_id: string
           artist_name: string | null
           artwork_credits: string | null
           audio_file_url: string | null
           copyright_info: string | null
-          cover_art_url: string | null
           cover_art_update_count: number
+          cover_art_url: string | null
           created_at: string
           description: string | null
           explicit_content: boolean | null
@@ -2383,14 +2697,14 @@ export type Database = {
         }
         Insert: {
           admin_notes?: string | null
+          artist_account_id?: string | null
           artist_id: string
-          artist_account_id: string | null
           artist_name?: string | null
           artwork_credits?: string | null
           audio_file_url?: string | null
           copyright_info?: string | null
-          cover_art_url?: string | null
           cover_art_update_count?: number
+          cover_art_url?: string | null
           created_at?: string
           description?: string | null
           explicit_content?: boolean | null
@@ -2419,14 +2733,14 @@ export type Database = {
         }
         Update: {
           admin_notes?: string | null
-          artist_id?: string
           artist_account_id?: string | null
+          artist_id?: string
           artist_name?: string | null
           artwork_credits?: string | null
           audio_file_url?: string | null
           copyright_info?: string | null
-          cover_art_url?: string | null
           cover_art_update_count?: number
+          cover_art_url?: string | null
           created_at?: string
           description?: string | null
           explicit_content?: boolean | null
@@ -2454,6 +2768,13 @@ export type Database = {
           wizard_step?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "releases_artist_account_id_fkey"
+            columns: ["artist_account_id"]
+            isOneToOne: false
+            referencedRelation: "artist_accounts"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "releases_artist_id_fkey"
             columns: ["artist_id"]
@@ -2946,6 +3267,7 @@ export type Database = {
           notified_at: string | null
           release_id: string | null
           streams_at_award: number
+          track_title: string | null
         }
         Insert: {
           artist_id: string
@@ -2956,6 +3278,7 @@ export type Database = {
           notified_at?: string | null
           release_id?: string | null
           streams_at_award?: number
+          track_title?: string | null
         }
         Update: {
           artist_id?: string
@@ -2966,6 +3289,7 @@ export type Database = {
           notified_at?: string | null
           release_id?: string | null
           streams_at_award?: number
+          track_title?: string | null
         }
         Relationships: [
           {
@@ -3503,8 +3827,31 @@ export type Database = {
         }
         Returns: string
       }
+      process_manual_payment_renewal: {
+        Args: {
+          p_admin_user_id: string
+          p_amount_received_ngn: number
+          p_duration_days: number
+          p_email: string
+          p_payment_method: string
+          p_plan_id: string
+          p_receipt_reference: string
+          p_subscription_fee_ngn: number
+          p_user_id: string
+        }
+        Returns: Json
+      }
       process_royalty_upload: { Args: { p_upload_id: string }; Returns: Json }
       rebuild_all_stream_stats: { Args: never; Returns: Json }
+      settle_credit_balance_payment: {
+        Args: {
+          p_payment_id: string
+          p_payment_method: string
+          p_raw_response: Json
+          p_transaction_id: string
+        }
+        Returns: number
+      }
       submit_release_from_draft: {
         Args: {
           p_audio_clips?: Json
@@ -3515,6 +3862,10 @@ export type Database = {
           p_tracks?: Json
         }
         Returns: Json
+      }
+      submit_release_metadata_completion_request: {
+        Args: { p_metadata: Json; p_request_id: string }
+        Returns: undefined
       }
       update_my_collective_profile: {
         Args: {
@@ -3529,6 +3880,13 @@ export type Database = {
           p_visibility?: string
         }
         Returns: Json
+      }
+      update_release_cover_art: {
+        Args: { p_new_cover_art_url: string; p_release_id: string }
+        Returns: {
+          new_cover_art_update_count: number
+          previous_cover_art_url: string
+        }[]
       }
       user_has_active_subscription: {
         Args: { user_id?: string }
