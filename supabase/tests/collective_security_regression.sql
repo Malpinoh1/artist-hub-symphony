@@ -63,6 +63,16 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
+    SELECT 1 FROM storage.buckets
+    WHERE id = 'collective-avatars'
+      AND public = true
+      AND file_size_limit = 5242880
+      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+  ) THEN
+    RAISE EXCEPTION 'Collective avatar bucket must be public and constrained by type and size';
+  END IF;
+
+  IF NOT EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'collective_submissions'
