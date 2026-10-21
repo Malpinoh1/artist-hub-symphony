@@ -50,8 +50,9 @@ BEGIN
       AND tablename = 'collective_submissions'
       AND policyname = 'Members create own submissions'
       AND with_check ILIKE '%deadline%'
+      AND with_check ILIKE '%evidence_path%'
   ) THEN
-    RAISE EXCEPTION 'New submissions must be rejected for expired opportunities';
+    RAISE EXCEPTION 'New submissions must enforce deadlines and evidence ownership';
   END IF;
 
   IF NOT EXISTS (
