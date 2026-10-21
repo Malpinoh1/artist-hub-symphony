@@ -234,21 +234,24 @@ Deno.serve(async (req) => {
         // Unique (event_key, user_id) records make repeated broadcasts safe to
         // retry. Sent deliveries are skipped; failed or stale in-flight rows can
         // be retried without resending successful deliveries.
-        const { error: queueError } = await admin
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
-          .from("collective_notification_deliveries" as any)
-          .upsert(
-            emailTargets.map((target) => ({
-              event_key: eventKey,
-              user_id: target.user_id,
-              member_id: target.member_id,
-              recipient: target.recipient,
-              event_type: eventType,
-              status: "pending",
-            })),
-            { onConflict: "event_key,user_id", ignoreDuplicates: true },
-          );
-        if (queueError) return json({ error: "Could not queue email deliveries" }, 500);
+        const emailTargetIds = new Set(emailTargets.map((target) => target.user_id));
+        if (emailTargets.length > 0) {
+          const { error: queueError } = await admin
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+            .from("collective_notification_deliveries" as any)
+            .upsert(
+              emailTargets.map((target) => ({
+                event_key: eventKey,
+                user_id: target.user_id,
+                member_id: target.member_id,
+                recipient: target.recipient,
+                event_type: eventType,
+                status: "pending",
+              })),
+              { onConflict: "event_key,user_id", ignoreDuplicates: true },
+            );
+          if (queueError) return json({ error: "Could not queue email deliveries" }, 500);
+        }
 
         const { data: deliveries, error: deliveryError } = await admin
           // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
@@ -262,11 +265,12 @@ Deno.serve(async (req) => {
           event_type: string; status: string; attempts: number; updated_at: string;
         }>) {
           if (delivery.status === "sent") continue;
+          if (!emailTargetIds.has(delivery.user_id)) continue;
 
           let claimableStatus = delivery.status;
           if (delivery.status === "sending") {
             const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
-            if (delivery.updated_at > staleBefore) continue;
+            if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) continue;
             const { data: reset } = await admin
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
               .from("collective_notification_deliveries" as any)
