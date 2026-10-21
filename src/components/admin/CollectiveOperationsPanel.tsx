@@ -1,5 +1,5 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
-import { AlertCircle, BellRing, BriefcaseBusiness, Check, Loader2, Megaphone, RefreshCw, Send, X } from 'lucide-react';
+import { AlertCircle, BriefcaseBusiness, Check, Loader2, Megaphone, RefreshCw, Send, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -127,7 +127,7 @@ const CollectiveOperationsPanel = () => {
       if (notifyError || (data as any)?.error) {
         toast.error('Opportunity published, but member notifications could not be sent. Retry notification delivery after checking the function.');
       } else {
-        toast.success(`Opportunity published; ${(data as any)?.notified ?? 0} member notifications queued.`);
+        toast.success(`Opportunity published; ${(data as any)?.notified ?? 0} member notifications created.`);
       }
     } else {
       toast.success(status === 'closed' ? 'Opportunity closed.' : status === 'draft' ? 'Opportunity returned to draft.' : 'Opportunity updated.');
