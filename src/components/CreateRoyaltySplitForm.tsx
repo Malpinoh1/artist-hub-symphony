@@ -140,6 +140,7 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
       const releaseTitle = releases.find(r => r.id === selectedRelease)?.title || 'Unknown';
       const trackTitle = tracks.find(t => t.id === selectedTrack)?.title || 'Unknown';
 
+      const failedEmailInvites: string[] = [];
       for (const c of recipients) {
         const email = c.email.toLowerCase().trim();
         const { data: existingArtist } = await supabase.from('artists').select('id').eq('email', email).maybeSingle();
@@ -150,7 +151,7 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
         if (rErr) throw rErr;
 
         try {
-          await supabase.functions.invoke('send-email', {
+          const { error: emailError } = await supabase.functions.invoke('send-email', {
             body: {
               to: email,
               subject: "You've been invited to a royalty split",
@@ -172,10 +173,21 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
                 </div></div>`,
             },
           });
-        } catch (e) { console.warn('Email failed for', email); }
+          if (emailError) {
+            failedEmailInvites.push(email);
+            console.warn('Email failed for', email, emailError);
+          }
+        } catch (e) {
+          failedEmailInvites.push(email);
+          console.warn('Email failed for', email, e);
+        }
       }
 
-      toast.success('Split created and invitations sent');
+      if (failedEmailInvites.length > 0) {
+        toast.warning(`Split saved, but invitation email failed for: ${failedEmailInvites.join(', ')}. Please retry sending those invitations.`);
+      } else {
+        toast.success('Split created and invitations sent');
+      }
       setRecipients([]); setOwnerPct('100'); setSelectedTrack('');
       onSuccess?.();
     } catch (err: any) {
