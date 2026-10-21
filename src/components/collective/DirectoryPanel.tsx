@@ -31,6 +31,7 @@ const DirectoryPanel = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [areaFilter, setAreaFilter] = useState('');
+  const [roleOptions, setRoleOptions] = useState<Array<{ slug: string; label: string }>>([]);
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -65,6 +66,21 @@ const DirectoryPanel = () => {
     setOffset(0);
   }, [load, query]);
 
+  useEffect(() => {
+    let active = true;
+    const loadRoles = async () => {
+      const { data, error } = await supabase
+        .from('collective_roles')
+        .select('slug, label')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (!active || error) return;
+      setRoleOptions((data as Array<{ slug: string; label: string }>) ?? []);
+    };
+    void loadRoles();
+    return () => { active = false; };
+  }, []);
+
   return (
     <div className="space-y-4">
       <form
@@ -88,7 +104,10 @@ const DirectoryPanel = () => {
           Search
         </Button>
         <div className="grid gap-2 sm:grid-cols-3">
-          <Input value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} placeholder="Role slug (e.g. producer)" aria-label="Filter by role" />
+          <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm">
+            <option value="">All professional roles</option>
+            {roleOptions.map((role) => <option key={role.slug} value={role.slug}>{role.label}</option>)}
+          </select>
           <Input value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} placeholder="Country" aria-label="Filter by country" />
           <Input value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} placeholder="Collaboration area" aria-label="Filter by collaboration area" />
         </div>
