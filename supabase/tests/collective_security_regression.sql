@@ -43,5 +43,24 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'New submissions must be rejected for expired opportunities';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM storage.buckets
+    WHERE id = 'collective-evidence'
+      AND public = false
+      AND file_size_limit = 10485760
+      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
+  ) THEN
+    RAISE EXCEPTION 'Collective evidence bucket must be private and constrained by type and size';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'collective_submissions'
+      AND column_name = 'evidence_path'
+  ) THEN
+    RAISE EXCEPTION 'Contribution submissions must persist private evidence paths';
+  END IF;
 END
 $test$;
