@@ -78,5 +78,29 @@ BEGIN
      OR has_table_privilege('authenticated', 'public.collective_notification_deliveries', 'SELECT') THEN
     RAISE EXCEPTION 'Collective email delivery state must not be readable by client roles';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'collective_audit_logs'
+      AND c.relkind = 'r'
+      AND c.relrowsecurity
+  ) THEN
+    RAISE EXCEPTION 'Collective audit logs must use RLS';
+  END IF;
+
+  IF has_table_privilege('anon', 'public.collective_audit_logs', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.collective_audit_logs', 'SELECT') THEN
+    RAISE EXCEPTION 'Collective audit logs must only be read through the admin-checked RPC';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.get_collective_audit_logs(integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous role must not read Collective audit history';
+  END IF;
+
+  IF NOT has_function_privilege('authenticated', 'public.get_collective_audit_logs(integer)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked audit RPC';
+  END IF;
 END
 $test$;
