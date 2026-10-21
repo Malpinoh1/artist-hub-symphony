@@ -108,8 +108,9 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_announcement_notification_once')
-     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_opportunity_notification_once') THEN
-    RAISE EXCEPTION 'Collective broadcast notifications must have database-level deduplication';
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_opportunity_notification_once')
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_contribution_notification_once') THEN
+    RAISE EXCEPTION 'Collective broadcast and contribution notifications must have database-level deduplication';
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_apps_active_email')
