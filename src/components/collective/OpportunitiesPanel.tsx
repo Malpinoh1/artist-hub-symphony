@@ -27,6 +27,7 @@ interface Submission {
   link: string | null;
   status: string;
   reviewer_notes: string | null;
+  evidence_path?: string | null;
   created_at: string;
 }
 
@@ -57,6 +58,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const [openId, setOpenId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [link, setLink] = useState('');
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -87,6 +89,11 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
 
   const submit = async (opportunityId: string) => {
     if (text.trim().length < 20) return toast.error('Please describe your contribution (at least 20 characters).');
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (evidenceFile && (!allowedTypes.includes(evidenceFile.type) || evidenceFile.size > 10 * 1024 * 1024)) {
+      return toast.error('Evidence must be a JPG, PNG, WebP or PDF file no larger than 10 MB.');
+    }
+
     setSending(true);
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
@@ -94,28 +101,64 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
       toast.error('Please sign in again before submitting.');
       return;
     }
+
     const existing = subs.find((s) => s.opportunity_id === opportunityId);
+    let uploadedPath: string | null = null;
+    if (evidenceFile) {
+      const extensionByType: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'application/pdf': 'pdf',
+      };
+      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extensionByType[evidenceFile.type]}`;
+      const { error: uploadError } = await supabase.storage
+        .from('collective-evidence')
+        .upload(objectPath, evidenceFile, { contentType: evidenceFile.type, upsert: false });
+      if (uploadError) {
+        setSending(false);
+        toast.error("We couldn't upload your evidence. Check the file type and size, then try again.");
+        return;
+      }
+      uploadedPath = objectPath;
+    }
+
     const payload = {
       opportunity_id: opportunityId,
       member_id: memberId,
       user_id: auth.user.id,
       submission_text: text.trim(),
       link: link.trim() || null,
+      evidence_path: uploadedPath ?? existing?.evidence_path ?? null,
       status: 'submitted',
     };
     const { error } = existing
       ? await supabase
           .from('collective_submissions')
-          .update({ submission_text: payload.submission_text, link: payload.link, status: 'submitted' })
+          .update({
+            submission_text: payload.submission_text,
+            link: payload.link,
+            evidence_path: payload.evidence_path,
+            status: 'submitted',
+          })
           .eq('id', existing.id)
       : await supabase.from('collective_submissions').insert(payload);
+    if (error) {
+      if (uploadedPath) await supabase.storage.from('collective-evidence').remove([uploadedPath]);
+      setSending(false);
+      toast.error("We couldn't send your contribution. Please try again.");
+      return;
+    }
+    if (uploadedPath && existing?.evidence_path) {
+      await supabase.storage.from('collective-evidence').remove([existing.evidence_path]);
+    }
     setSending(false);
-    if (error) return toast.error("We couldn't send your contribution. Please try again.");
     toast.success('Contribution sent for review');
     setOpenId(null);
     setText('');
     setLink('');
-    load();
+    setEvidenceFile(null);
+    await load();
   };
 
   if (loading) {
@@ -241,6 +284,18 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor={`evidence-${o.id}`}>Evidence attachment (optional)</Label>
+                          <Input
+                            id={`evidence-${o.id}`}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
+                          />
+                          <p className="mt-1 text-xs text-muted-foreground">Private upload · JPG, PNG, WebP or PDF · maximum 10 MB</p>
+                          {evidenceFile && <p className="mt-1 break-all text-xs">{evidenceFile.name}</p>}
+                          {!evidenceFile && mySub?.evidence_path && <p className="mt-1 text-xs text-muted-foreground">Evidence already attached to this submission.</p>}
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={() => submit(o.id)} disabled={sending}>
