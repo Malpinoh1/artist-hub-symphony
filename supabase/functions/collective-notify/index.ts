@@ -90,12 +90,13 @@ Deno.serve(async (req) => {
 
       // Compare-and-set the previous status to avoid two concurrent reviewers
       // both generating notifications for competing decisions.
+      const reviewTimestamp = new Date().toISOString();
       const { data: updated, error: updErr } = await admin
         .from("collective_submissions")
         .update({
           status,
           reviewer_notes: notes,
-          reviewed_at: new Date().toISOString(),
+          reviewed_at: reviewTimestamp,
           reviewed_by: actor.id,
         })
         .eq("id", submissionId)
@@ -104,6 +105,19 @@ Deno.serve(async (req) => {
         .maybeSingle();
       if (updErr) return json({ error: "Could not update submission status" }, 400);
       if (!updated) return json({ error: "Submission status changed while you were reviewing it. Refresh and try again." }, 409);
+
+      // Record the reviewer and status transition without copying private submission text.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+      const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
+        event_key: `submission:${submissionId}:${reviewTimestamp}`,
+        actor_id: actor.id,
+        action: "submission_review",
+        target_table: "collective_submissions",
+        target_id: submissionId,
+        old_state: { status: sub.status },
+        new_state: { status, reviewed_at: reviewTimestamp },
+      }, { onConflict: "event_key", ignoreDuplicates: true });
+      if (auditError) console.error("Collective submission audit write failed", auditError);
 
       const [{ data: member }, { data: opp }] = await Promise.all([
         admin.from("collective_members").select("id, display_name, user_id").eq("id", sub.member_id).maybeSingle(),
@@ -314,6 +328,17 @@ Deno.serve(async (req) => {
           else emailFailed += 1;
         }
       }
+
+      // Record the broadcast action separately from the per-recipient delivery ledger.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+      const { error: broadcastAuditError } = await admin.from("collective_audit_logs" as any).insert({
+        actor_id: actor.id,
+        action: "broadcast",
+        target_table: kind === "announcement" ? "collective_announcements" : "collective_opportunities",
+        target_id: id,
+        new_state: { kind, notified: pendingRecipients.length, emailed, email_failed: emailFailed },
+      });
+      if (broadcastAuditError) console.error("Collective broadcast audit write failed", broadcastAuditError);
 
       return json({
         ok: true,
