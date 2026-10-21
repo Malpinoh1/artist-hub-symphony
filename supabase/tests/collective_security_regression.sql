@@ -144,5 +144,28 @@ BEGIN
   IF NOT has_function_privilege('authenticated', 'public.manage_collective_member(uuid,text,text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked member management RPC';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'collective_opportunity_applications'
+      AND c.relkind = 'r'
+      AND c.relrowsecurity
+  ) THEN
+    RAISE EXCEPTION 'Opportunity applications must use RLS';
+  END IF;
+
+  IF has_function_privilege('anon', 'public.review_collective_opportunity_application(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous role must not review opportunity applications';
+  END IF;
+
+  IF NOT has_function_privilege('authenticated', 'public.review_collective_opportunity_application(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Admin UI must retain access to the admin-checked opportunity review RPC';
+  END IF;
+
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_opportunity_application_notification_once') THEN
+    RAISE EXCEPTION 'Opportunity application notifications must be deduplicated';
+  END IF;
 END
 $test$;
