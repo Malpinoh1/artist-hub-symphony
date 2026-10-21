@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS public.collective_notification_deliveries (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   member_id uuid REFERENCES public.collective_members(id) ON DELETE SET NULL,
   recipient text NOT NULL,
-  event_type text NOT NULL CHECK (event_type IN ('announcement', 'opportunity_new')),
+  event_type text NOT NULL CHECK (event_type IN ('announcement', 'opportunity_new', 'contribution_accepted', 'contribution_declined', 'contribution_needs_changes')),
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sending', 'sent', 'failed')),
   attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   last_error text,
@@ -25,6 +25,12 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_announcement_notification_once
 CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_opportunity_notification_once
   ON public.notifications (user_id, (metadata ->> 'opportunity_id'))
   WHERE type = 'collective_opportunity' AND metadata ? 'opportunity_id';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_contribution_notification_once
+  ON public.notifications (user_id, (metadata ->> 'submission_id'), (metadata ->> 'reviewed_at'))
+  WHERE type = 'collective_contribution'
+    AND metadata ? 'submission_id'
+    AND metadata ? 'reviewed_at';
 
 CREATE INDEX IF NOT EXISTS idx_collective_notification_deliveries_status
   ON public.collective_notification_deliveries (status, updated_at);
