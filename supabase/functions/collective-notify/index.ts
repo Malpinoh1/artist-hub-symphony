@@ -221,6 +221,7 @@ Deno.serve(async (req) => {
         // retry. Sent deliveries are skipped; failed or stale in-flight rows can
         // be retried without resending successful deliveries.
         const { error: queueError } = await admin
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
           .from("collective_notification_deliveries" as any)
           .upsert(
             emailTargets.map((target) => ({
@@ -236,6 +237,7 @@ Deno.serve(async (req) => {
         if (queueError) return json({ error: "Could not queue email deliveries" }, 500);
 
         const { data: deliveries, error: deliveryError } = await admin
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
           .from("collective_notification_deliveries" as any)
           .select("id, user_id, member_id, recipient, event_type, status, attempts, updated_at")
           .eq("event_key", eventKey);
@@ -252,7 +254,8 @@ Deno.serve(async (req) => {
             const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
             if (delivery.updated_at > staleBefore) continue;
             const { data: reset } = await admin
-              .from("collective_notification_deliveries" as any)
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+          .from("collective_notification_deliveries" as any)
               .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
               .eq("id", delivery.id)
               .eq("status", "sending")
@@ -265,7 +268,8 @@ Deno.serve(async (req) => {
           if (!["pending", "failed"].includes(claimableStatus)) continue;
 
           const { data: claimed, error: claimError } = await admin
-            .from("collective_notification_deliveries" as any)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+          .from("collective_notification_deliveries" as any)
             .update({
               status: "sending",
               attempts: delivery.attempts + 1,
@@ -295,7 +299,8 @@ Deno.serve(async (req) => {
 
           const now = new Date().toISOString();
           const { error: finishError } = await admin
-            .from("collective_notification_deliveries" as any)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+          .from("collective_notification_deliveries" as any)
             .update({
               status: sent ? "sent" : "failed",
               last_error: sent ? null : "Email provider did not confirm delivery",
