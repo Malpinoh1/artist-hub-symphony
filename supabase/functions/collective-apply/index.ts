@@ -122,7 +122,14 @@ Deno.serve(async (req) => {
       })
       .select("id, full_name, email")
       .single();
-    if (insErr) throw insErr;
+    if (insErr) {
+      // The unique partial index is the final guard against concurrent duplicate
+      // submissions. Convert its conflict into a stable client-facing response.
+      if (insErr.code === "23505" && (insErr.message ?? "").includes("idx_collective_apps_active_email")) {
+        return json({ error: "An application for this email is already in progress.", code: "duplicate_application" }, 409);
+      }
+      throw insErr;
+    }
 
     // ---- Referral attribution (server-side only, idempotent) ----
     if (referral_code) {
