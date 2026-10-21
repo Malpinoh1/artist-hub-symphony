@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,7 +132,7 @@ Deno.serve(async (req) => {
         const email = authUser?.user?.email;
         if (email) {
           await sendCollectiveEmail(admin, {
-            event: event as any,
+            event: event as CollectiveEmailEvent,
             name: member?.display_name ?? "there",
             note: notes ?? undefined,
             title: opp?.title ?? undefined,
