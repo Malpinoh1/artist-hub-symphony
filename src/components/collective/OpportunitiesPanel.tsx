@@ -89,6 +89,14 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
 
   const submit = async (opportunityId: string) => {
     if (text.trim().length < 20) return toast.error('Please describe your contribution (at least 20 characters).');
+    if (link.trim()) {
+      try {
+        const submittedUrl = new URL(link.trim());
+        if (!['http:', 'https:'].includes(submittedUrl.protocol)) throw new Error('Unsupported protocol');
+      } catch {
+        return toast.error('Enter a valid link beginning with https:// or http://.');
+      }
+    }
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
     if (evidenceFile && (!allowedTypes.includes(evidenceFile.type) || evidenceFile.size > 10 * 1024 * 1024)) {
       return toast.error('Evidence must be a JPG, PNG, WebP or PDF file no larger than 10 MB.');
