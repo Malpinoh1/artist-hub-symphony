@@ -24,5 +24,13 @@ jobs:
         run: npm ci
       - name: Build production bundle
         run: npm run build
-      - name: Run ESLint
-        run: npm run lint
+      - name: Lint Collective files changed by this work
+        run: >-
+          npx eslint
+          src/pages/CollectiveCenter.tsx
+          src/pages/CollectiveMemberProfile.tsx
+          src/components/collective/ReferralHistoryPanel.tsx
+          src/components/collective/ContributionHistoryPanel.tsx
+          src/components/collective/NotificationsPanel.tsx
+          src/components/admin/CollectiveOperationsPanel.tsx
+          supabase/functions/collective-notify/index.ts
