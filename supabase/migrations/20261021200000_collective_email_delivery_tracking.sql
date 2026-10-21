@@ -17,6 +17,15 @@ CREATE TABLE IF NOT EXISTS public.collective_notification_deliveries (
   CONSTRAINT collective_notification_deliveries_event_user_key UNIQUE (event_key, user_id)
 );
 
+-- Database uniqueness closes the race between concurrent broadcast retries.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_announcement_notification_once
+  ON public.notifications (user_id, (metadata ->> 'announcement_id'))
+  WHERE type = 'collective_announcement' AND metadata ? 'announcement_id';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_opportunity_notification_once
+  ON public.notifications (user_id, (metadata ->> 'opportunity_id'))
+  WHERE type = 'collective_opportunity' AND metadata ? 'opportunity_id';
+
 CREATE INDEX IF NOT EXISTS idx_collective_notification_deliveries_status
   ON public.collective_notification_deliveries (status, updated_at);
 
