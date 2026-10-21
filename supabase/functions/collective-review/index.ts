@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +52,37 @@ Deno.serve(async (req) => {
     if (appErr) throw appErr;
     if (!app) return json({ error: "Application not found" }, 404);
 
-    let member: any = null;
+    let member: { id: string; handle: string; user_id: string; display_name: string; status: string } | null = null;
+
+    // A repeated decision is idempotent. Final decisions cannot be silently
+    // flipped through this endpoint; rejected applicants may reapply.
+    if (app.status === status) {
+      if (note !== app.applicant_message && !["approved", "rejected"].includes(status)) {
+        const { error: noteError } = await admin
+          .from("collective_applications")
+          .update({
+            applicant_message: note ?? app.applicant_message,
+            reviewed_at: new Date().toISOString(),
+            reviewed_by: reviewer.id,
+          })
+          .eq("id", app.id)
+          .eq("status", app.status);
+        if (noteError) throw noteError;
+      }
+      if (status === "approved") {
+        const { data: existingMember } = await admin
+          .from("collective_members")
+          .select("id, handle, user_id, display_name, status")
+          .eq("application_id", app.id)
+          .maybeSingle();
+        member = existingMember;
+      }
+      return json({ success: true, status, handle: member?.handle ?? null, already_processed: true });
+    }
+
+    if (["approved", "rejected"].includes(app.status)) {
+      return json({ error: "This application already has a final decision. Ask an administrator to use the approved correction process if needed." }, 409);
+    }
 
     if (status === "approved") {
       // Resolve the applicant's platform account
@@ -94,12 +124,22 @@ Deno.serve(async (req) => {
           })
           .select("*")
           .single();
-        if (mErr) throw mErr;
-        member = created;
+        if (mErr) {
+          // A concurrent approval may have created the unique member row.
+          const { data: concurrentMember } = await admin
+            .from("collective_members")
+            .select("id, handle, user_id, display_name, status")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!concurrentMember) throw mErr;
+          member = concurrentMember;
+        } else {
+          member = created;
+        }
       }
     }
 
-    const { error: updErr } = await admin
+    const { data: updatedApp, error: updErr } = await admin
       .from("collective_applications")
       .update({
         status,
@@ -107,8 +147,14 @@ Deno.serve(async (req) => {
         reviewed_at: new Date().toISOString(),
         reviewed_by: reviewer.id,
       })
-      .eq("id", app.id);
+      .eq("id", app.id)
+      .eq("status", app.status)
+      .select("id")
+      .maybeSingle();
     if (updErr) throw updErr;
+    if (!updatedApp) {
+      return json({ error: "The application status changed during review. Refresh and try again." }, 409);
+    }
 
     // Applicant notification
     const eventMap: Record<string, string> = {
@@ -118,7 +164,7 @@ Deno.serve(async (req) => {
     };
     if (eventMap[status]) {
       await sendCollectiveEmail(admin, {
-        event: eventMap[status] as any,
+        event: eventMap[status] as CollectiveEmailEvent,
         to: app.email,
         name: app.full_name,
         note: note ?? undefined,
