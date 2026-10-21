@@ -68,7 +68,7 @@ BEGIN
     WHERE id = 'collective-evidence'
       AND public = false
       AND file_size_limit = 10485760
-      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
+      AND allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
   ) THEN
     RAISE EXCEPTION 'Collective evidence bucket must be private and constrained by type and size';
   END IF;
@@ -78,7 +78,7 @@ BEGIN
     WHERE id = 'collective-avatars'
       AND public = true
       AND file_size_limit = 5242880
-      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+      AND allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
   ) THEN
     RAISE EXCEPTION 'Collective avatar bucket must be public and constrained by type and size';
   END IF;
