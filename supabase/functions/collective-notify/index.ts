@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
+import { sendCollectiveEmail, sendTrackedCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -263,6 +263,29 @@ Deno.serve(async (req) => {
       }
 
       return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+    }
+
+    // ---------- Retryable application receipt email ----------
+    if (action === "email_application_received") {
+      const applicationId: string = body?.application_id;
+      if (!applicationId) return json({ error: "Application ID is required" }, 400);
+
+      const { data: application, error: applicationError } = await admin
+        .from("collective_applications")
+        .select("id, user_id, full_name, email")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationError || !application) return json({ error: "Application not found" }, 404);
+
+      const emailStatus = await sendTrackedCollectiveEmail(admin, {
+        event: "application_received",
+        to: application.email,
+        name: application.full_name,
+        applicationId: application.id,
+        userId: application.user_id,
+        eventKey: `application:${application.id}:received`,
+      });
+      return json({ ok: true, email_status: emailStatus });
     }
 
     // ---------- Retryable email for an opportunity application decision ----------
