@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import Seo from "@/components/seo/Seo";
 
 interface CollectivePublicProfile {
   handle: string;
@@ -69,8 +70,23 @@ const CollectiveMemberProfile = () => {
     .map(([label, value]) => ({ label, url: safeExternalUrl(value) }))
     .filter((item): item is { label: string; url: string } => Boolean(item.url));
 
+  const publicProfile = Boolean(profile && !restricted);
+  const pageTitle = publicProfile
+    ? `${profile!.display_name} (@${profile!.handle}) | MDISTRO Collective`
+    : "Collective Member Profile | MALPINOHdistro";
+  const pageDescription = publicProfile
+    ? (profile!.bio?.trim().slice(0, 155) || `Discover ${profile!.display_name}'s professional profile on MDISTRO Collective.`)
+    : "A professional member profile on MDISTRO Collective.";
+
   return (
     <>
+      <Seo
+        title={pageTitle}
+        description={pageDescription}
+        path={`/collective/member/${encodeURIComponent(handle)}`}
+        image={safeExternalUrl(profile?.avatar_url) ?? undefined}
+        noindex={!publicProfile}
+      />
       <Navbar />
       <main className="min-h-[65vh] px-4 py-10 sm:py-16">
         <div className="mx-auto max-w-3xl">
