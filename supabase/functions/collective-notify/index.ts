@@ -206,27 +206,117 @@ Deno.serve(async (req) => {
       }
 
       let emailed = 0;
+      let emailFailed = 0;
       if (withEmail) {
-        // Only newly notified members receive this broadcast email, preventing
-        // a repeated publish/retry from sending duplicate emails. Delivery retry
-        // tracking is handled separately from this in-app notification dedupe.
-        for (const m of pendingRecipients) {
-          const { data: authUser } = await admin.auth.admin.getUserById(m.user_id);
-          const email = authUser?.user?.email;
-          if (!email) continue;
-          const ok = await sendCollectiveEmail(admin, {
-            event: kind === "announcement" ? "announcement" : "opportunity_new",
-            name: m.display_name ?? "there",
-            title,
-            note: summary,
-            to: email,
-            memberId: m.id,
-          });
-          if (ok) emailed += 1;
+        const eventKey = `${kind}:${id}`;
+        const eventType = kind === "announcement" ? "announcement" : "opportunity_new";
+        const emailTargets: Array<{ user_id: string; member_id: string; recipient: string }> = [];
+        for (const member of recipients) {
+          const { data: authUser } = await admin.auth.admin.getUserById(member.user_id);
+          const recipient = authUser?.user?.email?.trim();
+          if (recipient) emailTargets.push({ user_id: member.user_id, member_id: member.id, recipient });
+        }
+
+        // Unique (event_key, user_id) records make repeated broadcasts safe to
+        // retry. Sent deliveries are skipped; failed or stale in-flight rows can
+        // be retried without resending successful deliveries.
+        const { error: queueError } = await admin
+          .from("collective_notification_deliveries" as any)
+          .upsert(
+            emailTargets.map((target) => ({
+              event_key: eventKey,
+              user_id: target.user_id,
+              member_id: target.member_id,
+              recipient: target.recipient,
+              event_type: eventType,
+              status: "pending",
+            })),
+            { onConflict: "event_key,user_id", ignoreDuplicates: true },
+          );
+        if (queueError) return json({ error: "Could not queue email deliveries" }, 500);
+
+        const { data: deliveries, error: deliveryError } = await admin
+          .from("collective_notification_deliveries" as any)
+          .select("id, user_id, member_id, recipient, event_type, status, attempts, updated_at")
+          .eq("event_key", eventKey);
+        if (deliveryError) return json({ error: "Could not load email delivery state" }, 500);
+
+        for (const delivery of (deliveries ?? []) as Array<{
+          id: string; user_id: string; member_id: string | null; recipient: string;
+          event_type: string; status: string; attempts: number; updated_at: string;
+        }>) {
+          if (delivery.status === "sent") continue;
+
+          let claimableStatus = delivery.status;
+          if (delivery.status === "sending") {
+            const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+            if (delivery.updated_at > staleBefore) continue;
+            const { data: reset } = await admin
+              .from("collective_notification_deliveries" as any)
+              .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+              .eq("id", delivery.id)
+              .eq("status", "sending")
+              .lt("updated_at", staleBefore)
+              .select("id")
+              .maybeSingle();
+            if (!reset) continue;
+            claimableStatus = "failed";
+          }
+          if (!["pending", "failed"].includes(claimableStatus)) continue;
+
+          const { data: claimed, error: claimError } = await admin
+            .from("collective_notification_deliveries" as any)
+            .update({
+              status: "sending",
+              attempts: delivery.attempts + 1,
+              updated_at: new Date().toISOString(),
+              last_error: null,
+            })
+            .eq("id", delivery.id)
+            .eq("status", claimableStatus)
+            .select("id, user_id, member_id, recipient, event_type")
+            .maybeSingle();
+          if (claimError || !claimed) continue;
+
+          const member = recipients.find((candidate) => candidate.user_id === claimed.user_id);
+          let sent = false;
+          try {
+            sent = await sendCollectiveEmail(admin, {
+              event: claimed.event_type as CollectiveEmailEvent,
+              name: member?.display_name ?? "there",
+              title,
+              note: summary,
+              to: claimed.recipient,
+              memberId: claimed.member_id ?? undefined,
+            });
+          } catch (emailError) {
+            console.error("Collective broadcast email failed", emailError);
+          }
+
+          const now = new Date().toISOString();
+          const { error: finishError } = await admin
+            .from("collective_notification_deliveries" as any)
+            .update({
+              status: sent ? "sent" : "failed",
+              last_error: sent ? null : "Email provider did not confirm delivery",
+              sent_at: sent ? now : null,
+              updated_at: now,
+            })
+            .eq("id", claimed.id)
+            .eq("status", "sending");
+
+          if (sent && !finishError) emailed += 1;
+          else emailFailed += 1;
         }
       }
 
-      return json({ ok: true, notified: pendingRecipients.length, already_notified: alreadyNotified.size, emailed });
+      return json({
+        ok: true,
+        notified: pendingRecipients.length,
+        already_notified: alreadyNotified.size,
+        emailed,
+        email_failed: emailFailed,
+      });
     }
 
     return json({ error: "Unknown action" }, 400);
