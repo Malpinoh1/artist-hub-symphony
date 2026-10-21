@@ -8,6 +8,7 @@ import { Mail, Send, Loader2 } from 'lucide-react';
 
 // TEMPORARY ADMIN-ONLY TOOL: remove after the DANCE - REMIX royalty notices are sent.
 const RELEASE = 'DANCE - REMIX';
+const SHEGLASS_ACCEPT_URL = 'https://www.malpinohdistro.com.ng/accept-split?token=89f4d518-4206-4d67-acd4-35ce9c375816';
 const notices = [
   {
     key: 'sheglass',
@@ -15,7 +16,7 @@ const notices = [
     email: 'sheglassmusic@gmail.com',
     share: '40%',
     subject: 'Action required: Accept your 40% royalty share — DANCE - REMIX',
-    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:640px;margin:auto;color:#222"><h2>MALPINOHdistro — Royalty Split Invitation</h2><p>Hello SHEGLASS,</p><p>You have been assigned a <strong>40% royalty share</strong> for <strong>DANCE - REMIX</strong> by MOSKY BABY.</p><p>Please sign in to your MALPINOHdistro account and review the royalty split invitation in your royalty splits area. Your share remains pending until you accept it in the platform.</p><p>Track: DANCE - REMIX<br>Artist: MOSKY BABY feat. SHEGLASS<br>ISRC: QZNJY2619073</p><p>If you cannot see the invitation or do not have access to the correct account, reply to this email for assistance.</p><p>— MALPINOHdistro</p></div>`,
+    html: `<div style="font-family:Arial,sans-serif;line-height:1.6;max-width:640px;margin:auto;color:#222"><h2>MALPINOHdistro — Royalty Split Invitation</h2><p>Hello SHEGLASS,</p><p>You have been assigned a <strong>40% royalty share</strong> for <strong>DANCE - REMIX</strong> by MOSKY BABY.</p><p>Your share is pending until you accept. You can accept securely by opening the invitation below, signing in to the account associated with <strong>sheglassmusic@gmail.com</strong>, and confirming the split.</p><p>Track: DANCE - REMIX<br>Artist: MOSKY BABY feat. SHEGLASS<br>ISRC: QZNJY2619073</p><p style="text-align:center;margin:28px 0"><a href="${SHEGLASS_ACCEPT_URL}" style="background:#4f46e5;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:600;display:inline-block">Review &amp; Accept 40% Split</a></p><p>You can also sign in to MALPINOHdistro and open <strong>Royalty Splits</strong> to review the pending invitation. If you are asked to sign in, return to this invitation link after signing in.</p><p>— MALPINOHdistro</p></div>`,
   },
   {
     key: 'finance',
@@ -59,7 +60,7 @@ const TemporaryRoyaltyNoticeTab: React.FC = () => {
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2"><Mail className="h-5 w-5" />Temporary Royalty Acceptance Notices</CardTitle>
-          <CardDescription>One-off admin tool for the DANCE - REMIX split. Sends the prepared messages below; it does not change any acceptance status.</CardDescription>
+          <CardDescription>One-off admin tool for the DANCE - REMIX split. The SHEGLASS email includes a direct acceptance link; acceptance status changes only when SHEGLASS completes the acceptance flow.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="rounded-md border p-3 text-sm">
@@ -87,7 +88,7 @@ const TemporaryRoyaltyNoticeTab: React.FC = () => {
             {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
             Send all unsent notices
           </Button>
-          <p className="text-xs text-muted-foreground">“Accepted by email service” means the email provider accepted the request; it does not guarantee inbox delivery. SHEGLASS must still accept the split in the platform.</p>
+          <p className="text-xs text-muted-foreground">“Accepted by email service” means the email provider accepted the request; it does not guarantee inbox delivery. SHEGLASS must still accept the split on the invitation page or from the Royalty Splits area in their account.</p>
         </CardContent>
       </Card>
     </div>
