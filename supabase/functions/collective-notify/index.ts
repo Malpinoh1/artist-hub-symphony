@@ -272,7 +272,7 @@ Deno.serve(async (req) => {
 
       const { data: application, error: applicationError } = await admin
         .from("collective_opportunity_applications")
-        .select("id, user_id, member_id, opportunity_id, status, reviewed_at, reviewer_notes")
+        .select("id, user_id, member_id, opportunity_id, status, reviewed_at, reviewer_notes, created_at")
         .eq("id", applicationId)
         .maybeSingle();
       if (applicationError || !application) return json({ error: "Opportunity application not found" }, 404);
