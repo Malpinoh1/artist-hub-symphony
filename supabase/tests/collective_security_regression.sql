@@ -45,6 +45,14 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conrelid = 'public.collective_submissions'::regclass
+      AND conname = 'collective_submissions_link_http_check'
+  ) THEN
+    RAISE EXCEPTION 'Contribution links must be restricted to HTTP(S)';
+  END IF;
+
+  IF NOT EXISTS (
     SELECT 1 FROM storage.buckets
     WHERE id = 'collective-evidence'
       AND public = false
