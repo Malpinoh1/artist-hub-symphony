@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated Supabase client types. */
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
-import { AlertCircle, BellRing, BriefcaseBusiness, Check, Loader2, Megaphone, RefreshCw, Send, X } from 'lucide-react';
+import { AlertCircle, BellRing, BriefcaseBusiness, Check, Loader2, History, Megaphone, RefreshCw, Send, Users, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
