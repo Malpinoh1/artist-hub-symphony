@@ -40,10 +40,14 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
   const fetchReleases = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
+    // Include releases distributed under the selected label/team account as well as
+    // releases owned directly by the selected artist account. Label-distributed
+    // catalogue entries often keep the original artist_id and store the label in
+    // artist_account_id, so filtering only by artist_id hides those tracks.
     const { data } = await supabase
       .from('releases')
-      .select('id, title, artist_name')
-      .eq('artist_id', accountId)
+      .select('id, title, artist_name, artist_id, artist_account_id')
+      .or(`artist_id.eq.${accountId},artist_account_id.eq.${accountId}`)
       .order('release_date', { ascending: false });
     setReleases(data || []);
     setLoading(false);
