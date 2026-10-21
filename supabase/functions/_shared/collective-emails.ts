@@ -267,3 +267,106 @@ export async function sendCollectiveEmail(
   });
   return status === "sent";
 }
+
+
+export type TrackedEmailStatus = "sent" | "failed" | "in_progress" | "queue_failed" | "no_email";
+
+/**
+ * Idempotent, retryable delivery wrapper for core Collective email events.
+ * The event key must represent one business decision/publication version.
+ */
+export async function sendTrackedCollectiveEmail(
+  admin: any,
+  args: BuildArgs & {
+    to: string;
+    applicationId?: string | null;
+    memberId?: string | null;
+    userId: string;
+    eventKey: string;
+  },
+): Promise<TrackedEmailStatus> {
+  const recipient = args.to.trim();
+  if (!recipient) return "no_email";
+  const { userId, eventKey, ...emailArgs } = args;
+
+  const { error: queueError } = await admin
+    .from("collective_notification_deliveries")
+    .upsert({
+      event_key: eventKey,
+      user_id: userId,
+      member_id: args.memberId ?? null,
+      recipient,
+      event_type: args.event,
+      status: "pending",
+    }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+  if (queueError) {
+    console.error("Collective email queue failed", queueError);
+    return "queue_failed";
+  }
+
+  const { data: delivery, error: deliveryError } = await admin
+    .from("collective_notification_deliveries")
+    .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+    .eq("event_key", eventKey)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (deliveryError || !delivery) return "queue_failed";
+  if (delivery.status === "sent") return "sent";
+
+  let claimableStatus = delivery.status;
+  if (delivery.status === "sending") {
+    const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) return "in_progress";
+    const { data: reset } = await admin
+      .from("collective_notification_deliveries")
+      .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+      .eq("id", delivery.id)
+      .eq("status", "sending")
+      .lt("updated_at", staleBefore)
+      .select("id")
+      .maybeSingle();
+    if (!reset) return "in_progress";
+    claimableStatus = "failed";
+  }
+  if (!["pending", "failed"].includes(claimableStatus)) return "in_progress";
+
+  const { data: claimed } = await admin
+    .from("collective_notification_deliveries")
+    .update({
+      status: "sending",
+      attempts: delivery.attempts + 1,
+      updated_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq("id", delivery.id)
+    .eq("status", claimableStatus)
+    .select("id, recipient, event_type, member_id")
+    .maybeSingle();
+  if (!claimed) return "in_progress";
+
+  let sent = false;
+  try {
+    sent = await sendCollectiveEmail(admin, {
+      ...emailArgs,
+      event: claimed.event_type as CollectiveEmailEvent,
+      to: claimed.recipient,
+      memberId: claimed.member_id ?? undefined,
+    });
+  } catch (error) {
+    console.error("Collective tracked email failed", error);
+  }
+
+  const now = new Date().toISOString();
+  const { error: finishError } = await admin
+    .from("collective_notification_deliveries")
+    .update({
+      status: sent ? "sent" : "failed",
+      last_error: sent ? null : "Email provider did not confirm delivery",
+      sent_at: sent ? now : null,
+      updated_at: now,
+    })
+    .eq("id", claimed.id)
+    .eq("status", "sending");
+
+  return sent && !finishError ? "sent" : "failed";
+}
