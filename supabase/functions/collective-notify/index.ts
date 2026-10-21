@@ -54,29 +54,12 @@ Deno.serve(async (req) => {
 
       const { data: sub, error: subErr } = await admin
         .from("collective_submissions")
-        .select("id, user_id, member_id, opportunity_id, status, reviewer_notes")
+        .select("id, user_id, member_id, opportunity_id, status, reviewer_notes, reviewed_at, created_at")
         .eq("id", submissionId)
         .maybeSingle();
       if (subErr || !sub) return json({ error: "Submission not found" }, 404);
 
-      // Make repeated review requests safe. A duplicate click or client retry
-      // must not send another notification/email for the same status decision.
-      if (sub.status === status) {
-        if ((sub.reviewer_notes ?? null) !== notes) {
-          const { error: noteErr } = await admin
-            .from("collective_submissions")
-            .update({
-              reviewer_notes: notes,
-              reviewed_at: new Date().toISOString(),
-              reviewed_by: actor.id,
-            })
-            .eq("id", submissionId)
-            .eq("status", sub.status);
-          if (noteErr) return json({ error: "Could not update reviewer note" }, 400);
-        }
-        return json({ ok: true, already_processed: true });
-      }
-
+      const alreadyProcessed = sub.status === status;
       const allowedTransitions: Record<string, string[]> = {
         submitted: ["under_review", "accepted", "declined", "needs_changes"],
         under_review: ["accepted", "declined", "needs_changes"],
@@ -84,79 +67,202 @@ Deno.serve(async (req) => {
         accepted: [],
         declined: [],
       };
-      if (!(allowedTransitions[sub.status] ?? []).includes(status)) {
+      if (!alreadyProcessed && !(allowedTransitions[sub.status] ?? []).includes(status)) {
         return json({ error: "This submission has already been reviewed or its status changed. Refresh and try again." }, 409);
       }
 
-      // Compare-and-set the previous status to avoid two concurrent reviewers
-      // both generating notifications for competing decisions.
-      const reviewTimestamp = new Date().toISOString();
-      const { data: updated, error: updErr } = await admin
-        .from("collective_submissions")
-        .update({
-          status,
-          reviewer_notes: notes,
-          reviewed_at: reviewTimestamp,
-          reviewed_by: actor.id,
-        })
-        .eq("id", submissionId)
-        .eq("status", sub.status)
-        .select("id")
-        .maybeSingle();
-      if (updErr) return json({ error: "Could not update submission status" }, 400);
-      if (!updated) return json({ error: "Submission status changed while you were reviewing it. Refresh and try again." }, 409);
+      const reviewTimestamp = alreadyProcessed
+        ? (sub.reviewed_at ?? new Date().toISOString())
+        : new Date().toISOString();
 
-      // Record the reviewer and status transition without copying private submission text.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
-      const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
-        event_key: `submission:${submissionId}:${reviewTimestamp}`,
-        actor_id: actor.id,
-        action: "submission_review",
-        target_table: "collective_submissions",
-        target_id: submissionId,
-        old_state: { status: sub.status },
-        new_state: { status, reviewed_at: reviewTimestamp },
-      }, { onConflict: "event_key", ignoreDuplicates: true });
-      if (auditError) console.error("Collective submission audit write failed", auditError);
+      if (!alreadyProcessed) {
+        // Compare-and-set the previous status to avoid two concurrent reviewers
+        // both generating notifications for competing decisions.
+        const { data: updated, error: updErr } = await admin
+          .from("collective_submissions")
+          .update({
+            status,
+            reviewer_notes: notes,
+            reviewed_at: reviewTimestamp,
+            reviewed_by: actor.id,
+            updated_at: reviewTimestamp,
+          })
+          .eq("id", submissionId)
+          .eq("status", sub.status)
+          .select("id")
+          .maybeSingle();
+        if (updErr) return json({ error: "Could not update submission status" }, 400);
+        if (!updated) return json({ error: "Submission status changed while you were reviewing it. Refresh and try again." }, 409);
+
+        // Record the reviewer and status transition without copying private submission text.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+        const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
+          event_key: `submission:${submissionId}:${reviewTimestamp}`,
+          actor_id: actor.id,
+          action: "submission_review",
+          target_table: "collective_submissions",
+          target_id: submissionId,
+          old_state: { status: sub.status },
+          new_state: { status, reviewed_at: reviewTimestamp },
+        }, { onConflict: "event_key", ignoreDuplicates: true });
+        if (auditError) console.error("Collective submission audit write failed", auditError);
+      } else if (sub.reviewed_at == null || (sub.reviewer_notes ?? null) !== notes) {
+        const { error: noteErr } = await admin
+          .from("collective_submissions")
+          .update({
+            reviewer_notes: notes,
+            reviewed_at: reviewTimestamp,
+            reviewed_by: actor.id,
+            updated_at: reviewTimestamp,
+          })
+          .eq("id", submissionId)
+          .eq("status", sub.status);
+        if (noteErr) return json({ error: "Could not update reviewer note" }, 400);
+      }
 
       const [{ data: member }, { data: opp }] = await Promise.all([
         admin.from("collective_members").select("id, display_name, user_id").eq("id", sub.member_id).maybeSingle(),
         admin.from("collective_opportunities").select("title").eq("id", sub.opportunity_id).maybeSingle(),
       ]);
 
-      await admin.from("notifications").insert({
-        user_id: sub.user_id,
-        type: "collective_contribution",
-        title:
-          status === "accepted"
-            ? "Contribution accepted"
-            : status === "declined"
-              ? "Contribution not accepted"
-              : status === "needs_changes"
-                ? "Contribution needs changes"
-                : "Contribution under review",
-        message: `${opp?.title ?? "Your contribution"}${notes ? ` — ${notes}` : ""}`,
-        link: "/collective/center",
-        metadata: { submission_id: submissionId, status },
-      });
+      const notificationMetadata = { submission_id: submissionId, status, reviewed_at: reviewTimestamp };
+      const { data: existingNotification, error: notificationLookupError } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", sub.user_id)
+        .eq("type", "collective_contribution")
+        .contains("metadata", { submission_id: submissionId, reviewed_at: reviewTimestamp })
+        .maybeSingle();
+      if (notificationLookupError) return json({ error: "Could not check contribution notifications" }, 500);
 
-      const event = EMAIL_FOR_STATUS[status];
-      if (event) {
-        const { data: authUser } = await admin.auth.admin.getUserById(sub.user_id);
-        const email = authUser?.user?.email;
-        if (email) {
-          await sendCollectiveEmail(admin, {
-            event: event as CollectiveEmailEvent,
-            name: member?.display_name ?? "there",
-            note: notes ?? undefined,
-            title: opp?.title ?? undefined,
-            to: email,
-            memberId: member?.id ?? null,
-          });
+      if (!existingNotification) {
+        const { error: notificationError } = await admin.from("notifications").insert({
+          user_id: sub.user_id,
+          type: "collective_contribution",
+          title:
+            status === "accepted"
+              ? "Contribution accepted"
+              : status === "declined"
+                ? "Contribution not accepted"
+                : status === "needs_changes"
+                  ? "Contribution needs changes"
+                  : "Contribution under review",
+          message: `${opp?.title ?? "Your contribution"}${notes ? ` — ${notes}` : ""}`,
+          link: "/collective/center",
+          metadata: notificationMetadata,
+        });
+        if (notificationError && notificationError.code !== "23505") {
+          return json({ error: "Review saved, but the member notification could not be created" }, 500);
         }
       }
 
-      return json({ ok: true });
+      let emailStatus = "not_required";
+      const event = EMAIL_FOR_STATUS[status];
+      if (event) {
+        const { data: authUser } = await admin.auth.admin.getUserById(sub.user_id);
+        const email = authUser?.user?.email?.trim();
+        if (!email) {
+          emailStatus = "no_email";
+        } else {
+          const eventKey = `submission:${submissionId}:${reviewTimestamp}`;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+          const { error: queueError } = await admin.from("collective_notification_deliveries" as any).upsert({
+            event_key: eventKey,
+            user_id: sub.user_id,
+            member_id: member?.id ?? null,
+            recipient: email,
+            event_type: event,
+            status: "pending",
+          }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+          if (queueError) {
+            console.error("Could not queue contribution review email", queueError);
+            emailStatus = "queue_failed";
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+            const { data: delivery, error: deliveryError } = await admin.from("collective_notification_deliveries" as any)
+              .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+              .eq("event_key", eventKey)
+              .eq("user_id", sub.user_id)
+              .maybeSingle();
+
+            if (deliveryError || !delivery) {
+              emailStatus = "queue_failed";
+            } else if (delivery.status === "sent") {
+              emailStatus = "sent";
+            } else {
+              let claimableStatus = delivery.status;
+              if (delivery.status === "sending") {
+                const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+                if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) {
+                  emailStatus = "in_progress";
+                  return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                const { data: reset } = await admin.from("collective_notification_deliveries" as any)
+                  .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+                  .eq("id", delivery.id)
+                  .eq("status", "sending")
+                  .lt("updated_at", staleBefore)
+                  .select("id")
+                  .maybeSingle();
+                if (!reset) {
+                  emailStatus = "in_progress";
+                  return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+                }
+                claimableStatus = "failed";
+              }
+
+              if (["pending", "failed"].includes(claimableStatus)) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                const { data: claimed } = await admin.from("collective_notification_deliveries" as any)
+                  .update({
+                    status: "sending",
+                    attempts: delivery.attempts + 1,
+                    updated_at: new Date().toISOString(),
+                    last_error: null,
+                  })
+                  .eq("id", delivery.id)
+                  .eq("status", claimableStatus)
+                  .select("id, recipient, event_type, member_id")
+                  .maybeSingle();
+
+                if (!claimed) {
+                  emailStatus = "in_progress";
+                } else {
+                  let sent = false;
+                  try {
+                    sent = await sendCollectiveEmail(admin, {
+                      event: claimed.event_type as CollectiveEmailEvent,
+                      name: member?.display_name ?? "there",
+                      note: notes ?? undefined,
+                      title: opp?.title ?? undefined,
+                      to: claimed.recipient,
+                      memberId: claimed.member_id ?? undefined,
+                    });
+                  } catch (emailError) {
+                    console.error("Collective contribution review email failed", emailError);
+                  }
+
+                  const now = new Date().toISOString();
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                  const { error: finishError } = await admin.from("collective_notification_deliveries" as any)
+                    .update({
+                      status: sent ? "sent" : "failed",
+                      last_error: sent ? null : "Email provider did not confirm delivery",
+                      sent_at: sent ? now : null,
+                      updated_at: now,
+                    })
+                    .eq("id", claimed.id)
+                    .eq("status", "sending");
+                  emailStatus = sent && !finishError ? "sent" : "failed";
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
     }
 
     // ---------- Broadcast a published announcement or opportunity ----------
