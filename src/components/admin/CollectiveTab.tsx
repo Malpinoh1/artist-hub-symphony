@@ -5,6 +5,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import CollectiveOperationsPanel from '@/components/admin/CollectiveOperationsPanel';
 
 interface Application {
   id: string;
@@ -297,6 +298,7 @@ const CollectiveTab = () => {
           })}
         </div>
       )}
+      <CollectiveOperationsPanel />
     </div>
   );
 };
