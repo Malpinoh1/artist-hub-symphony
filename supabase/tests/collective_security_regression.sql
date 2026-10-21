@@ -107,5 +107,13 @@ BEGIN
   IF NOT has_function_privilege('authenticated', 'public.get_collective_audit_logs(integer)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked audit RPC';
   END IF;
+
+  IF has_function_privilege('anon', 'public.manage_collective_member(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous role must not execute member status management';
+  END IF;
+
+  IF NOT has_function_privilege('authenticated', 'public.manage_collective_member(uuid,text,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked member management RPC';
+  END IF;
 END
 $test$;
