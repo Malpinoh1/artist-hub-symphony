@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAccount } from '@/contexts/AccountContext';
@@ -6,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Loader2, Plus, CheckCircle2, Clock, XCircle, GitBranch, Lock } from 'lucide-react';
+import { Loader2, Plus, CheckCircle2, Clock, XCircle, GitBranch, Lock, ArrowRight } from 'lucide-react';
 import CreateRoyaltySplitForm from '@/components/CreateRoyaltySplitForm';
 
 interface SplitRow {
@@ -15,7 +16,7 @@ interface SplitRow {
   track_id: string;
   release_id: string | null;
   owner_artist_id: string;
-  recipients: { id: string; email: string | null; artist_id: string | null; percentage: number; role: string; status: string }[];
+  recipients: { id: string; email: string | null; artist_id: string | null; percentage: number; role: string; status: string; invitation_token?: string | null }[];
   trackTitle?: string;
   releaseTitle?: string;
 }
@@ -30,6 +31,7 @@ const statusBadge = (s: string) => {
 const ArtistRoyaltySplits: React.FC = () => {
   const { user } = useAuth();
   const { currentAccountId } = useAccount();
+  const navigate = useNavigate();
   const accountId = currentAccountId || user?.id || null;
 
   const [splits, setSplits] = useState<SplitRow[]>([]);
@@ -40,18 +42,24 @@ const ArtistRoyaltySplits: React.FC = () => {
     if (!accountId) return;
     setLoading(true);
     try {
-      // Splits I own
+      // Include splits owned by this account and splits where this user is a recipient.
       const { data: owned } = await supabase
         .from('splits').select('*').eq('owner_artist_id', accountId)
         .order('created_at', { ascending: false });
 
-      // Splits I'm a recipient on
-      const { data: asRecipient } = await supabase
-        .from('split_recipients').select('split_id').eq('artist_id', accountId);
+      const recipientQueries = await Promise.all([
+        user?.id
+          ? supabase.from('split_recipients').select('split_id').eq('artist_id', user.id)
+          : Promise.resolve({ data: [] as { split_id: string }[] }),
+        accountId !== user?.id
+          ? supabase.from('split_recipients').select('split_id').eq('artist_id', accountId)
+          : Promise.resolve({ data: [] as { split_id: string }[] }),
+      ]);
+      const asRecipient = recipientQueries.flatMap(q => q.data || []);
 
       const allIds = new Set<string>([
         ...(owned || []).map((s: any) => s.id),
-        ...(asRecipient || []).map((r: any) => r.split_id),
+        ...asRecipient.map((r: any) => r.split_id),
       ]);
       if (allIds.size === 0) { setSplits([]); setLoading(false); return; }
 
@@ -79,7 +87,7 @@ const ArtistRoyaltySplits: React.FC = () => {
       }));
       setSplits(rows);
     } finally { setLoading(false); }
-  }, [accountId]);
+  }, [accountId, user?.id]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -93,7 +101,7 @@ const ArtistRoyaltySplits: React.FC = () => {
             <GitBranch className="h-5 w-5 sm:h-6 sm:w-6" />Royalty Splits
           </h1>
           <p className="text-xs sm:text-sm text-muted-foreground mt-1">
-            Splits become locked once the track earns money — set them up before earnings arrive.
+            Review your royalty allocations and accept any pending invitations here or from the email invitation.
           </p>
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
@@ -111,7 +119,7 @@ const ArtistRoyaltySplits: React.FC = () => {
         <Card>
           <CardContent className="py-12 text-center">
             <GitBranch className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-            <p className="text-muted-foreground text-sm">No splits yet. Create one to get started.</p>
+            <p className="text-muted-foreground text-sm">No splits yet. Pending invitations will appear here when linked to your account.</p>
           </CardContent>
         </Card>
       ) : (
@@ -127,16 +135,27 @@ const ArtistRoyaltySplits: React.FC = () => {
                   {statusBadge(s.status)}
                 </div>
                 <div className="space-y-2">
-                  {s.recipients.map(r => (
-                    <div key={r.id} className="flex items-center justify-between gap-2 text-sm py-1 border-b last:border-0">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs sm:text-sm">{r.email || r.artist_id?.slice(0, 8)}</p>
-                        <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                  {s.recipients.map(r => {
+                    const isCurrentRecipient = (!!user?.id && r.artist_id === user.id) ||
+                      (!!user?.email && r.email?.toLowerCase() === user.email.toLowerCase());
+                    return (
+                      <div key={r.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm py-2 border-b last:border-0">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-xs sm:text-sm">{r.email || r.artist_id?.slice(0, 8)}</p>
+                          <p className="text-[10px] text-muted-foreground capitalize">{r.role}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm">{r.percentage}%</span>
+                          {statusBadge(r.status)}
+                        </div>
+                        {r.status === 'pending' && isCurrentRecipient && r.invitation_token && (
+                          <Button className="min-h-[40px]" onClick={() => navigate(`/accept-split?token=${r.invitation_token}`)}>
+                            Review & Accept <ArrowRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        )}
                       </div>
-                      <span className="font-mono text-sm">{r.percentage}%</span>
-                      {statusBadge(r.status)}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
