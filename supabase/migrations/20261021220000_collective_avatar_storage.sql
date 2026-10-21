@@ -7,10 +7,21 @@ VALUES (
   5242880,
   ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
 )
-ON CONFLICT (id) DO UPDATE
-SET public = true,
-    file_size_limit = 5242880,
-    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp']::text[];
+ON CONFLICT (id) DO NOTHING;
+
+DO $bucket_check$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM storage.buckets
+    WHERE id = 'collective-avatars'
+      AND public = true
+      AND file_size_limit = 5242880
+      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+  ) THEN
+    RAISE EXCEPTION 'collective-avatars bucket already exists with unexpected privacy or upload settings; inspect it before continuing';
+  END IF;
+END
+$bucket_check$;
 
 DROP POLICY IF EXISTS "Collective members upload own avatar" ON storage.objects;
 CREATE POLICY "Collective members upload own avatar"
