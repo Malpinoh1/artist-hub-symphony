@@ -190,10 +190,11 @@ const CollectiveOperationsPanel = () => {
       const { data, error: notifyError } = await supabase.functions.invoke('collective-notify', {
         body: { action: 'broadcast', kind: 'announcement', id: item.id, email: false },
       });
-      if (notifyError || (data as any)?.error) {
+      const payload = data as { error?: string; notified?: number } | null;
+      if (notifyError || payload?.error) {
         toast.error('Announcement published, but member notifications could not be sent. Check the notification function before retrying.');
       } else {
-        toast.success(`Announcement published; ${(data as any)?.notified ?? 0} member notifications queued.`);
+        toast.success(`Announcement published; ${payload?.notified ?? 0} member notifications created.`);
       }
     } else {
       toast.success(status === 'draft' ? 'Announcement returned to draft.' : 'Announcement updated.');
