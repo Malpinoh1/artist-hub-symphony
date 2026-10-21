@@ -32,6 +32,7 @@ jobs:
           src/components/collective/ReferralHistoryPanel.tsx
           src/components/collective/ContributionHistoryPanel.tsx
           src/components/collective/NotificationsPanel.tsx
+          src/components/collective/ProfilePanel.tsx
           src/components/admin/CollectiveOperationsPanel.tsx
           src/components/admin/CollectiveTab.tsx
           supabase/functions/collective-apply/index.ts
