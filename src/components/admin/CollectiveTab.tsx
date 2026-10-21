@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Check, X, HelpCircle, Eye, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
@@ -60,6 +61,8 @@ const CollectiveTab = () => {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('pending');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [acting, setActing] = useState<string | null>(null);
@@ -111,6 +114,14 @@ const CollectiveTab = () => {
     }
   };
 
+  const visibleApps = apps.filter((app) => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || app.full_name.toLowerCase().includes(term) || app.email.toLowerCase().includes(term);
+    const matchesRole = roleFilter === 'all' || (app.roles ?? []).includes(roleFilter);
+    return matchesSearch && matchesRole;
+  });
+  const roleOptions = Array.from(new Set(apps.flatMap((app) => app.roles ?? []))).sort();
+
   const statCards = stats
     ? [
         { label: 'Pending', value: stats.pending },
@@ -161,15 +172,23 @@ const CollectiveTab = () => {
         ))}
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+        <Input placeholder="Search applicant name or email" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <select aria-label="Filter applications by role" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+          <option value="all">All roles in this view</option>
+          {roleOptions.map((role) => <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>)}
+        </select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>
-      ) : apps.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-16">No applications in this view.</p>
+      ) : visibleApps.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-16">No applications match these filters.</p>
       ) : (
         <div className="space-y-3">
-          {apps.map((app) => {
+          {visibleApps.map((app) => {
             const open = expanded === app.id;
             return (
               <div key={app.id} className="rounded-xl border border-border bg-card/60 p-4">
