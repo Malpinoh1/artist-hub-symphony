@@ -149,7 +149,8 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
         ) : (
           opps.map((o) => {
             const mySub = subs.find((s) => s.opportunity_id === o.id);
-            const closed = o.status === 'closed';
+            const expired = Boolean(o.deadline && new Date(o.deadline).getTime() <= Date.now());
+            const closed = o.status === 'closed' || expired;
             const canRevise = mySub?.status === 'submitted' || mySub?.status === 'needs_changes';
             const canSubmit = o.requires_submission && !closed && (!mySub || canRevise);
             return (
@@ -162,7 +163,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                   <div className="flex items-center gap-2">
                     {closed && (
                       <span className="px-2.5 py-1 rounded-full text-xs border border-border text-muted-foreground">
-                        Closed
+                        {expired && o.status !== 'closed' ? 'Expired' : 'Closed'}
                       </span>
                     )}
                     {o.deadline && (
