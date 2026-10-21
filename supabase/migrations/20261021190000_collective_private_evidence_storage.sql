@@ -102,10 +102,21 @@ VALUES (
   10485760,
   ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
 )
-ON CONFLICT (id) DO UPDATE
-SET public = false,
-    file_size_limit = 10485760,
-    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[];
+ON CONFLICT (id) DO NOTHING;
+
+DO $bucket_check$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM storage.buckets
+    WHERE id = 'collective-evidence'
+      AND public = false
+      AND file_size_limit = 10485760
+      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
+  ) THEN
+    RAISE EXCEPTION 'collective-evidence bucket already exists with unexpected privacy or upload settings; inspect it before continuing';
+  END IF;
+END
+$bucket_check$;
 
 DROP POLICY IF EXISTS "Collective members upload own evidence" ON storage.objects;
 CREATE POLICY "Collective members upload own evidence"
