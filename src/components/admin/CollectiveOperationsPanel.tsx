@@ -147,7 +147,9 @@ const CollectiveOperationsPanel = () => {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = editingOpportunityId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       ? await supabase.from('collective_opportunities' as any).update(opportunityData).eq('id', editingOpportunityId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       : await supabase.from('collective_opportunities' as any).insert({ ...opportunityData, status: 'draft', created_by: auth.user.id });
     setSaving(false);
     if (error) {
@@ -200,7 +202,9 @@ const CollectiveOperationsPanel = () => {
     };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = editingAnnouncementId
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       ? await supabase.from('collective_announcements' as any).update(announcementData).eq('id', editingAnnouncementId)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       : await supabase.from('collective_announcements' as any).insert({ ...announcementData, status: 'draft', created_by: auth.user.id });
     setSaving(false);
     if (error) {
