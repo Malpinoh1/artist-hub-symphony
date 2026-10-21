@@ -19,6 +19,7 @@ import DashboardStats from '@/components/admin/DashboardStats';
 import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
 import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
 import AdminDirectEmailTab from '@/components/admin/AdminDirectEmailTab';
+import TemporaryRoyaltyNoticeTab from '@/components/admin/TemporaryRoyaltyNoticeTab';
 import PlatformEarningsTab from '@/components/admin/PlatformEarningsTab';
 import RoyaltyStatementsTab from '@/components/admin/RoyaltyStatementsTab';
 import { SiteNoticesTab } from '@/components/admin/SiteNoticesTab';
@@ -224,6 +225,8 @@ const AdminDashboard = () => {
         return <MarketingEmailsTab />;
       case 'direct-email':
         return <AdminDirectEmailTab />;
+      case 'royalty-notices':
+        return <TemporaryRoyaltyNoticeTab />;
       case 'platform-earnings':
         return <PlatformEarningsTab onGenerateStatement={handleRefreshData} />;
       case 'royalty-statements':
@@ -265,6 +268,7 @@ const AdminDashboard = () => {
     { id: 'payments', label: 'Payments & Revenue' },
     { id: 'marketing', label: 'Marketing Emails' },
     { id: 'direct-email', label: 'Direct Email' },
+    { id: 'royalty-notices', label: 'TEMP: Royalty Notices' },
     { id: 'site-notices', label: 'Site Notices' },
     { id: 'support', label: 'Support Tickets' },
     { id: 'credit-balance', label: 'Credit Balance' },
