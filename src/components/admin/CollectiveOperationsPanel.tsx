@@ -21,6 +21,19 @@ interface Opportunity {
   status: string;
   created_at: string;
 }
+interface OpportunityApplication {
+  id: string;
+  opportunity_id: string;
+  user_id: string;
+  member_id: string;
+  message: string | null;
+  status: string;
+  reviewer_notes: string | null;
+  created_at: string;
+  reviewed_at: string | null;
+  opportunity?: { title?: string } | null;
+  member?: { display_name?: string } | null;
+}
 interface Submission {
   id: string;
   submission_text: string;
@@ -78,6 +91,7 @@ const safeSubmittedLink = (value: string) => {
 const CollectiveOperationsPanel = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [opportunityApplications, setOpportunityApplications] = useState<OpportunityApplication[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
@@ -101,7 +115,7 @@ const CollectiveOperationsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const [opps, subs, anns, audit, memberResult] = await Promise.all([
+    const [opps, subs, anns, audit, memberResult, applicationResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
@@ -113,8 +127,10 @@ const CollectiveOperationsPanel = () => {
       supabase.rpc('get_collective_audit_logs', { p_limit: 100 }),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_members' as any).select('id, handle, display_name, roles, status, country, member_since, visibility, discoverable').order('member_since', { ascending: false }).limit(200),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+      supabase.from('collective_opportunity_applications' as any).select('id, opportunity_id, user_id, member_id, message, status, reviewer_notes, created_at, reviewed_at, opportunity:collective_opportunities(title), member:collective_members(display_name)').order('created_at', { ascending: false }).limit(100),
     ]);
-    if (opps.error || subs.error || anns.error || audit.error || memberResult.error) {
+    if (opps.error || subs.error || anns.error || audit.error || memberResult.error || applicationResult.error) {
       setFailed(true);
       setLoading(false);
       return;
@@ -124,6 +140,7 @@ const CollectiveOperationsPanel = () => {
     setAnnouncements((anns.data as unknown as Announcement[]) ?? []);
     setAuditLogs((audit.data as unknown as AuditEntry[]) ?? []);
     setMembers((memberResult.data as unknown as Member[]) ?? []);
+    setOpportunityApplications((applicationResult.data as unknown as OpportunityApplication[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -304,6 +321,23 @@ const CollectiveOperationsPanel = () => {
     setEvidenceUrls((current) => ({ ...current, [path]: data.signedUrl }));
   };
 
+  const reviewOpportunityApplication = async (item: OpportunityApplication, status: 'under_review' | 'accepted' | 'declined') => {
+    setActingId(item.id + status);
+    const { data, error } = await supabase.rpc('review_collective_opportunity_application', {
+      p_application_id: item.id,
+      p_status: status,
+      p_reviewer_notes: notes[item.id] ?? item.reviewer_notes ?? null,
+    });
+    setActingId(null);
+    const payload = data as { ok?: boolean; error?: string; already_processed?: boolean } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? "We couldn't review this opportunity application.");
+      return;
+    }
+    toast.success(payload?.already_processed ? 'This application was already reviewed.' : 'Opportunity application review saved.');
+    await load();
+  };
+
   const reviewSubmission = async (item: Submission, status: 'under_review' | 'accepted' | 'declined' | 'needs_changes') => {
     setActingId(item.id + status);
     const { data, error } = await supabase.functions.invoke('collective-notify', {
@@ -349,6 +383,7 @@ const CollectiveOperationsPanel = () => {
           <TabsList className="min-w-max">
             <TabsTrigger value="members"><Users className="mr-2 h-4 w-4" />Members ({members.length})</TabsTrigger>
             <TabsTrigger value="opportunities"><BriefcaseBusiness className="mr-2 h-4 w-4" />Opportunities</TabsTrigger>
+            <TabsTrigger value="applications"><Check className="mr-2 h-4 w-4" />Opportunity applications ({opportunityApplications.length})</TabsTrigger>
             <TabsTrigger value="contributions"><Check className="mr-2 h-4 w-4" />Contributions ({submissions.length})</TabsTrigger>
             <TabsTrigger value="announcements"><Megaphone className="mr-2 h-4 w-4" />Announcements</TabsTrigger>
             <TabsTrigger value="audit"><AlertCircle className="mr-2 h-4 w-4" />Audit history</TabsTrigger>
@@ -405,6 +440,30 @@ const CollectiveOperationsPanel = () => {
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('opportunity', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status !== 'closed' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'closed')}><X className="mr-2 h-4 w-4" />Close</Button>}
                 {item.status !== 'draft' && <Button size="sm" variant="ghost" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'draft')}>Return to draft</Button>}
+              </div>
+            </article>
+          ))}
+        </TabsContent>
+        <TabsContent value="applications" className="space-y-3">
+          <div>
+            <h3 className="font-medium">Opportunity applications</h3>
+            <p className="text-sm text-muted-foreground">Review expressions of interest separately from contribution evidence. Decisions create a member notification and an audit entry.</p>
+          </div>
+          {opportunityApplications.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No opportunity applications have been submitted.</p> : opportunityApplications.map((item) => (
+            <article key={item.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-medium">{item.opportunity?.title ?? 'Opportunity'}</h3>
+                  <p className="text-xs text-muted-foreground">{item.member?.display_name ?? 'Member'} · submitted {new Date(item.created_at).toLocaleDateString()}</p>
+                </div>
+                <span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status.replace(/_/g, ' ')}</span>
+              </div>
+              {item.message && <p className="whitespace-pre-wrap text-sm">{item.message}</p>}
+              <Textarea rows={2} placeholder="Member-visible feedback (optional)" value={notes[item.id] ?? item.reviewer_notes ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'under_review')}>Under review</Button>
+                <Button size="sm" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'accepted')}><Check className="mr-2 h-4 w-4" />Accept</Button>
+                <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
               </div>
             </article>
           ))}
