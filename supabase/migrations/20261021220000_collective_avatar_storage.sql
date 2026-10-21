@@ -16,7 +16,7 @@ BEGIN
     WHERE id = 'collective-avatars'
       AND public = true
       AND file_size_limit = 5242880
-      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
+      AND allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp']::text[]
   ) THEN
     RAISE EXCEPTION 'collective-avatars bucket already exists with unexpected privacy or upload settings; inspect it before continuing';
   END IF;
