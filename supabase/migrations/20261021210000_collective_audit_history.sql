@@ -13,6 +13,10 @@ CREATE TABLE IF NOT EXISTS public.collective_audit_logs (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+ALTER TABLE public.collective_audit_logs ADD COLUMN IF NOT EXISTS event_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_collective_audit_logs_event_key
+  ON public.collective_audit_logs (event_key) WHERE event_key IS NOT NULL;
+
 CREATE INDEX IF NOT EXISTS idx_collective_audit_logs_created
   ON public.collective_audit_logs (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_collective_audit_logs_target
