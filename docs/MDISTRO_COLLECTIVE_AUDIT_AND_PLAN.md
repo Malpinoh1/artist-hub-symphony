@@ -68,7 +68,7 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 - Database changes are migrations, not ad hoc production edits.
 - The migration and test added with this audit hardening have not been applied to production or executed against a disposable test database.
 - The `collective-notify` source hardening has not been deployed.
-- No claim is made that all phases are complete. Remaining work is tracked by the implementation sequence above.
+- No claim is made that all phases are complete. Remaining work is listed below and tracked by the implementation sequence above.
 
 ## Implemented on the feature branch after the initial audit
 
@@ -81,14 +81,26 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 - Application review now guards against repeated decisions and concurrent status updates; duplicate application insert races return a conflict response.
 - Contribution-review updates use status compare-and-set. Announcement/opportunity broadcasts deduplicate in-app notifications and have a service-role-only delivery table for retryable email attempts.
 - The Member Center now includes contribution history, referral history and notifications. Public member pages include privacy-aware canonical and social metadata; the directory filters roles from the existing active role catalog.
-- The existing admin Collective area now includes opportunity and announcement create/edit/publish/close controls, contribution review, member suspension/reinstatement with a required reason, and restricted audit history.
-- Opportunity and announcement broadcast controls allow an administrator to opt into email delivery and retry failed deliveries.
+- The existing admin Collective area now includes application search/role filtering, opportunity-application review, opportunity/announcement create/edit/publish/close controls, contribution review, member suspension/reinstatement with a required reason, referral abuse flags, restricted audit history, and actual workflow analytics.
+- Opportunity and announcement broadcast controls allow an administrator to opt into email delivery and retry failed deliveries. Application receipt/decision emails, contribution review emails and opportunity-application review emails also use tracked, retryable delivery.
+- Email HTML templates now escape member-controlled names, titles, handles and reviewer notes.
 - A CI workflow builds the production bundle and lints the Collective files changed by this work. Full-repository lint currently has a large pre-existing error baseline, so CI is scoped to changed files to avoid unrelated refactoring.
 
 ## Verification status after these changes
 
-- Latest code verification passed at branch head `fc1000097ca28db070c36196790263402dc7e614`.
+- Latest code verification passed at branch head `161779568ddbd80b8245db62d51410ce342a7eb4`.
 - GitHub Actions passed the production build, scoped ESLint, and Deno type-checking for the Collective application, review, referral-claim and notification Edge Functions.
 - SQL regression assertions have been added but have not yet been executed against a disposable test database.
 - No production migration has been applied and no Edge Function has been deployed. The frontend, migrations and Edge Function source must be released together in the documented order.
 - Authenticated browser journeys, storage permissions, email failure/retry, member status transitions and audit RPC access still require end-to-end tests in a safe environment.
+
+
+## Explicit remaining gaps before claiming full programme completion
+
+- Member/profile/submission reporting and a dedicated moderation queue are not implemented yet. Referral records can be flagged, but that is not a complete abuse-report workflow.
+- Application review currently uses the applicant-facing message field; a separate internal-only review-note field and history still need to be confirmed against the current schema and completed if absent.
+- Opportunity records currently cover the existing schema and core workflow, but richer fields such as organisation, eligibility, compensation, location, application questions and attachment management are not all implemented.
+- Announcements have create/edit/publish controls, but audience targeting, expiry and per-member notification preferences need additional work.
+- Referral attribution corrections are deliberately not exposed until the product owner approves a deterministic correction policy.
+- Points, levels, leaderboards and rewards remain gated on an approved progression/reward policy; no points schedule or financial benefit has been invented.
+- SQL regression assertions have not been run against a disposable Supabase database. No migrations or Edge Functions have been deployed, and authenticated browser/storage/email journeys have not yet been tested end to end.
