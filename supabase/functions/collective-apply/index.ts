@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendTrackedCollectiveEmail } from "../_shared/collective-emails.ts";
 import { attributeReferral } from "../_shared/collective-referral.ts";
 
 const corsHeaders = {
@@ -142,14 +142,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    await sendCollectiveEmail(admin, {
+    const emailStatus = await sendTrackedCollectiveEmail(admin, {
       event: "application_received",
       to: app.email,
       name: app.full_name,
       applicationId: app.id,
+      userId,
+      eventKey: `application:${app.id}:received`,
     });
 
-    return json({ success: true, application_id: app.id, status: "pending" });
+    return json({ success: true, application_id: app.id, status: "pending", email_status: emailStatus });
   } catch (e) {
     console.error("collective-apply error", e);
     return json({ error: (e as Error)?.message ?? "Unexpected error" }, 500);
