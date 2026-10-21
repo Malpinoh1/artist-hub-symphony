@@ -34,3 +34,4 @@ jobs:
           src/components/collective/NotificationsPanel.tsx
           src/components/admin/CollectiveOperationsPanel.tsx
           supabase/functions/collective-notify/index.ts
+          supabase/functions/collective-review/index.ts
