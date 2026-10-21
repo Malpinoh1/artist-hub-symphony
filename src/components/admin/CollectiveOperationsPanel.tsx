@@ -310,12 +310,18 @@ const CollectiveOperationsPanel = () => {
       body: { action: 'review_submission', submission_id: item.id, status, reviewer_notes: notes[item.id] ?? item.reviewer_notes ?? null },
     });
     setActingId(null);
-    const payload = data as { error?: string; already_processed?: boolean } | null;
+    const payload = data as { error?: string; already_processed?: boolean; email_status?: string } | null;
     if (error || payload?.error) {
       toast.error(payload?.error ?? "We couldn't update the contribution. Refresh and try again.");
       return;
     }
-    toast.success(payload?.already_processed ? 'This review was already processed.' : 'Contribution review saved.');
+    if (payload?.email_status === 'failed' || payload?.email_status === 'queue_failed') {
+      toast.error('Review saved, but email delivery failed. Repeat the same review action to retry delivery.');
+    } else if (payload?.email_status === 'in_progress') {
+      toast.message('Review saved. Email delivery is already in progress.');
+    } else {
+      toast.success(payload?.already_processed ? 'Review already saved; notifications checked.' : 'Contribution review saved.');
+    }
     await load();
   };
 
