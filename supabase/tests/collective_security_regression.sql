@@ -24,5 +24,24 @@ BEGIN
   IF NOT has_function_privilege('authenticated', 'public.get_collective_admin_stats()', 'EXECUTE') THEN
     RAISE EXCEPTION 'Authenticated role must retain access to the admin stats RPC (function performs admin authorization)';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_trigger
+    WHERE tgname = 'protect_collective_submission_member_update'
+      AND tgrelid = 'public.collective_submissions'::regclass
+      AND NOT tgisinternal
+  ) THEN
+    RAISE EXCEPTION 'Member submission updates must protect reviewer-controlled fields';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'collective_submissions'
+      AND policyname = 'Members create own submissions'
+      AND with_check ILIKE '%deadline%'
+  ) THEN
+    RAISE EXCEPTION 'New submissions must be rejected for expired opportunities';
+  END IF;
 END
 $test$;
