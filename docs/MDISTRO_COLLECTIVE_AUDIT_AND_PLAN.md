@@ -80,15 +80,15 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 - Opportunity expressions of interest are stored separately from contribution evidence, with withdrawal/reapplication, deadline checks, an admin review RPC, in-app status notifications, and retryable email delivery.
 - Application review now guards against repeated decisions and concurrent status updates; duplicate application insert races return a conflict response.
 - Contribution-review updates use status compare-and-set. Announcement/opportunity broadcasts deduplicate in-app notifications and have a service-role-only delivery table for retryable email attempts.
-- The Member Center now includes contribution history, referral history and notifications. Public member pages include privacy-aware canonical and social metadata.
+- The Member Center now includes contribution history, referral history and notifications. Public member pages include privacy-aware canonical and social metadata; the directory filters roles from the existing active role catalog.
 - The existing admin Collective area now includes opportunity and announcement create/edit/publish/close controls, contribution review, member suspension/reinstatement with a required reason, and restricted audit history.
 - Opportunity and announcement broadcast controls allow an administrator to opt into email delivery and retry failed deliveries.
 - A CI workflow builds the production bundle and lints the Collective files changed by this work. Full-repository lint currently has a large pre-existing error baseline, so CI is scoped to changed files to avoid unrelated refactoring.
 
 ## Verification status after these changes
 
-- Latest confirmed branch head: `428d31e2883a5cf855d1188e2600de71e9c790d1`.
-- GitHub Actions passed at that head: production build, scoped ESLint, and Deno type-checking for the Collective application, review, referral-claim and notification Edge Functions.
+- Latest code verification passed at branch head `fc1000097ca28db070c36196790263402dc7e614`.
+- GitHub Actions passed the production build, scoped ESLint, and Deno type-checking for the Collective application, review, referral-claim and notification Edge Functions.
 - SQL regression assertions have been added but have not yet been executed against a disposable test database.
 - No production migration has been applied and no Edge Function has been deployed. The frontend, migrations and Edge Function source must be released together in the documented order.
 - Authenticated browser journeys, storage permissions, email failure/retry, member status transitions and audit RPC access still require end-to-end tests in a safe environment.
