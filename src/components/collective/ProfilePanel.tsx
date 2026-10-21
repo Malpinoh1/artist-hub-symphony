@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { AlertCircle, Loader2, Save, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { AlertCircle, Loader2, Save, Eye, EyeOff, RefreshCw, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -33,6 +33,8 @@ interface Props {
 const ProfilePanel = ({ onSaved }: Props) => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [savedAvatarUrl, setSavedAvatarUrl] = useState('');
   const [loadError, setLoadError] = useState(false);
   const [form, setForm] = useState({
     display_name: '',
@@ -83,6 +85,7 @@ const ProfilePanel = ({ onSaved }: Props) => {
         tiktok: links.tiktok ?? '',
         website: links.website ?? '',
       });
+      setSavedAvatarUrl(data.avatar_url ?? '');
       setAreas(data.contribution_areas ?? []);
       const savedVisibility = data.visibility;
       setVisibility(savedVisibility === 'public' || savedVisibility === 'private' ? savedVisibility : 'members');
@@ -94,6 +97,50 @@ const ProfilePanel = ({ onSaved }: Props) => {
   useEffect(() => {
     load();
   }, [load]);
+
+  const uploadAvatar = async (file: File) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+      toast.error('Choose a JPG, PNG or WebP image no larger than 5 MB.');
+      return;
+    }
+    setUploadingAvatar(true);
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) {
+      setUploadingAvatar(false);
+      toast.error('Your session expired. Sign in again before uploading.');
+      return;
+    }
+    const extensionByType: Record<string, string> = {
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/webp': 'webp',
+    };
+    const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extensionByType[file.type]}`;
+    const { error: uploadError } = await supabase.storage
+      .from('collective-avatars')
+      .upload(objectPath, file, { contentType: file.type, upsert: false });
+    if (uploadError) {
+      setUploadingAvatar(false);
+      toast.error("We couldn't upload your profile photo. Check the file type and size.");
+      return;
+    }
+    const { data: publicData } = supabase.storage.from('collective-avatars').getPublicUrl(objectPath);
+    setForm((current) => ({ ...current, avatar_url: publicData.publicUrl }));
+    setUploadingAvatar(false);
+    toast.success('Photo uploaded. Save your profile to apply it.');
+  };
+
+  const getManagedAvatarPath = (url: string) => {
+    const marker = '/storage/v1/object/public/collective-avatars/';
+    const markerIndex = url.indexOf(marker);
+    if (markerIndex < 0) return null;
+    try {
+      return decodeURIComponent(url.slice(markerIndex + marker.length).split('?')[0]);
+    } catch {
+      return null;
+    }
+  };
 
   const save = async () => {
     if (!form.display_name.trim()) {
@@ -119,6 +166,12 @@ const ProfilePanel = ({ onSaved }: Props) => {
     });
     setSaving(false);
     if (error) return toast.error("We couldn't update your profile. Please try again.");
+    const oldAvatarPath = getManagedAvatarPath(savedAvatarUrl);
+    const nextAvatarUrl = form.avatar_url.trim();
+    if (oldAvatarPath && savedAvatarUrl !== nextAvatarUrl) {
+      await supabase.storage.from('collective-avatars').remove([oldAvatarPath]);
+    }
+    setSavedAvatarUrl(nextAvatarUrl);
     toast.success('Profile updated');
     onSaved?.();
   };
@@ -157,14 +210,32 @@ const ProfilePanel = ({ onSaved }: Props) => {
               onChange={(e) => setForm({ ...form, display_name: e.target.value })}
             />
           </div>
-          <div>
-            <Label htmlFor="avatar_url">Photo URL</Label>
+          <div className="space-y-2">
+            <Label htmlFor="avatar_upload">Profile photo</Label>
+            {form.avatar_url && <img src={form.avatar_url} alt="Profile photo preview" className="h-16 w-16 rounded-full border border-border object-cover" />}
             <Input
-              id="avatar_url"
-              placeholder="https://..."
-              value={form.avatar_url}
-              onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+              id="avatar_upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={uploadingAvatar}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void uploadAvatar(file);
+                e.currentTarget.value = '';
+              }}
             />
+            <p className="text-xs text-muted-foreground">Public profile photo · JPG, PNG or WebP · maximum 5 MB</p>
+            <div>
+              <Label htmlFor="avatar_url" className="text-xs text-muted-foreground">Or use a photo URL</Label>
+              <Input
+                id="avatar_url"
+                placeholder="https://..."
+                value={form.avatar_url}
+                onChange={(e) => setForm({ ...form, avatar_url: e.target.value })}
+              />
+            </div>
+            {uploadingAvatar && <p className="text-xs text-muted-foreground">Uploading photo…</p>}
+            {form.avatar_url && <Button type="button" size="sm" variant="ghost" onClick={() => setForm({ ...form, avatar_url: '' })}>Remove photo</Button>}
           </div>
           <div>
             <Label htmlFor="country">Country</Label>
