@@ -66,6 +66,15 @@ interface AuditEntry {
   created_at: string;
 }
 
+const safeSubmittedLink = (value: string) => {
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) ? url.toString() : null;
+  } catch {
+    return null;
+  }
+};
+
 const CollectiveOperationsPanel = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -399,7 +408,7 @@ const CollectiveOperationsPanel = () => {
             <article key={item.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.opportunity?.title ?? 'Collective opportunity'}</h3><p className="text-xs text-muted-foreground">{item.member?.display_name ?? 'Member'} · {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status.replace(/_/g, ' ')}</span></div>
               <p className="whitespace-pre-wrap break-words text-sm">{item.submission_text}</p>
-              {item.link && <a href={item.link} target="_blank" rel="noreferrer noopener" className="block break-all text-sm text-primary underline">Open submitted link</a>}
+              {item.link && safeSubmittedLink(item.link) && <a href={safeSubmittedLink(item.link) ?? undefined} target="_blank" rel="noreferrer noopener" className="block break-all text-sm text-primary underline">Open submitted link</a>}
               {item.evidence_path && (
                 <div className="flex flex-wrap items-center gap-2">
                   {evidenceUrls[item.evidence_path]
