@@ -153,12 +153,22 @@ const ProfilePanel = ({ onSaved }: Props) => {
       const v = form[k].trim();
       if (v) social[k] = v;
     });
+    for (const [field, value] of Object.entries(social)) {
+      try {
+        const url = new URL(value);
+        if (!['http:', 'https:'].includes(url.protocol)) throw new Error('Unsupported protocol');
+      } catch {
+        setSaving(false);
+        toast.error(`Enter a valid HTTP(S) URL for ${field}.`);
+        return;
+      }
+    }
     const { error } = await supabase.rpc('update_my_collective_profile', {
       p_display_name: form.display_name.trim() || undefined,
       p_bio: form.bio,
-      p_country: form.country.trim() || undefined,
-      p_city: form.city.trim() || undefined,
-      p_avatar_url: form.avatar_url.trim() || undefined,
+      p_country: form.country.trim(),
+      p_city: form.city.trim(),
+      p_avatar_url: form.avatar_url.trim(),
       p_social_links: social,
       p_contribution_areas: areas,
       p_visibility: visibility,
