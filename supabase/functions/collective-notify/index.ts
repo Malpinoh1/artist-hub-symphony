@@ -54,12 +54,43 @@ Deno.serve(async (req) => {
 
       const { data: sub, error: subErr } = await admin
         .from("collective_submissions")
-        .select("id, user_id, member_id, opportunity_id")
+        .select("id, user_id, member_id, opportunity_id, status, reviewer_notes")
         .eq("id", submissionId)
         .maybeSingle();
       if (subErr || !sub) return json({ error: "Submission not found" }, 404);
 
-      const { error: updErr } = await admin
+      // Make repeated review requests safe. A duplicate click or client retry
+      // must not send another notification/email for the same status decision.
+      if (sub.status === status) {
+        if ((sub.reviewer_notes ?? null) !== notes) {
+          const { error: noteErr } = await admin
+            .from("collective_submissions")
+            .update({
+              reviewer_notes: notes,
+              reviewed_at: new Date().toISOString(),
+              reviewed_by: actor.id,
+            })
+            .eq("id", submissionId)
+            .eq("status", sub.status);
+          if (noteErr) return json({ error: "Could not update reviewer note" }, 400);
+        }
+        return json({ ok: true, already_processed: true });
+      }
+
+      const allowedTransitions: Record<string, string[]> = {
+        submitted: ["under_review", "accepted", "declined", "needs_changes"],
+        under_review: ["accepted", "declined", "needs_changes"],
+        needs_changes: ["under_review", "accepted", "declined"],
+        accepted: [],
+        declined: [],
+      };
+      if (!(allowedTransitions[sub.status] ?? []).includes(status)) {
+        return json({ error: "This submission has already been reviewed or its status changed. Refresh and try again." }, 409);
+      }
+
+      // Compare-and-set the previous status to avoid two concurrent reviewers
+      // both generating notifications for competing decisions.
+      const { data: updated, error: updErr } = await admin
         .from("collective_submissions")
         .update({
           status,
@@ -67,8 +98,12 @@ Deno.serve(async (req) => {
           reviewed_at: new Date().toISOString(),
           reviewed_by: actor.id,
         })
-        .eq("id", submissionId);
-      if (updErr) return json({ error: updErr.message }, 400);
+        .eq("id", submissionId)
+        .eq("status", sub.status)
+        .select("id")
+        .maybeSingle();
+      if (updErr) return json({ error: "Could not update submission status" }, 400);
+      if (!updated) return json({ error: "Submission status changed while you were reviewing it. Refresh and try again." }, 409);
 
       const [{ data: member }, { data: opp }] = await Promise.all([
         admin.from("collective_members").select("id, display_name, user_id").eq("id", sub.member_id).maybeSingle(),
