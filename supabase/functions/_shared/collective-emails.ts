@@ -17,7 +17,10 @@ export type CollectiveEmailEvent =
   | "contribution_declined"
   | "contribution_needs_changes"
   | "opportunity_new"
-  | "announcement";
+  | "announcement"
+  | "opportunity_application_under_review"
+  | "opportunity_application_accepted"
+  | "opportunity_application_declined";
 
 interface BuildArgs {
   event: CollectiveEmailEvent;
@@ -172,6 +175,52 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
             <p>A new contribution opportunity is now open to Collective members. Participation is voluntary and unpaid.</p>
             ${note ? `<p>${note}</p>` : ""}`,
           ctaLabel: "View opportunity",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_under_review":
+      return {
+        subject: `Your opportunity application is under review — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Your expression of interest is being reviewed.",
+          heading: `Thanks for applying, ${first}`,
+          subheading: title ?? "Your opportunity application is under review.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your expression of interest has moved into review. You can check its status from your Collective Center.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+          `,
+          ctaLabel: "View application status",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_accepted":
+      return {
+        subject: `Your opportunity application was accepted — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Your expression of interest was accepted.",
+          heading: `Good news, ${first}`,
+          subheading: title ?? "Your opportunity application was accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your expression of interest was accepted. Please review the opportunity details and any next steps in your Collective Center.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+          `,
+          ctaLabel: "View opportunity",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_declined":
+      return {
+        subject: `Update on your opportunity application — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "An update on your expression of interest.",
+          heading: `Thanks for applying, ${first}`,
+          subheading: title ?? "Your opportunity application was not accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>After review, your expression of interest was not accepted this time.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+            <p>Other opportunities may be available in your Collective Center.</p>
+          `,
+          ctaLabel: "Browse opportunities",
           ctaUrl: `${SITE}/collective/center`,
         }),
       };
