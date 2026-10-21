@@ -30,6 +30,7 @@ const ContributionHistoryPanel = () => {
     setLoading(true);
     setFailed(false);
     const { data, error } = await supabase
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       .from('collective_submissions' as any)
       .select('id, opportunity_id, submission_text, status, reviewer_notes, created_at, reviewed_at')
       .order('created_at', { ascending: false })
