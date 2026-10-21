@@ -59,10 +59,13 @@ const CollectiveOperationsPanel = () => {
     setLoading(true);
     setFailed(false);
     const [opps, subs, anns] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_submissions' as any)
         .select('id, submission_text, link, status, reviewer_notes, created_at, opportunity_id, opportunity:collective_opportunities(title), member:collective_members(display_name)')
         .order('created_at', { ascending: false }).limit(100),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_announcements' as any).select('*').order('created_at', { ascending: false }).limit(100),
     ]);
     if (opps.error || subs.error || anns.error) {
@@ -91,6 +94,7 @@ const CollectiveOperationsPanel = () => {
       toast.error('Your session has expired. Sign in again.');
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = await supabase.from('collective_opportunities' as any).insert({
       title: opportunityForm.title.trim().slice(0, 180),
       description: opportunityForm.description.trim().slice(0, 10000),
@@ -114,6 +118,7 @@ const CollectiveOperationsPanel = () => {
 
   const setOpportunityStatus = async (item: Opportunity, status: 'published' | 'closed' | 'draft') => {
     setActingId(item.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = await supabase.from('collective_opportunities' as any).update({ status, updated_at: new Date().toISOString() }).eq('id', item.id);
     if (error) {
       setActingId(null);
@@ -124,10 +129,11 @@ const CollectiveOperationsPanel = () => {
       const { data, error: notifyError } = await supabase.functions.invoke('collective-notify', {
         body: { action: 'broadcast', kind: 'opportunity', id: item.id, email: false },
       });
-      if (notifyError || (data as any)?.error) {
+      const payload = data as { error?: string; notified?: number } | null;
+      if (notifyError || payload?.error) {
         toast.error('Opportunity published, but member notifications could not be sent. Retry notification delivery after checking the function.');
       } else {
-        toast.success(`Opportunity published; ${(data as any)?.notified ?? 0} member notifications created.`);
+        toast.success(`Opportunity published; ${payload?.notified ?? 0} member notifications created.`);
       }
     } else {
       toast.success(status === 'closed' ? 'Opportunity closed.' : status === 'draft' ? 'Opportunity returned to draft.' : 'Opportunity updated.');
@@ -149,6 +155,7 @@ const CollectiveOperationsPanel = () => {
       toast.error('Your session has expired. Sign in again.');
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = await supabase.from('collective_announcements' as any).insert({
       title: announcementForm.title.trim().slice(0, 180),
       content: announcementForm.content.trim().slice(0, 10000),
@@ -168,6 +175,7 @@ const CollectiveOperationsPanel = () => {
 
   const setAnnouncementStatus = async (item: Announcement, status: 'published' | 'draft') => {
     setActingId(item.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
     const { error } = await supabase.from('collective_announcements' as any).update({
       status,
       published_at: status === 'published' ? (item.published_at ?? new Date().toISOString()) : null,
@@ -200,11 +208,12 @@ const CollectiveOperationsPanel = () => {
       body: { action: 'review_submission', submission_id: item.id, status, reviewer_notes: notes[item.id] ?? item.reviewer_notes ?? null },
     });
     setActingId(null);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error ?? "We couldn't update the contribution. Refresh and try again.");
+    const payload = data as { error?: string; already_processed?: boolean } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? "We couldn't update the contribution. Refresh and try again.");
       return;
     }
-    toast.success((data as any)?.already_processed ? 'This review was already processed.' : 'Contribution review saved.');
+    toast.success(payload?.already_processed ? 'This review was already processed.' : 'Contribution review saved.');
     await load();
   };
 
