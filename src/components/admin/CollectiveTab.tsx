@@ -102,11 +102,17 @@ const CollectiveTab = () => {
       const payload = data as any;
       if (error) throw new Error(payload?.error || error.message);
       if (payload?.error) throw new Error(payload.error);
-      toast.success(
-        status === 'approved'
-          ? `Approved${payload?.handle ? ` — handle @${payload.handle}` : ''}`
-          : `Application marked ${status.replace(/_/g, ' ')}`
-      );
+      if (payload?.email_status === 'failed' || payload?.email_status === 'queue_failed') {
+        toast.error('The application decision was saved, but email delivery failed. Use Retry email to try again.');
+      } else if (payload?.email_status === 'in_progress') {
+        toast.message('Application decision saved. Email delivery is already in progress.');
+      } else {
+        toast.success(
+          status === 'approved'
+            ? `Approved${payload?.handle ? ` — handle @${payload.handle}` : ''}`
+            : `Application marked ${status.replace(/_/g, ' ')}`
+        );
+      }
       await load();
     } catch (err: any) {
       toast.error(err?.message ?? 'Review failed');
@@ -274,6 +280,11 @@ const CollectiveTab = () => {
                     />
 
                     <div className="flex flex-wrap gap-2">
+                      {app.reviewed_at && ['approved', 'rejected', 'needs_information'].includes(app.status) && (
+                        <Button size="sm" variant="outline" onClick={() => review(app.id, app.status)} disabled={acting !== null}>
+                          <RefreshCw className="h-4 w-4 mr-2" />Retry email
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         onClick={() => review(app.id, 'approved')}
