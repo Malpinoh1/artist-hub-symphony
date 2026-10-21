@@ -99,6 +99,11 @@ BEGIN
     RAISE EXCEPTION 'Anonymous role must not read Collective audit history';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_announcement_notification_once')
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_opportunity_notification_once') THEN
+    RAISE EXCEPTION 'Collective broadcast notifications must have database-level deduplication';
+  END IF;
+
   IF NOT has_function_privilege('authenticated', 'public.get_collective_audit_logs(integer)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked audit RPC';
   END IF;
