@@ -13,6 +13,11 @@ BEGIN
     RAISE EXCEPTION 'Collective public-profile RPC must enforce discoverability';
   END IF;
 
+  IF position('CASE WHEN p_avatar_url IS NULL THEN avatar_url' IN
+      pg_get_functiondef('public.update_my_collective_profile(text,text,text,text,text,jsonb,text[],text,boolean)'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Profile RPC must support clearing optional avatar and location fields';
+  END IF;
+
   IF NOT has_function_privilege('anon', 'public.get_collective_public_profile(text)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Public profile RPC should remain callable by anonymous visitors';
   END IF;
