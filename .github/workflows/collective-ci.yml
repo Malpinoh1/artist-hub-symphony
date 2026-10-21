@@ -38,3 +38,14 @@ jobs:
           supabase/functions/collective-apply/index.ts
           supabase/functions/collective-notify/index.ts
           supabase/functions/collective-review/index.ts
+      - name: Set up Deno for Edge Function type checks
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Collective Edge Functions
+        run: >-
+          deno check
+          supabase/functions/collective-apply/index.ts
+          supabase/functions/collective-review/index.ts
+          supabase/functions/collective-referral-claim/index.ts
+          supabase/functions/collective-notify/index.ts
