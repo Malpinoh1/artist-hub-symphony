@@ -30,6 +30,11 @@ BEGIN
     RAISE EXCEPTION 'Authenticated role must retain access to the admin stats RPC (function performs admin authorization)';
   END IF;
 
+  IF position('opportunity_applications_pending' IN pg_get_functiondef('public.get_collective_admin_stats()'::regprocedure)) = 0
+     OR position('email_deliveries_failed' IN pg_get_functiondef('public.get_collective_admin_stats()'::regprocedure)) = 0 THEN
+    RAISE EXCEPTION 'Admin analytics must include actual opportunity application and email delivery counts';
+  END IF;
+
   IF NOT EXISTS (
     SELECT 1 FROM pg_trigger
     WHERE tgname = 'protect_collective_submission_member_update'
