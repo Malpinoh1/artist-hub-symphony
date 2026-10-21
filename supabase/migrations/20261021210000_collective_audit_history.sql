@@ -160,3 +160,69 @@ $function$;
 
 REVOKE ALL ON FUNCTION public.get_collective_audit_logs(integer) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.get_collective_audit_logs(integer) TO authenticated, service_role;
+
+
+-- Controlled member status changes require a reason and are recorded atomically
+-- with the status update.
+CREATE OR REPLACE FUNCTION public.manage_collective_member(
+  p_member_id uuid,
+  p_status text,
+  p_reason text
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $function$
+DECLARE
+  v_member public.collective_members;
+  v_reason text := left(trim(COALESCE(p_reason, '')), 1000);
+BEGIN
+  IF auth.uid() IS NULL OR NOT public.user_is_admin(auth.uid()) THEN
+    RAISE EXCEPTION 'Admin privileges required';
+  END IF;
+
+  IF p_status NOT IN ('active', 'suspended', 'inactive') THEN
+    RAISE EXCEPTION 'Invalid member status';
+  END IF;
+
+  IF length(v_reason) < 10 THEN
+    RAISE EXCEPTION 'Please provide a reason of at least 10 characters';
+  END IF;
+
+  SELECT * INTO v_member
+  FROM public.collective_members
+  WHERE id = p_member_id
+  FOR UPDATE;
+
+  IF v_member.id IS NULL THEN
+    RAISE EXCEPTION 'Collective member not found';
+  END IF;
+
+  IF v_member.status::text = p_status THEN
+    RETURN jsonb_build_object('ok', true, 'already_processed', true, 'status', p_status);
+  END IF;
+
+  UPDATE public.collective_members
+  SET status = p_status::public.collective_member_status,
+      updated_at = now()
+  WHERE id = p_member_id;
+
+  INSERT INTO public.collective_audit_logs (
+    actor_id, action, target_table, target_id, old_state, new_state, reason
+  ) VALUES (
+    auth.uid(),
+    'member_status_change',
+    'collective_members',
+    p_member_id,
+    jsonb_build_object('status', v_member.status::text),
+    jsonb_build_object('status', p_status),
+    v_reason
+  );
+
+  RETURN jsonb_build_object('ok', true, 'status', p_status);
+END
+$function$;
+
+REVOKE ALL ON FUNCTION public.manage_collective_member(uuid, text, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.manage_collective_member(uuid, text, text) TO authenticated, service_role;
