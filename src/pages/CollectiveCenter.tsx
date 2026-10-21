@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Users, Copy, Check, Loader2, Share2, Clock, XCircle,
   CheckCircle2, AlertCircle, Trophy, LayoutDashboard, UserRound,
-  BriefcaseBusiness, Megaphone, RefreshCw,
+  BriefcaseBusiness, Megaphone, RefreshCw, ClipboardList, Bell, History,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -14,6 +14,9 @@ import DirectoryPanel from '@/components/collective/DirectoryPanel';
 import OpportunitiesPanel from '@/components/collective/OpportunitiesPanel';
 import AnnouncementsPanel from '@/components/collective/AnnouncementsPanel';
 import ProfilePanel from '@/components/collective/ProfilePanel';
+import ReferralHistoryPanel from '@/components/collective/ReferralHistoryPanel';
+import ContributionHistoryPanel from '@/components/collective/ContributionHistoryPanel';
+import NotificationsPanel from '@/components/collective/NotificationsPanel';
 
 interface Summary {
   application: {
@@ -257,6 +260,15 @@ const CollectiveCenter = () => {
               <TabsTrigger value="announcements" className="gap-2 px-3 py-2">
                 <Megaphone className="h-4 w-4" /> Announcements
               </TabsTrigger>
+              <TabsTrigger value="contributions" className="gap-2 px-3 py-2">
+                <ClipboardList className="h-4 w-4" /> Contributions
+              </TabsTrigger>
+              <TabsTrigger value="referrals" className="gap-2 px-3 py-2">
+                <History className="h-4 w-4" /> Referrals
+              </TabsTrigger>
+              <TabsTrigger value="notifications" className="gap-2 px-3 py-2">
+                <Bell className="h-4 w-4" /> Notifications
+              </TabsTrigger>
               <TabsTrigger value="profile" className="gap-2 px-3 py-2">
                 <UserRound className="h-4 w-4" /> My Profile
               </TabsTrigger>
@@ -328,6 +340,15 @@ const CollectiveCenter = () => {
           </TabsContent>
           <TabsContent value="announcements" className="mt-0">
             <AnnouncementsPanel />
+          </TabsContent>
+          <TabsContent value="contributions" className="mt-0">
+            <ContributionHistoryPanel />
+          </TabsContent>
+          <TabsContent value="referrals" className="mt-0">
+            <ReferralHistoryPanel />
+          </TabsContent>
+          <TabsContent value="notifications" className="mt-0">
+            <NotificationsPanel />
           </TabsContent>
           <TabsContent value="profile" className="mt-0">
             <ProfilePanel onSaved={load} />
