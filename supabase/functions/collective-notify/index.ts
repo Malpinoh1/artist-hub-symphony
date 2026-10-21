@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
             if (delivery.updated_at > staleBefore) continue;
             const { data: reset } = await admin
               // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
-          .from("collective_notification_deliveries" as any)
+              .from("collective_notification_deliveries" as any)
               .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
               .eq("id", delivery.id)
               .eq("status", "sending")
