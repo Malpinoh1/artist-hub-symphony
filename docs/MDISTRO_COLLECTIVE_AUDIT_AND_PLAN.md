@@ -76,6 +76,8 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 - Database assertions cover profile privacy, grants, private evidence storage, submission deadline checks, link validation, broadcast deduplication, delivery-table access, and admin audit/member-management RPC permissions.
 - Submission RLS now rejects new contributions to expired opportunities. A trigger prevents members from changing reviewer-controlled fields or assigning themselves a review status.
 - A private `collective-evidence` bucket is defined with a 10 MiB limit and JPG/PNG/WebP/PDF MIME restrictions. Member and admin interfaces upload and open evidence through short-lived signed URLs.
+- A public, owner-scoped `collective-avatars` bucket supports profile photo uploads (JPG/PNG/WebP, 5 MiB) and cleanup of replaced managed avatars.
+- Opportunity expressions of interest are stored separately from contribution evidence, with withdrawal/reapplication, deadline checks, an admin review RPC, in-app status notifications, and retryable email delivery.
 - Application review now guards against repeated decisions and concurrent status updates; duplicate application insert races return a conflict response.
 - Contribution-review updates use status compare-and-set. Announcement/opportunity broadcasts deduplicate in-app notifications and have a service-role-only delivery table for retryable email attempts.
 - The Member Center now includes contribution history, referral history and notifications. Public member pages include privacy-aware canonical and social metadata.
@@ -85,8 +87,8 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 
 ## Verification status after these changes
 
-- Earlier branch commits passed the production build and scoped ESLint checks.
-- Newer commits are still being checked by GitHub Actions; the latest run must be green before this branch is considered code-verified.
+- Latest confirmed branch head: `428d31e2883a5cf855d1188e2600de71e9c790d1`.
+- GitHub Actions passed at that head: production build, scoped ESLint, and Deno type-checking for the Collective application, review, referral-claim and notification Edge Functions.
 - SQL regression assertions have been added but have not yet been executed against a disposable test database.
 - No production migration has been applied and no Edge Function has been deployed. The frontend, migrations and Edge Function source must be released together in the documented order.
 - Authenticated browser journeys, storage permissions, email failure/retry, member status transitions and audit RPC access still require end-to-end tests in a safe environment.
