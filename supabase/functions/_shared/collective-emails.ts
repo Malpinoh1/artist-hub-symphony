@@ -31,8 +31,15 @@ interface BuildArgs {
   title?: string;
 }
 
-export function buildCollectiveEmail({ event, name, note, handle, title }: BuildArgs) {
-  const first = (name || "there").split(" ")[0];
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+export function buildCollectiveEmail({ event, name, note: rawNote, handle: rawHandle, title }: BuildArgs) {
+  const first = escapeHtml((name || "there").split(" ")[0]);
+  const note = rawNote ? escapeHtml(rawNote) : undefined;
+  const titleHtml = title ? escapeHtml(title) : undefined;
+  const safeHandle = escapeHtml(rawHandle ?? "");
 
   switch (event) {
     case "application_received":
@@ -58,7 +65,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           subheading: "Your Collective membership is now active.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>Your application has been approved. Your Collective Center is now unlocked, including your personal Collective link:</p>
-            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective?ref=${handle ?? ""}</p>
+            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective?ref=${safeHandle}</p>
             <p>Share it with artists, fans and industry people you think belong here. Participation is entirely voluntary.</p>`,
           ctaLabel: "Open Collective Center",
           ctaUrl: `${SITE}/collective/center`,
@@ -129,7 +136,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `Thank you, ${first}`,
           subheading: "Your contribution has been accepted.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>Your contribution${args_title(title)} has been reviewed and accepted. Thank you for helping grow the independent music ecosystem.</p>
+            <p>Your contribution${args_title(titleHtml)} has been reviewed and accepted. Thank you for helping grow the independent music ecosystem.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}`,
           ctaLabel: "View my contributions",
           ctaUrl: `${SITE}/collective/center`,
@@ -143,7 +150,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `Thanks for taking part, ${first}`,
           subheading: "This contribution was not accepted.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>After review, your contribution${args_title(title)} was not accepted this time.</p>
+            <p>After review, your contribution${args_title(titleHtml)} was not accepted this time.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
             <p>Plenty of other opportunities are open in your Collective Center.</p>`,
           ctaLabel: "Browse opportunities",
@@ -158,7 +165,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `One more step, ${first}`,
           subheading: "Our reviewers asked for some changes.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>Your contribution${args_title(title)} needs a few changes before it can be accepted.</p>
+            <p>Your contribution${args_title(titleHtml)} needs a few changes before it can be accepted.</p>
             ${note ? `<p><strong>What to change:</strong> ${note}</p>` : ""}`,
           ctaLabel: "Update my contribution",
           ctaUrl: `${SITE}/collective/center`,
@@ -170,7 +177,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         html: brandedEmail({
           preheader: "A new way to contribute is open.",
           heading: `New opportunity, ${first}`,
-          subheading: title ?? "A new opportunity is open.",
+          subheading: titleHtml ?? "A new opportunity is open.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>A new contribution opportunity is now open to Collective members. Participation is voluntary and unpaid.</p>
             ${note ? `<p>${note}</p>` : ""}`,
@@ -184,7 +191,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         html: brandedEmail({
           preheader: "Your expression of interest is being reviewed.",
           heading: `Thanks for applying, ${first}`,
-          subheading: title ?? "Your opportunity application is under review.",
+          subheading: titleHtml ?? "Your opportunity application is under review.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>Your expression of interest has moved into review. You can check its status from your Collective Center.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
@@ -199,7 +206,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         html: brandedEmail({
           preheader: "Your expression of interest was accepted.",
           heading: `Good news, ${first}`,
-          subheading: title ?? "Your opportunity application was accepted.",
+          subheading: titleHtml ?? "Your opportunity application was accepted.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>Your expression of interest was accepted. Please review the opportunity details and any next steps in your Collective Center.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
@@ -214,7 +221,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         html: brandedEmail({
           preheader: "An update on your expression of interest.",
           heading: `Thanks for applying, ${first}`,
-          subheading: title ?? "Your opportunity application was not accepted.",
+          subheading: titleHtml ?? "Your opportunity application was not accepted.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>After review, your expression of interest was not accepted this time.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
@@ -229,7 +236,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         subject: `${title ?? "Collective update"} — ${PROGRAMME}`,
         html: brandedEmail({
           preheader: "A new Collective update.",
-          heading: title ?? "Collective update",
+          heading: titleHtml ?? "Collective update",
           subheading: `An update for the community, ${first}`,
           bodyHtml: `${tag(PROGRAMME)}
             ${note ? `<p>${note}</p>` : ""}`,
