@@ -20,6 +20,14 @@ interface Opportunity {
   status: string;
 }
 
+interface OpportunityApplication {
+  id: string;
+  opportunity_id: string;
+  status: string;
+  message: string | null;
+  reviewer_notes: string | null;
+  created_at: string;
+}
 interface Submission {
   id: string;
   opportunity_id: string;
@@ -55,6 +63,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [opps, setOpps] = useState<Opportunity[]>([]);
   const [subs, setSubs] = useState<Submission[]>([]);
+  const [applications, setApplications] = useState<OpportunityApplication[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [link, setLink] = useState('');
@@ -65,27 +74,68 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
-    const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }] = await Promise.all([
+    const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }, { data: appData, error: appErr }] = await Promise.all([
       supabase
         .from('collective_opportunities')
         .select('*')
         .in('status', ['published', 'closed'])
         .order('created_at', { ascending: false }),
       supabase.from('collective_submissions').select('*').order('created_at', { ascending: false }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+      supabase.from('collective_opportunity_applications' as any).select('*').order('created_at', { ascending: false }),
     ]);
-    if (oppErr || subErr) {
+    if (oppErr || subErr || appErr) {
       setLoadError(true);
       setLoading(false);
       return;
     }
     setOpps((oppData as Opportunity[]) ?? []);
     setSubs((subData as Submission[]) ?? []);
+    setApplications((appData as unknown as OpportunityApplication[]) ?? []);
     setLoading(false);
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  const submitInterest = async (opportunityId: string) => {
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) return toast.error('Please sign in again before applying.');
+    setSending(true);
+    const existing = applications.find((application) => application.opportunity_id === opportunityId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+    const { error } = existing?.status === 'withdrawn'
+      ? await supabase.from('collective_opportunity_applications' as any).update({ status: 'submitted', message: null }).eq('id', existing.id).eq('status', 'withdrawn')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+      : await supabase.from('collective_opportunity_applications' as any).insert({
+          opportunity_id: opportunityId,
+          member_id: memberId,
+          user_id: auth.user.id,
+          message: null,
+          status: 'submitted',
+        });
+    setSending(false);
+    if (error) {
+      toast.error(error.code === '23505' ? 'You have already applied to this opportunity.' : "We couldn't submit your interest. Please try again.");
+      return;
+    }
+    toast.success('Your interest has been submitted.');
+    await load();
+  };
+
+  const withdrawInterest = async (application: OpportunityApplication) => {
+    setSending(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+    const { error } = await supabase.from('collective_opportunity_applications' as any)
+      .update({ status: 'withdrawn' })
+      .eq('id', application.id)
+      .eq('status', 'submitted');
+    setSending(false);
+    if (error) return toast.error("We couldn't withdraw your application.");
+    toast.success('Your application was withdrawn.');
+    await load();
+  };
 
   const submit = async (opportunityId: string) => {
     if (text.trim().length < 20) return toast.error('Please describe your contribution (at least 20 characters).');
@@ -200,6 +250,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
         ) : (
           opps.map((o) => {
             const mySub = subs.find((s) => s.opportunity_id === o.id);
+            const myApplication = applications.find((application) => application.opportunity_id === o.id);
             const expired = Boolean(o.deadline && new Date(o.deadline).getTime() <= Date.now());
             const closed = o.status === 'closed' || expired;
             const canRevise = mySub?.status === 'submitted' || mySub?.status === 'needs_changes';
@@ -239,7 +290,24 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                   </p>
                 )}
                 {!o.requires_submission && !closed && (
-                  <p className="mt-3 text-xs font-medium text-muted-foreground">No submission is required for this opportunity.</p>
+                  <p className="mt-3 text-xs font-medium text-muted-foreground">No contribution attachment is required. You can express interest directly.</p>
+                )}
+
+                {!o.requires_submission && myApplication && (
+                  <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium capitalize">Application: {myApplication.status.replace(/_/g, ' ')}</span>
+                      <span className="text-xs text-muted-foreground">Submitted {new Date(myApplication.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {myApplication.reviewer_notes && <p className="mt-2 text-sm text-muted-foreground">{myApplication.reviewer_notes}</p>}
+                    {myApplication.status === 'submitted' && <Button size="sm" variant="outline" className="mt-3" disabled={sending} onClick={() => void withdrawInterest(myApplication)}>Withdraw application</Button>}
+                  </div>
+                )}
+                {!o.requires_submission && !closed && (!myApplication || myApplication.status === 'withdrawn') && (
+                  <Button className="mt-4" size="sm" disabled={sending} onClick={() => void submitInterest(o.id)}>
+                    {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {myApplication?.status === 'withdrawn' ? 'Reapply' : 'Express interest'}
+                  </Button>
                 )}
 
                 {mySub && (
