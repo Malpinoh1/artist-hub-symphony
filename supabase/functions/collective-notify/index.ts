@@ -180,22 +180,37 @@ Deno.serve(async (req) => {
         .eq("status", "active");
 
       const recipients = members ?? [];
-      if (recipients.length > 0) {
-        await admin.from("notifications").insert(
-          recipients.map((m) => ({
+      const notificationType = kind === "announcement" ? "collective_announcement" : "collective_opportunity";
+      const metadataFilter = { [`${kind}_id`]: id };
+      const { data: existingNotifications, error: existingError } = await admin
+        .from("notifications")
+        .select("user_id")
+        .eq("type", notificationType)
+        .contains("metadata", metadataFilter);
+      if (existingError) return json({ error: "Could not check existing notifications" }, 500);
+
+      const alreadyNotified = new Set((existingNotifications ?? []).map((row: { user_id: string }) => row.user_id));
+      const pendingRecipients = recipients.filter((member) => !alreadyNotified.has(member.user_id));
+      if (pendingRecipients.length > 0) {
+        const { error: notificationError } = await admin.from("notifications").insert(
+          pendingRecipients.map((m) => ({
             user_id: m.user_id,
-            type: kind === "announcement" ? "collective_announcement" : "collective_opportunity",
+            type: notificationType,
             title: kind === "announcement" ? `Collective update: ${title}` : `New opportunity: ${title}`,
             message: summary,
             link: "/collective/center",
-            metadata: { [`${kind}_id`]: id },
+            metadata: metadataFilter,
           })),
         );
+        if (notificationError) return json({ error: "Could not create member notifications" }, 500);
       }
 
       let emailed = 0;
       if (withEmail) {
-        for (const m of recipients) {
+        // Only newly notified members receive this broadcast email, preventing
+        // a repeated publish/retry from sending duplicate emails. Delivery retry
+        // tracking is handled separately from this in-app notification dedupe.
+        for (const m of pendingRecipients) {
           const { data: authUser } = await admin.auth.admin.getUserById(m.user_id);
           const email = authUser?.user?.email;
           if (!email) continue;
@@ -211,7 +226,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      return json({ ok: true, notified: recipients.length, emailed });
+      return json({ ok: true, notified: pendingRecipients.length, already_notified: alreadyNotified.size, emailed });
     }
 
     return json({ error: "Unknown action" }, 400);
