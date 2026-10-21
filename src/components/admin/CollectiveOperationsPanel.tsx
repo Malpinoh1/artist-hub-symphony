@@ -362,6 +362,28 @@ const CollectiveOperationsPanel = () => {
     setEvidenceUrls((current) => ({ ...current, [path]: data.signedUrl }));
   };
 
+  const sendOpportunityApplicationEmail = async (applicationId: string) => {
+    setActingId(applicationId + ':email');
+    const { data, error } = await supabase.functions.invoke('collective-notify', {
+      body: { action: 'email_opportunity_application_review', application_id: applicationId },
+    });
+    setActingId(null);
+    const payload = data as { error?: string; email_status?: string } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? "We couldn't process the application email.");
+      return;
+    }
+    if (payload?.email_status === 'failed' || payload?.email_status === 'queue_failed') {
+      toast.error('The decision is saved, but email delivery failed. Use Retry email to try again.');
+    } else if (payload?.email_status === 'in_progress') {
+      toast.message('Email delivery is already in progress.');
+    } else if (payload?.email_status === 'no_email') {
+      toast.message('The application is saved, but this account has no email address.');
+    } else {
+      toast.success(payload?.email_status === 'sent' ? 'Application email sent.' : 'No email was required.');
+    }
+  };
+
   const reviewOpportunityApplication = async (item: OpportunityApplication, status: 'under_review' | 'accepted' | 'declined') => {
     setActingId(item.id + status);
     const { data, error } = await supabase.rpc('review_collective_opportunity_application', {
@@ -376,6 +398,7 @@ const CollectiveOperationsPanel = () => {
       return;
     }
     toast.success(payload?.already_processed ? 'This application was already reviewed.' : 'Opportunity application review saved.');
+    await sendOpportunityApplicationEmail(item.id);
     await load();
   };
 
@@ -534,6 +557,7 @@ const CollectiveOperationsPanel = () => {
                   <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
                 </div>
               ) : <p className="text-xs text-muted-foreground">This application is no longer awaiting a decision.</p>}
+              {item.reviewed_at && <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void sendOpportunityApplicationEmail(item.id)}>Retry email</Button>}
             </article>
           ))}
         </TabsContent>
