@@ -62,5 +62,21 @@ BEGIN
   ) THEN
     RAISE EXCEPTION 'Contribution submissions must persist private evidence paths';
   END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    WHERE n.nspname = 'public'
+      AND c.relname = 'collective_notification_deliveries'
+      AND c.relkind = 'r'
+      AND c.relrowsecurity
+  ) THEN
+    RAISE EXCEPTION 'Collective email delivery state must use RLS';
+  END IF;
+
+  IF has_table_privilege('anon', 'public.collective_notification_deliveries', 'SELECT')
+     OR has_table_privilege('authenticated', 'public.collective_notification_deliveries', 'SELECT') THEN
+    RAISE EXCEPTION 'Collective email delivery state must not be readable by client roles';
+  END IF;
 END
 $test$;
