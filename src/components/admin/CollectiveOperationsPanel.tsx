@@ -55,6 +55,19 @@ interface Announcement {
   published_at: string | null;
   created_at: string;
 }
+interface Referral {
+  id: string;
+  referrer_member_id: string;
+  referred_user_id: string | null;
+  referred_application_id: string | null;
+  source: string;
+  status: string;
+  qualified_at: string | null;
+  flagged: boolean;
+  flag_reason: string | null;
+  created_at: string;
+  referrer?: { display_name?: string; handle?: string } | null;
+}
 interface Member {
   id: string;
   handle: string;
@@ -94,9 +107,11 @@ const CollectiveOperationsPanel = () => {
   const [opportunityApplications, setOpportunityApplications] = useState<OpportunityApplication[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [memberReasons, setMemberReasons] = useState<Record<string, string>>({});
+  const [referralReasons, setReferralReasons] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -115,7 +130,7 @@ const CollectiveOperationsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const [opps, subs, anns, audit, memberResult, applicationResult] = await Promise.all([
+    const [opps, subs, anns, audit, memberResult, applicationResult, referralResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
@@ -129,8 +144,10 @@ const CollectiveOperationsPanel = () => {
       supabase.from('collective_members' as any).select('id, handle, display_name, roles, status, country, member_since, visibility, discoverable').order('member_since', { ascending: false }).limit(200),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
       supabase.from('collective_opportunity_applications' as any).select('id, opportunity_id, user_id, member_id, message, status, reviewer_notes, created_at, reviewed_at, opportunity:collective_opportunities(title), member:collective_members(display_name)').order('created_at', { ascending: false }).limit(100),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
+      supabase.from('collective_referrals' as any).select('id, referrer_member_id, referred_user_id, referred_application_id, source, status, qualified_at, flagged, flag_reason, created_at, referrer:collective_members(display_name, handle)').order('created_at', { ascending: false }).limit(200),
     ]);
-    if (opps.error || subs.error || anns.error || audit.error || memberResult.error || applicationResult.error) {
+    if (opps.error || subs.error || anns.error || audit.error || memberResult.error || applicationResult.error || referralResult.error) {
       setFailed(true);
       setLoading(false);
       return;
@@ -141,6 +158,7 @@ const CollectiveOperationsPanel = () => {
     setAuditLogs((audit.data as unknown as AuditEntry[]) ?? []);
     setMembers((memberResult.data as unknown as Member[]) ?? []);
     setOpportunityApplications((applicationResult.data as unknown as OpportunityApplication[]) ?? []);
+    setReferrals((referralResult.data as unknown as Referral[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -284,6 +302,29 @@ const CollectiveOperationsPanel = () => {
     await load();
   };
 
+  const setReferralFlag = async (referral: Referral, flagged: boolean) => {
+    const reason = (referralReasons[referral.id] ?? '').trim();
+    if (reason.length < 10) {
+      toast.error('Enter a reason of at least 10 characters for the referral flag decision.');
+      return;
+    }
+    setActingId(referral.id);
+    const { data, error } = await supabase.rpc('manage_collective_referral_flag', {
+      p_referral_id: referral.id,
+      p_flagged: flagged,
+      p_reason: reason,
+    });
+    setActingId(null);
+    const payload = data as { ok?: boolean; error?: string } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? "We couldn't update the referral flag.");
+      return;
+    }
+    toast.success(flagged ? 'Referral flagged for review.' : 'Referral flag cleared.');
+    setReferralReasons((current) => ({ ...current, [referral.id]: '' }));
+    await load();
+  };
+
   const setMemberStatus = async (member: Member, status: 'active' | 'suspended') => {
     const reason = (memberReasons[member.id] ?? '').trim();
     if (reason.length < 10) {
@@ -382,6 +423,7 @@ const CollectiveOperationsPanel = () => {
         <div className="overflow-x-auto">
           <TabsList className="min-w-max">
             <TabsTrigger value="members"><Users className="mr-2 h-4 w-4" />Members ({members.length})</TabsTrigger>
+            <TabsTrigger value="referrals"><History className="mr-2 h-4 w-4" />Referrals ({referrals.length})</TabsTrigger>
             <TabsTrigger value="opportunities"><BriefcaseBusiness className="mr-2 h-4 w-4" />Opportunities</TabsTrigger>
             <TabsTrigger value="applications"><Check className="mr-2 h-4 w-4" />Opportunity applications ({opportunityApplications.length})</TabsTrigger>
             <TabsTrigger value="contributions"><Check className="mr-2 h-4 w-4" />Contributions ({submissions.length})</TabsTrigger>
@@ -409,6 +451,31 @@ const CollectiveOperationsPanel = () => {
               {member.status === 'active'
                 ? <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void setMemberStatus(member, 'suspended')}>Suspend membership</Button>
                 : <Button size="sm" disabled={actingId !== null} onClick={() => void setMemberStatus(member, 'active')}>Reinstate membership</Button>}
+            </article>
+          ))}
+        </TabsContent>
+        <TabsContent value="referrals" className="space-y-3">
+          <div>
+            <h3 className="font-medium">Referral activity</h3>
+            <p className="text-sm text-muted-foreground">Review attribution status and flag suspicious records with a documented reason. This tool does not change who receives attribution; corrections need a separate approved process.</p>
+          </div>
+          {referrals.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No referral records found.</p> : referrals.map((referral) => (
+            <article key={referral.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-medium">{referral.referrer?.display_name ?? 'Referrer'}{referral.referrer?.handle ? ` (@${referral.referrer.handle})` : ''}</h3>
+                  <p className="text-xs text-muted-foreground">Recorded {new Date(referral.created_at).toLocaleDateString()} · source: {referral.source}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">Referred account: {referral.referred_user_id ? referral.referred_user_id.slice(0, 8) : 'Not linked yet'} · status: {referral.status}{referral.qualified_at ? ` · qualified ${new Date(referral.qualified_at).toLocaleDateString()}` : ''}</p>
+                </div>
+                <span className={`rounded-full border px-2 py-1 text-xs ${referral.flagged ? 'border-destructive/40 text-destructive' : 'border-border'}`}>{referral.flagged ? 'Flagged' : 'Not flagged'}</span>
+              </div>
+              {referral.flag_reason && <p className="text-sm text-muted-foreground">Reason on record: {referral.flag_reason}</p>}
+              <Textarea rows={2} placeholder="Required reason for flag/unflag action (minimum 10 characters)" value={referralReasons[referral.id] ?? ''} onChange={(event) => setReferralReasons((current) => ({ ...current, [referral.id]: event.target.value }))} />
+              <div className="flex flex-wrap gap-2">
+                {!referral.flagged
+                  ? <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void setReferralFlag(referral, true)}>Flag for review</Button>
+                  : <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void setReferralFlag(referral, false)}>Clear flag</Button>}
+              </div>
             </article>
           ))}
         </TabsContent>
