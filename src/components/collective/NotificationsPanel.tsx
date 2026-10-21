@@ -36,6 +36,7 @@ const NotificationsPanel = () => {
       .from('notifications')
       .select('id, type, title, message, link, read, created_at')
       .eq('user_id', auth.user.id)
+      .like('type', 'collective_%')
       .order('created_at', { ascending: false })
       .limit(100);
     if (error) {
@@ -64,7 +65,7 @@ const NotificationsPanel = () => {
   const markAllRead = async () => {
     if (!userId) return;
     setSavingId('all');
-    const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
+    const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false).like('type', 'collective_%');
     setSavingId(null);
     if (error) {
       toast.error("We couldn't update your notifications.");
