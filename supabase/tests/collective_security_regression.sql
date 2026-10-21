@@ -104,6 +104,11 @@ BEGIN
     RAISE EXCEPTION 'Collective broadcast notifications must have database-level deduplication';
   END IF;
 
+  IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_apps_active_email')
+     OR NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_referrals_unique') THEN
+    RAISE EXCEPTION 'Application and referral uniqueness guards must remain in place';
+  END IF;
+
   IF NOT has_function_privilege('authenticated', 'public.get_collective_audit_logs(integer)', 'EXECUTE') THEN
     RAISE EXCEPTION 'Authenticated admin UI must retain access to the admin-checked audit RPC';
   END IF;
