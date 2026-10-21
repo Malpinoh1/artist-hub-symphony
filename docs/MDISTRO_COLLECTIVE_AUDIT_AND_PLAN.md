@@ -69,3 +69,24 @@ The root `package.json` has build and lint scripts but no dedicated test script.
 - The migration and test added with this audit hardening have not been applied to production or executed against a disposable test database.
 - The `collective-notify` source hardening has not been deployed.
 - No claim is made that all phases are complete. Remaining work is tracked by the implementation sequence above.
+
+## Implemented on the feature branch after the initial audit
+
+- A new migration restores discoverability enforcement in `get_collective_public_profile()`, returns no identity fields for restricted profiles, and removes anonymous execution from the admin statistics RPC.
+- Database assertions cover profile privacy, grants, private evidence storage, submission deadline checks, link validation, broadcast deduplication, delivery-table access, and admin audit/member-management RPC permissions.
+- Submission RLS now rejects new contributions to expired opportunities. A trigger prevents members from changing reviewer-controlled fields or assigning themselves a review status.
+- A private `collective-evidence` bucket is defined with a 10 MiB limit and JPG/PNG/WebP/PDF MIME restrictions. Member and admin interfaces upload and open evidence through short-lived signed URLs.
+- Application review now guards against repeated decisions and concurrent status updates; duplicate application insert races return a conflict response.
+- Contribution-review updates use status compare-and-set. Announcement/opportunity broadcasts deduplicate in-app notifications and have a service-role-only delivery table for retryable email attempts.
+- The Member Center now includes contribution history, referral history and notifications. Public member pages include privacy-aware canonical and social metadata.
+- The existing admin Collective area now includes opportunity and announcement create/edit/publish/close controls, contribution review, member suspension/reinstatement with a required reason, and restricted audit history.
+- Opportunity and announcement broadcast controls allow an administrator to opt into email delivery and retry failed deliveries.
+- A CI workflow builds the production bundle and lints the Collective files changed by this work. Full-repository lint currently has a large pre-existing error baseline, so CI is scoped to changed files to avoid unrelated refactoring.
+
+## Verification status after these changes
+
+- Earlier branch commits passed the production build and scoped ESLint checks.
+- Newer commits are still being checked by GitHub Actions; the latest run must be green before this branch is considered code-verified.
+- SQL regression assertions have been added but have not yet been executed against a disposable test database.
+- No production migration has been applied and no Edge Function has been deployed. The frontend, migrations and Edge Function source must be released together in the documented order.
+- Authenticated browser journeys, storage permissions, email failure/retry, member status transitions and audit RPC access still require end-to-end tests in a safe environment.
