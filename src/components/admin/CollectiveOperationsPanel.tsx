@@ -41,11 +41,24 @@ interface Announcement {
   published_at: string | null;
   created_at: string;
 }
+interface AuditEntry {
+  id: string;
+  actor_id: string | null;
+  actor_label: string;
+  action: string;
+  target_table: string;
+  target_id: string | null;
+  old_state: Record<string, unknown> | null;
+  new_state: Record<string, unknown> | null;
+  reason: string | null;
+  created_at: string;
+}
 
 const CollectiveOperationsPanel = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -62,7 +75,7 @@ const CollectiveOperationsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const [opps, subs, anns] = await Promise.all([
+    const [opps, subs, anns, audit] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
@@ -71,8 +84,9 @@ const CollectiveOperationsPanel = () => {
         .order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_announcements' as any).select('*').order('created_at', { ascending: false }).limit(100),
+      supabase.rpc('get_collective_audit_logs', { p_limit: 100 }),
     ]);
-    if (opps.error || subs.error || anns.error) {
+    if (opps.error || subs.error || anns.error || audit.error) {
       setFailed(true);
       setLoading(false);
       return;
@@ -80,6 +94,7 @@ const CollectiveOperationsPanel = () => {
     setOpportunities((opps.data as unknown as Opportunity[]) ?? []);
     setSubmissions((subs.data as unknown as Submission[]) ?? []);
     setAnnouncements((anns.data as unknown as Announcement[]) ?? []);
+    setAuditLogs((audit.data as unknown as AuditEntry[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -262,6 +277,7 @@ const CollectiveOperationsPanel = () => {
             <TabsTrigger value="opportunities"><BriefcaseBusiness className="mr-2 h-4 w-4" />Opportunities</TabsTrigger>
             <TabsTrigger value="contributions"><Check className="mr-2 h-4 w-4" />Contributions ({submissions.length})</TabsTrigger>
             <TabsTrigger value="announcements"><Megaphone className="mr-2 h-4 w-4" />Announcements</TabsTrigger>
+            <TabsTrigger value="audit"><AlertCircle className="mr-2 h-4 w-4" />Audit history</TabsTrigger>
           </TabsList>
         </div>
         <TabsContent value="opportunities" className="space-y-4">
@@ -337,6 +353,25 @@ const CollectiveOperationsPanel = () => {
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('announcement', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setAnnouncementStatus(item, 'draft')}>Return to draft</Button>}
               </div>
+            </article>
+          ))}
+        </TabsContent>
+        <TabsContent value="audit" className="space-y-3">
+          <div>
+            <h3 className="font-medium">Recent audit history</h3>
+            <p className="text-sm text-muted-foreground">Latest 100 recorded changes. Sensitive application answers, emails and evidence content are not included in the state snapshots.</p>
+          </div>
+          {auditLogs.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No audit entries recorded yet.</p> : auditLogs.map((entry) => (
+            <article key={entry.id} className="rounded-xl border border-border bg-card/60 p-4">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium">{entry.action.replace(/_/g, ' ')}</p>
+                  <p className="text-xs text-muted-foreground">{entry.actor_label} · {entry.target_table}{entry.target_id ? ` · ${entry.target_id.slice(0, 8)}` : ''}</p>
+                </div>
+                <time className="text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleString()}</time>
+              </div>
+              {(entry.old_state || entry.new_state) && <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/40 p-3 text-xs">{JSON.stringify({ from: entry.old_state, to: entry.new_state }, null, 2)}</pre>}
+              {entry.reason && <p className="mt-2 text-sm text-muted-foreground">{entry.reason}</p>}
             </article>
           ))}
         </TabsContent>
