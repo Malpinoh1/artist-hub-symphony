@@ -26,6 +26,7 @@ interface Submission {
   link: string | null;
   status: string;
   reviewer_notes: string | null;
+  evidence_path?: string | null;
   created_at: string;
   opportunity_id: string;
   opportunity?: { title?: string } | null;
@@ -50,6 +51,7 @@ const CollectiveOperationsPanel = () => {
   const [saving, setSaving] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
+  const [evidenceUrls, setEvidenceUrls] = useState<Record<string, string>>({});
   const [opportunityForm, setOpportunityForm] = useState({
     title: '', description: '', category: 'collaboration', requirements: '', instructions: '', deadline: '', requires_submission: true,
   });
@@ -63,7 +65,7 @@ const CollectiveOperationsPanel = () => {
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_submissions' as any)
-        .select('id, submission_text, link, status, reviewer_notes, created_at, opportunity_id, opportunity:collective_opportunities(title), member:collective_members(display_name)')
+        .select('id, submission_text, link, evidence_path, status, reviewer_notes, created_at, opportunity_id, opportunity:collective_opportunities(title), member:collective_members(display_name)')
         .order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_announcements' as any).select('*').order('created_at', { ascending: false }).limit(100),
@@ -203,6 +205,15 @@ const CollectiveOperationsPanel = () => {
     await load();
   };
 
+  const prepareEvidenceLink = async (path: string) => {
+    const { data, error } = await supabase.storage.from('collective-evidence').createSignedUrl(path, 60);
+    if (error || !data?.signedUrl) {
+      toast.error("We couldn't create a secure evidence link.");
+      return;
+    }
+    setEvidenceUrls((current) => ({ ...current, [path]: data.signedUrl }));
+  };
+
   const reviewSubmission = async (item: Submission, status: 'under_review' | 'accepted' | 'declined' | 'needs_changes') => {
     setActingId(item.id + status);
     const { data, error } = await supabase.functions.invoke('collective-notify', {
@@ -277,6 +288,13 @@ const CollectiveOperationsPanel = () => {
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.opportunity?.title ?? 'Collective opportunity'}</h3><p className="text-xs text-muted-foreground">{item.member?.display_name ?? 'Member'} · {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status.replace(/_/g, ' ')}</span></div>
               <p className="whitespace-pre-wrap break-words text-sm">{item.submission_text}</p>
               {item.link && <a href={item.link} target="_blank" rel="noreferrer noopener" className="block break-all text-sm text-primary underline">Open submitted link</a>}
+              {item.evidence_path && (
+                <div className="flex flex-wrap items-center gap-2">
+                  {evidenceUrls[item.evidence_path]
+                    ? <a href={evidenceUrls[item.evidence_path]} target="_blank" rel="noreferrer noopener" className="text-sm text-primary underline">Open private evidence (expires in 60 seconds)</a>
+                    : <Button size="sm" variant="outline" onClick={() => void prepareEvidenceLink(item.evidence_path!)}>Prepare secure evidence link</Button>}
+                </div>
+              )}
               <Textarea rows={2} placeholder="Member-visible feedback (optional)" value={notes[item.id] ?? item.reviewer_notes ?? ''} onChange={(e) => setNotes((current) => ({ ...current, [item.id]: e.target.value }))} />
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'under_review')}>Under review</Button>
