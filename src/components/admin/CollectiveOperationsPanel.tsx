@@ -65,6 +65,8 @@ const CollectiveOperationsPanel = () => {
   const [actingId, setActingId] = useState<string | null>(null);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
   const [emailBroadcasts, setEmailBroadcasts] = useState(false);
+  const [editingOpportunityId, setEditingOpportunityId] = useState<string | null>(null);
+  const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [evidenceUrls, setEvidenceUrls] = useState<Record<string, string>>({});
   const [opportunityForm, setOpportunityForm] = useState({
@@ -133,8 +135,7 @@ const CollectiveOperationsPanel = () => {
       toast.error('Your session has expired. Sign in again.');
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
-    const { error } = await supabase.from('collective_opportunities' as any).insert({
+    const opportunityData = {
       title: opportunityForm.title.trim().slice(0, 180),
       description: opportunityForm.description.trim().slice(0, 10000),
       category: opportunityForm.category,
@@ -142,15 +143,19 @@ const CollectiveOperationsPanel = () => {
       instructions: opportunityForm.instructions.trim() || null,
       deadline: opportunityForm.deadline ? new Date(opportunityForm.deadline).toISOString() : null,
       requires_submission: opportunityForm.requires_submission,
-      status: 'draft',
-      created_by: auth.user.id,
-    });
+      updated_at: new Date().toISOString(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
+    const { error } = editingOpportunityId
+      ? await supabase.from('collective_opportunities' as any).update(opportunityData).eq('id', editingOpportunityId)
+      : await supabase.from('collective_opportunities' as any).insert({ ...opportunityData, status: 'draft', created_by: auth.user.id });
     setSaving(false);
     if (error) {
       toast.error("We couldn't save the opportunity. Check your permissions and try again.");
       return;
     }
-    toast.success('Opportunity saved as draft.');
+    toast.success(editingOpportunityId ? 'Opportunity updated.' : 'Opportunity saved as draft.');
+    setEditingOpportunityId(null);
     setOpportunityForm({ title: '', description: '', category: 'collaboration', requirements: '', instructions: '', deadline: '', requires_submission: true });
     await load();
   };
@@ -187,20 +192,23 @@ const CollectiveOperationsPanel = () => {
       toast.error('Your session has expired. Sign in again.');
       return;
     }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
-    const { error } = await supabase.from('collective_announcements' as any).insert({
+    const announcementData = {
       title: announcementForm.title.trim().slice(0, 180),
       content: announcementForm.content.trim().slice(0, 10000),
       category: announcementForm.category,
-      status: 'draft',
-      created_by: auth.user.id,
-    });
+      updated_at: new Date().toISOString(),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
+    const { error } = editingAnnouncementId
+      ? await supabase.from('collective_announcements' as any).update(announcementData).eq('id', editingAnnouncementId)
+      : await supabase.from('collective_announcements' as any).insert({ ...announcementData, status: 'draft', created_by: auth.user.id });
     setSaving(false);
     if (error) {
       toast.error("We couldn't save the announcement. Check your permissions and try again.");
       return;
     }
-    toast.success('Announcement saved as draft.');
+    toast.success(editingAnnouncementId ? 'Announcement updated.' : 'Announcement saved as draft.');
+    setEditingAnnouncementId(null);
     setAnnouncementForm({ title: '', content: '', category: 'update' });
     await load();
   };
@@ -282,7 +290,7 @@ const CollectiveOperationsPanel = () => {
         </div>
         <TabsContent value="opportunities" className="space-y-4">
           <form onSubmit={saveOpportunity} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
-            <h3 className="font-medium">Create opportunity draft</h3>
+            <h3 className="font-medium">{editingOpportunityId ? 'Edit opportunity' : 'Create opportunity draft'}</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1"><Label htmlFor="collective-opp-title">Title</Label><Input id="collective-opp-title" required maxLength={180} value={opportunityForm.title} onChange={(e) => setOpportunityForm((f) => ({ ...f, title: e.target.value }))} /></div>
               <div className="space-y-1"><Label htmlFor="collective-opp-category">Category</Label><select id="collective-opp-category" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={opportunityForm.category} onChange={(e) => setOpportunityForm((f) => ({ ...f, category: e.target.value }))}><option value="collaboration">Collaboration</option><option value="campaign">Campaign</option><option value="promotion">Promotion</option><option value="event">Event</option><option value="content_creation">Content creation</option><option value="a_and_r">A&R</option><option value="community">Community activity</option><option value="other">Other</option></select></div>
@@ -296,13 +304,14 @@ const CollectiveOperationsPanel = () => {
               <div className="space-y-1"><Label htmlFor="collective-opp-deadline">Deadline (optional)</Label><Input id="collective-opp-deadline" type="datetime-local" value={opportunityForm.deadline} onChange={(e) => setOpportunityForm((f) => ({ ...f, deadline: e.target.value }))} /></div>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={opportunityForm.requires_submission} onChange={(e) => setOpportunityForm((f) => ({ ...f, requires_submission: e.target.checked }))} />Members must submit a contribution</label>
             </div>
-            <Button type="submit" disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BriefcaseBusiness className="mr-2 h-4 w-4" />}Save draft</Button>
+            <div className="flex flex-wrap gap-2"><Button type="submit" disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BriefcaseBusiness className="mr-2 h-4 w-4" />}{editingOpportunityId ? 'Save changes' : 'Save draft'}</Button>{editingOpportunityId && <Button type="button" variant="outline" onClick={() => { setEditingOpportunityId(null); setOpportunityForm({ title: '', description: '', category: 'collaboration', requirements: '', instructions: '', deadline: '', requires_submission: true }); }}>Cancel edit</Button>}</div>
           </form>
           {opportunities.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No opportunities recorded.</p> : opportunities.map((item) => (
             <article key={item.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.title}</h3><p className="text-xs text-muted-foreground capitalize">{item.category.replace(/_/g, ' ')} · created {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status}</span></div>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{item.description}</p>
               <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={() => { setEditingOpportunityId(item.id); setOpportunityForm({ title: item.title, description: item.description, category: item.category, requirements: item.requirements ?? '', instructions: item.instructions ?? '', deadline: item.deadline ? new Date(item.deadline).toISOString().slice(0, 16) : '', requires_submission: item.requires_submission }); }}>Edit</Button>
                 {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id || broadcastingId === item.id} onClick={() => void setOpportunityStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('opportunity', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status !== 'closed' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'closed')}><X className="mr-2 h-4 w-4" />Close</Button>}
@@ -336,19 +345,20 @@ const CollectiveOperationsPanel = () => {
         </TabsContent>
         <TabsContent value="announcements" className="space-y-4">
           <form onSubmit={saveAnnouncement} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
-            <h3 className="font-medium">Create announcement draft</h3>
+            <h3 className="font-medium">{editingAnnouncementId ? 'Edit announcement' : 'Create announcement draft'}</h3>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-1"><Label htmlFor="collective-ann-title">Title</Label><Input id="collective-ann-title" required maxLength={180} value={announcementForm.title} onChange={(e) => setAnnouncementForm((f) => ({ ...f, title: e.target.value }))} /></div>
               <div className="space-y-1"><Label htmlFor="collective-ann-category">Category</Label><select id="collective-ann-category" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={announcementForm.category} onChange={(e) => setAnnouncementForm((f) => ({ ...f, category: e.target.value }))}><option value="update">Programme update</option><option value="opportunity">Opportunity</option><option value="campaign">Campaign</option><option value="event">Event</option><option value="guidance">Member guidance</option></select></div>
             </div>
             <div className="space-y-1"><Label htmlFor="collective-ann-content">Content</Label><Textarea id="collective-ann-content" required minLength={10} rows={4} value={announcementForm.content} onChange={(e) => setAnnouncementForm((f) => ({ ...f, content: e.target.value }))} /></div>
-            <Button type="submit" disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}Save draft</Button>
+            <div className="flex flex-wrap gap-2"><Button type="submit" disabled={saving}>{saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Megaphone className="mr-2 h-4 w-4" />}{editingAnnouncementId ? 'Save changes' : 'Save draft'}</Button>{editingAnnouncementId && <Button type="button" variant="outline" onClick={() => { setEditingAnnouncementId(null); setAnnouncementForm({ title: '', content: '', category: 'update' }); }}>Cancel edit</Button>}</div>
           </form>
           {announcements.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No announcements recorded.</p> : announcements.map((item) => (
             <article key={item.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.title}</h3><p className="text-xs text-muted-foreground capitalize">{item.category.replace(/_/g, ' ')} · created {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status}</span></div>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{item.content}</p>
               <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="ghost" onClick={() => { setEditingAnnouncementId(item.id); setAnnouncementForm({ title: item.title, content: item.content, category: item.category }); }}>Edit</Button>
                 {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id || broadcastingId === item.id} onClick={() => void setAnnouncementStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('announcement', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setAnnouncementStatus(item, 'draft')}>Return to draft</Button>}
