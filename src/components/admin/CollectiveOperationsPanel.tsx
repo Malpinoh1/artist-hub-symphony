@@ -50,6 +50,8 @@ const CollectiveOperationsPanel = () => {
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
+  const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
+  const [emailBroadcasts, setEmailBroadcasts] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [evidenceUrls, setEvidenceUrls] = useState<Record<string, string>>({});
   const [opportunityForm, setOpportunityForm] = useState({
@@ -82,6 +84,26 @@ const CollectiveOperationsPanel = () => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const broadcastMembers = async (kind: 'announcement' | 'opportunity', id: string) => {
+    setBroadcastingId(id);
+    const { data, error } = await supabase.functions.invoke('collective-notify', {
+      body: { action: 'broadcast', kind, id, email: emailBroadcasts },
+    });
+    setBroadcastingId(null);
+    const payload = data as { error?: string; notified?: number; emailed?: number; email_failed?: number } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? 'The item was saved, but notifications could not be processed.');
+      return;
+    }
+    if (emailBroadcasts && (payload?.email_failed ?? 0) > 0) {
+      toast.error(`In-app notifications processed. ${payload?.email_failed} email delivery/deliveries failed and can be retried.`);
+    } else {
+      const emailSummary = emailBroadcasts ? ` ${payload?.emailed ?? 0} email(s) sent.` : '';
+      toast.success(`${payload?.notified ?? 0} new in-app notification(s) created.${emailSummary}`);
+    }
+    await load();
+  };
 
   const saveOpportunity = async (event: FormEvent) => {
     event.preventDefault();
@@ -128,18 +150,11 @@ const CollectiveOperationsPanel = () => {
       return;
     }
     if (status === 'published' && item.status !== 'published') {
-      const { data, error: notifyError } = await supabase.functions.invoke('collective-notify', {
-        body: { action: 'broadcast', kind: 'opportunity', id: item.id, email: false },
-      });
-      const payload = data as { error?: string; notified?: number } | null;
-      if (notifyError || payload?.error) {
-        toast.error('Opportunity published, but member notifications could not be sent. Retry notification delivery after checking the function.');
-      } else {
-        toast.success(`Opportunity published; ${payload?.notified ?? 0} member notifications created.`);
-      }
-    } else {
-      toast.success(status === 'closed' ? 'Opportunity closed.' : status === 'draft' ? 'Opportunity returned to draft.' : 'Opportunity updated.');
+      setActingId(null);
+      await broadcastMembers('opportunity', item.id);
+      return;
     }
+    toast.success(status === 'closed' ? 'Opportunity closed.' : status === 'draft' ? 'Opportunity returned to draft.' : 'Opportunity updated.');
     setActingId(null);
     await load();
   };
@@ -189,18 +204,11 @@ const CollectiveOperationsPanel = () => {
       return;
     }
     if (status === 'published' && item.status !== 'published') {
-      const { data, error: notifyError } = await supabase.functions.invoke('collective-notify', {
-        body: { action: 'broadcast', kind: 'announcement', id: item.id, email: false },
-      });
-      const payload = data as { error?: string; notified?: number } | null;
-      if (notifyError || payload?.error) {
-        toast.error('Announcement published, but member notifications could not be sent. Check the notification function before retrying.');
-      } else {
-        toast.success(`Announcement published; ${payload?.notified ?? 0} member notifications created.`);
-      }
-    } else {
-      toast.success(status === 'draft' ? 'Announcement returned to draft.' : 'Announcement updated.');
+      setActingId(null);
+      await broadcastMembers('announcement', item.id);
+      return;
     }
+    toast.success(status === 'draft' ? 'Announcement returned to draft.' : 'Announcement updated.');
     setActingId(null);
     await load();
   };
@@ -243,6 +251,10 @@ const CollectiveOperationsPanel = () => {
       <div>
         <h2 className="text-lg font-semibold">Programme operations</h2>
         <p className="mt-1 text-sm text-muted-foreground">Create opportunities and announcements, and review member contributions. Access is enforced by existing Supabase policies and the notification function.</p>
+        <label className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
+          <input type="checkbox" checked={emailBroadcasts} onChange={(event) => setEmailBroadcasts(event.target.checked)} />
+          Also email active members when publishing or retrying a broadcast
+        </label>
       </div>
       <Tabs defaultValue="opportunities" className="space-y-4">
         <div className="overflow-x-auto">
@@ -275,7 +287,8 @@ const CollectiveOperationsPanel = () => {
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.title}</h3><p className="text-xs text-muted-foreground capitalize">{item.category.replace(/_/g, ' ')} · created {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status}</span></div>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{item.description}</p>
               <div className="flex flex-wrap gap-2">
-                {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
+                {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id || broadcastingId === item.id} onClick={() => void setOpportunityStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
+                {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('opportunity', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status !== 'closed' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'closed')}><X className="mr-2 h-4 w-4" />Close</Button>}
                 {item.status !== 'draft' && <Button size="sm" variant="ghost" disabled={actingId === item.id} onClick={() => void setOpportunityStatus(item, 'draft')}>Return to draft</Button>}
               </div>
@@ -320,7 +333,8 @@ const CollectiveOperationsPanel = () => {
               <div className="flex flex-wrap items-start justify-between gap-2"><div><h3 className="font-medium">{item.title}</h3><p className="text-xs text-muted-foreground capitalize">{item.category.replace(/_/g, ' ')} · created {new Date(item.created_at).toLocaleDateString()}</p></div><span className="rounded-full border border-border px-2 py-1 text-xs capitalize">{item.status}</span></div>
               <p className="whitespace-pre-wrap text-sm text-muted-foreground">{item.content}</p>
               <div className="flex flex-wrap gap-2">
-                {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id} onClick={() => void setAnnouncementStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
+                {item.status !== 'published' && <Button size="sm" disabled={actingId === item.id || broadcastingId === item.id} onClick={() => void setAnnouncementStatus(item, 'published')}><Send className="mr-2 h-4 w-4" />Publish</Button>}
+                {item.status === 'published' && <Button size="sm" variant="outline" disabled={broadcastingId === item.id} onClick={() => void broadcastMembers('announcement', item.id)}><BellRing className="mr-2 h-4 w-4" />Retry notifications</Button>}
                 {item.status === 'published' && <Button size="sm" variant="outline" disabled={actingId === item.id} onClick={() => void setAnnouncementStatus(item, 'draft')}>Return to draft</Button>}
               </div>
             </article>
