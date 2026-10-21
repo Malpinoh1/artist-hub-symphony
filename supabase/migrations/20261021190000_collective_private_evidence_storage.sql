@@ -111,7 +111,7 @@ BEGIN
     WHERE id = 'collective-evidence'
       AND public = false
       AND file_size_limit = 10485760
-      AND allowed_mime_types @> ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
+      AND allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'application/pdf']::text[]
   ) THEN
     RAISE EXCEPTION 'collective-evidence bucket already exists with unexpected privacy or upload settings; inspect it before continuing';
   END IF;
