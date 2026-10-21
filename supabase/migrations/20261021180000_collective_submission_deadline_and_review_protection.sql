@@ -97,3 +97,21 @@ CREATE TRIGGER protect_collective_submission_member_update
 BEFORE UPDATE ON public.collective_submissions
 FOR EACH ROW
 EXECUTE FUNCTION public.protect_collective_submission_member_update();
+
+
+-- Links are optional, but any submitted link must use HTTP(S). NOT VALID
+-- avoids blocking deployment if legacy records need cleanup while enforcing
+-- the rule for new writes immediately.
+DO $constraint$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'collective_submissions_link_http_check'
+      AND conrelid = 'public.collective_submissions'::regclass
+  ) THEN
+    ALTER TABLE public.collective_submissions
+      ADD CONSTRAINT collective_submissions_link_http_check
+      CHECK (link IS NULL OR link ~* '^https?://[^[:space:]]+$') NOT VALID;
+  END IF;
+END
+$constraint$;
