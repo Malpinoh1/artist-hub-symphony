@@ -32,17 +32,30 @@ const ContributionHistoryPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const { data, error } = await supabase
+    // Newer deployments include private evidence paths. Fall back to the established
+    // submission columns while the additive evidence migration is not yet present.
+    let result = await supabase
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       .from('collective_submissions' as any)
       .select('id, opportunity_id, submission_text, status, reviewer_notes, evidence_path, created_at, reviewed_at')
       .order('created_at', { ascending: false })
       .limit(100);
-    if (error) {
+    if (result.error && result.error.message.toLowerCase().includes('evidence_path')) {
+      result = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
+        .from('collective_submissions' as any)
+        .select('id, opportunity_id, submission_text, status, reviewer_notes, created_at, reviewed_at')
+        .order('created_at', { ascending: false })
+        .limit(100);
+    }
+    if (result.error) {
       setFailed(true);
       setItems([]);
     } else {
-      setItems((data as unknown as Contribution[]) ?? []);
+      setItems(((result.data as unknown as Contribution[]) ?? []).map((item) => ({
+        ...item,
+        evidence_path: item.evidence_path ?? null,
+      })));
     }
     setLoading(false);
   }, []);
