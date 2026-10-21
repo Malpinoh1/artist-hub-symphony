@@ -42,6 +42,17 @@ interface Announcement {
   published_at: string | null;
   created_at: string;
 }
+interface Member {
+  id: string;
+  handle: string;
+  display_name: string;
+  roles: string[];
+  status: string;
+  country: string | null;
+  member_since: string;
+  visibility: string;
+  discoverable: boolean;
+}
 interface AuditEntry {
   id: string;
   actor_id: string | null;
@@ -59,7 +70,10 @@ const CollectiveOperationsPanel = () => {
   const [opportunities, setOpportunities] = useState<Opportunity[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [members, setMembers] = useState<Member[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditEntry[]>([]);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberReasons, setMemberReasons] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -78,7 +92,7 @@ const CollectiveOperationsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const [opps, subs, anns, audit] = await Promise.all([
+    const [opps, subs, anns, audit, memberResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
@@ -88,8 +102,10 @@ const CollectiveOperationsPanel = () => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_announcements' as any).select('*').order('created_at', { ascending: false }).limit(100),
       supabase.rpc('get_collective_audit_logs', { p_limit: 100 }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
+      supabase.from('collective_members' as any).select('id, handle, display_name, roles, status, country, member_since, visibility, discoverable').order('member_since', { ascending: false }).limit(200),
     ]);
-    if (opps.error || subs.error || anns.error || audit.error) {
+    if (opps.error || subs.error || anns.error || audit.error || memberResult.error) {
       setFailed(true);
       setLoading(false);
       return;
@@ -98,6 +114,7 @@ const CollectiveOperationsPanel = () => {
     setSubmissions((subs.data as unknown as Submission[]) ?? []);
     setAnnouncements((anns.data as unknown as Announcement[]) ?? []);
     setAuditLogs((audit.data as unknown as AuditEntry[]) ?? []);
+    setMembers((memberResult.data as unknown as Member[]) ?? []);
     setLoading(false);
   }, []);
 
@@ -241,6 +258,34 @@ const CollectiveOperationsPanel = () => {
     await load();
   };
 
+  const setMemberStatus = async (member: Member, status: 'active' | 'suspended') => {
+    const reason = (memberReasons[member.id] ?? '').trim();
+    if (reason.length < 10) {
+      toast.error('Enter a reason of at least 10 characters before changing membership status.');
+      return;
+    }
+    setActingId(member.id);
+    const { data, error } = await supabase.rpc('manage_collective_member', {
+      p_member_id: member.id,
+      p_status: status,
+      p_reason: reason,
+    });
+    setActingId(null);
+    const payload = data as { ok?: boolean; error?: string; already_processed?: boolean } | null;
+    if (error || payload?.error) {
+      toast.error(payload?.error ?? "We couldn't update the member status.");
+      return;
+    }
+    toast.success(payload?.already_processed ? 'Member status was already set.' : `Member status changed to ${status}.`);
+    setMemberReasons((current) => ({ ...current, [member.id]: '' }));
+    await load();
+  };
+
+  const filteredMembers = members.filter((member) => {
+    const term = memberSearch.trim().toLowerCase();
+    return !term || member.display_name.toLowerCase().includes(term) || member.handle.toLowerCase().includes(term);
+  });
+
   const prepareEvidenceLink = async (path: string) => {
     const { data, error } = await supabase.storage.from('collective-evidence').createSignedUrl(path, 60);
     if (error || !data?.signedUrl) {
@@ -287,12 +332,36 @@ const CollectiveOperationsPanel = () => {
       <Tabs defaultValue="opportunities" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList className="min-w-max">
+            <TabsTrigger value="members"><Users className="mr-2 h-4 w-4" />Members ({members.length})</TabsTrigger>
             <TabsTrigger value="opportunities"><BriefcaseBusiness className="mr-2 h-4 w-4" />Opportunities</TabsTrigger>
             <TabsTrigger value="contributions"><Check className="mr-2 h-4 w-4" />Contributions ({submissions.length})</TabsTrigger>
             <TabsTrigger value="announcements"><Megaphone className="mr-2 h-4 w-4" />Announcements</TabsTrigger>
             <TabsTrigger value="audit"><AlertCircle className="mr-2 h-4 w-4" />Audit history</TabsTrigger>
           </TabsList>
         </div>
+        <TabsContent value="members" className="space-y-4">
+          <div>
+            <h3 className="font-medium">Member management</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Suspend or reinstate membership through the admin-checked RPC. Every status change requires a reason and is recorded in audit history.</p>
+          </div>
+          <Input placeholder="Search by display name or handle" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} />
+          {filteredMembers.length === 0 ? <p className="rounded-xl border border-border p-6 text-center text-sm text-muted-foreground">No members match this search.</p> : filteredMembers.map((member) => (
+            <article key={member.id} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <h3 className="font-medium">{member.display_name}</h3>
+                  <p className="text-xs text-muted-foreground">@{member.handle}{member.country ? ` · ${member.country}` : ''} · joined {new Date(member.member_since).toLocaleDateString()}</p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">{(member.roles ?? []).map((role) => <span key={role} className="rounded-full bg-muted px-2 py-0.5 text-[11px] capitalize">{role.replace(/_/g, ' ')}</span>)}</div>
+                </div>
+                <span className="rounded-full border border-border px-2.5 py-1 text-xs capitalize">{member.status}</span>
+              </div>
+              <Textarea rows={2} minLength={10} placeholder="Required reason for status change (minimum 10 characters)" value={memberReasons[member.id] ?? ''} onChange={(event) => setMemberReasons((current) => ({ ...current, [member.id]: event.target.value }))} />
+              {member.status === 'active'
+                ? <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void setMemberStatus(member, 'suspended')}>Suspend membership</Button>
+                : <Button size="sm" disabled={actingId !== null} onClick={() => void setMemberStatus(member, 'active')}>Reinstate membership</Button>}
+            </article>
+          ))}
+        </TabsContent>
         <TabsContent value="opportunities" className="space-y-4">
           <form onSubmit={saveOpportunity} className="rounded-xl border border-border bg-card/60 p-4 space-y-3">
             <h3 className="font-medium">{editingOpportunityId ? 'Edit opportunity' : 'Create opportunity draft'}</h3>
