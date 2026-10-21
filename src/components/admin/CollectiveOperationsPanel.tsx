@@ -55,6 +55,19 @@ interface Announcement {
   published_at: string | null;
   created_at: string;
 }
+interface AdminStats {
+  members_active: number;
+  referrals_total: number;
+  referrals_qualified: number;
+  referrals_active: number;
+  referrals_flagged: number;
+  opportunities_published: number;
+  opportunity_applications_pending: number;
+  contributions_pending: number;
+  contributions_approved: number;
+  announcements_published: number;
+  email_deliveries_failed: number;
+}
 interface Referral {
   id: string;
   referrer_member_id: string;
@@ -114,6 +127,7 @@ const CollectiveOperationsPanel = () => {
   const [referralReasons, setReferralReasons] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
+  const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
   const [saving, setSaving] = useState(false);
   const [actingId, setActingId] = useState<string | null>(null);
   const [broadcastingId, setBroadcastingId] = useState<string | null>(null);
@@ -130,7 +144,7 @@ const CollectiveOperationsPanel = () => {
   const load = useCallback(async () => {
     setLoading(true);
     setFailed(false);
-    const [opps, subs, anns, audit, memberResult, applicationResult, referralResult] = await Promise.all([
+    const [opps, subs, anns, audit, memberResult, applicationResult, referralResult, statsResult] = await Promise.all([
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_opportunities' as any).select('*').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
@@ -146,8 +160,9 @@ const CollectiveOperationsPanel = () => {
       supabase.from('collective_opportunity_applications' as any).select('id, opportunity_id, user_id, member_id, message, status, reviewer_notes, created_at, reviewed_at, opportunity:collective_opportunities(title), member:collective_members(display_name)').order('created_at', { ascending: false }).limit(100),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Collective tables are not yet in generated client types.
       supabase.from('collective_referrals' as any).select('id, referrer_member_id, referred_user_id, referred_application_id, source, status, qualified_at, flagged, flag_reason, created_at, referrer:collective_members(display_name, handle)').order('created_at', { ascending: false }).limit(200),
+      supabase.rpc('get_collective_admin_stats'),
     ]);
-    if (opps.error || subs.error || anns.error || audit.error || memberResult.error || applicationResult.error || referralResult.error) {
+    if (opps.error || subs.error || anns.error || audit.error || memberResult.error || applicationResult.error || referralResult.error || statsResult.error) {
       setFailed(true);
       setLoading(false);
       return;
@@ -159,6 +174,7 @@ const CollectiveOperationsPanel = () => {
     setMembers((memberResult.data as unknown as Member[]) ?? []);
     setOpportunityApplications((applicationResult.data as unknown as OpportunityApplication[]) ?? []);
     setReferrals((referralResult.data as unknown as Referral[]) ?? []);
+    setAdminStats((statsResult.data as unknown as AdminStats) ?? null);
     setLoading(false);
   }, []);
 
@@ -442,6 +458,24 @@ const CollectiveOperationsPanel = () => {
           Also email active members when publishing or retrying a broadcast
         </label>
       </div>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-8">
+        {[
+          { label: 'Active members', value: adminStats?.members_active ?? 0 },
+          { label: 'Qualified referrals', value: adminStats?.referrals_qualified ?? 0 },
+          { label: 'Flagged referrals', value: adminStats?.referrals_flagged ?? 0 },
+          { label: 'Open opportunities', value: adminStats?.opportunities_published ?? 0 },
+          { label: 'Pending opportunity applications', value: adminStats?.opportunity_applications_pending ?? 0 },
+          { label: 'Pending contributions', value: adminStats?.contributions_pending ?? 0 },
+          { label: 'Approved contributions', value: adminStats?.contributions_approved ?? 0 },
+          { label: 'Failed email deliveries', value: adminStats?.email_deliveries_failed ?? 0 },
+        ].map((metric) => (
+          <div key={metric.label} className="min-w-0 rounded-xl border border-border bg-card/60 p-3">
+            <p className="text-xs text-muted-foreground">{metric.label}</p>
+            <p className="mt-1 text-xl font-semibold tabular-nums">{metric.value}</p>
+          </div>
+        ))}
+      </div>
+
       <Tabs defaultValue="opportunities" className="space-y-4">
         <div className="overflow-x-auto">
           <TabsList className="min-w-max">
