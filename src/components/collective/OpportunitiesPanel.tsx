@@ -70,10 +70,12 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [applicationsUnavailable, setApplicationsUnavailable] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
+    setApplicationsUnavailable(false);
     const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }, { data: appData, error: appErr }] = await Promise.all([
       supabase
         .from('collective_opportunities')
@@ -84,7 +86,10 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
       supabase.from('collective_opportunity_applications' as any).select('*').order('created_at', { ascending: false }),
     ]);
-    if (oppErr || subErr || appErr) {
+    const missingApplicationsTable = Boolean(
+      appErr && /collective_opportunity_applications|schema cache|does not exist/i.test(appErr.message)
+    );
+    if (oppErr || subErr || (appErr && !missingApplicationsTable)) {
       setLoadError(true);
       setLoading(false);
       return;
@@ -92,6 +97,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
     setOpps((oppData as Opportunity[]) ?? []);
     setSubs((subData as Submission[]) ?? []);
     setApplications((appData as unknown as OpportunityApplication[]) ?? []);
+    setApplicationsUnavailable(missingApplicationsTable);
     setLoading(false);
   }, []);
 
@@ -241,6 +247,12 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
 
   return (
     <div className="space-y-6">
+      {applicationsUnavailable && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+          <p className="font-medium">Opportunity applications are not enabled yet.</p>
+          <p className="mt-1 text-muted-foreground">The database update for applications has not been applied to this environment. Published opportunities and existing contributions can still be viewed, but expressing interest is temporarily unavailable.</p>
+        </div>
+      )}
       <section className="space-y-3">
         <h2 className="font-semibold">Ways to contribute</h2>
         {opps.length === 0 ? (
@@ -304,7 +316,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                   </div>
                 )}
                 {!o.requires_submission && !closed && (!myApplication || myApplication.status === 'withdrawn') && (
-                  <Button className="mt-4" size="sm" disabled={sending} onClick={() => void submitInterest(o.id)}>
+                  <Button className="mt-4" size="sm" disabled={sending || applicationsUnavailable} onClick={() => void submitInterest(o.id)}>
                     {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                     {myApplication?.status === 'withdrawn' ? 'Reapply' : 'Express interest'}
                   </Button>
