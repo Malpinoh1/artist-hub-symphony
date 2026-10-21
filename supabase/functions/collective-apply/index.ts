@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: validRoles } = await admin
       .from("collective_roles").select("slug").eq("is_active", true);
-    const allowed = new Set((validRoles ?? []).map((r: any) => r.slug));
+    const allowed = new Set((validRoles ?? []).map((r) => r.slug));
     if (roles.some((r) => !allowed.has(r))) errors.push("Invalid role selection");
 
     if (errors.length) return json({ error: errors[0], errors }, 400);
