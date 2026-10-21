@@ -1,0 +1,52 @@
+name: Collective web quality checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/mdistro-collective-hardening]
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm ci
+      - name: Build production bundle
+        run: npm run build
+      - name: Lint Collective files changed by this work
+        run: >-
+          npx eslint
+          src/pages/CollectiveCenter.tsx
+          src/pages/CollectiveMemberProfile.tsx
+          src/components/collective/ReferralHistoryPanel.tsx
+          src/components/collective/ContributionHistoryPanel.tsx
+          src/components/collective/NotificationsPanel.tsx
+          src/components/collective/ProfilePanel.tsx
+          src/components/collective/DirectoryPanel.tsx
+          src/components/admin/CollectiveOperationsPanel.tsx
+          src/components/admin/CollectiveTab.tsx
+          supabase/functions/collective-apply/index.ts
+          supabase/functions/collective-notify/index.ts
+          supabase/functions/collective-review/index.ts
+      - name: Set up Deno for Edge Function type checks
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check Collective Edge Functions
+        run: >-
+          deno check
+          supabase/functions/collective-apply/index.ts
+          supabase/functions/collective-review/index.ts
+          supabase/functions/collective-referral-claim/index.ts
+          supabase/functions/collective-notify/index.ts

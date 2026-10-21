@@ -17,7 +17,10 @@ export type CollectiveEmailEvent =
   | "contribution_declined"
   | "contribution_needs_changes"
   | "opportunity_new"
-  | "announcement";
+  | "announcement"
+  | "opportunity_application_under_review"
+  | "opportunity_application_accepted"
+  | "opportunity_application_declined";
 
 interface BuildArgs {
   event: CollectiveEmailEvent;
@@ -28,8 +31,15 @@ interface BuildArgs {
   title?: string;
 }
 
-export function buildCollectiveEmail({ event, name, note, handle, title }: BuildArgs) {
-  const first = (name || "there").split(" ")[0];
+const escapeHtml = (value: string) =>
+  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+
+export function buildCollectiveEmail({ event, name, note: rawNote, handle: rawHandle, title }: BuildArgs) {
+  const first = escapeHtml((name || "there").split(" ")[0]);
+  const note = rawNote ? escapeHtml(rawNote) : undefined;
+  const titleHtml = title ? escapeHtml(title) : undefined;
+  const safeHandle = escapeHtml(rawHandle ?? "");
 
   switch (event) {
     case "application_received":
@@ -55,7 +65,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           subheading: "Your Collective membership is now active.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>Your application has been approved. Your Collective Center is now unlocked, including your personal Collective link:</p>
-            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective?ref=${handle ?? ""}</p>
+            <p style="background:rgba(255,255,255,.05);padding:12px 14px;border-radius:10px;font-weight:700;">${SITE}/collective?ref=${safeHandle}</p>
             <p>Share it with artists, fans and industry people you think belong here. Participation is entirely voluntary.</p>`,
           ctaLabel: "Open Collective Center",
           ctaUrl: `${SITE}/collective/center`,
@@ -126,7 +136,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `Thank you, ${first}`,
           subheading: "Your contribution has been accepted.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>Your contribution${args_title(title)} has been reviewed and accepted. Thank you for helping grow the independent music ecosystem.</p>
+            <p>Your contribution${args_title(titleHtml)} has been reviewed and accepted. Thank you for helping grow the independent music ecosystem.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}`,
           ctaLabel: "View my contributions",
           ctaUrl: `${SITE}/collective/center`,
@@ -140,7 +150,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `Thanks for taking part, ${first}`,
           subheading: "This contribution was not accepted.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>After review, your contribution${args_title(title)} was not accepted this time.</p>
+            <p>After review, your contribution${args_title(titleHtml)} was not accepted this time.</p>
             ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
             <p>Plenty of other opportunities are open in your Collective Center.</p>`,
           ctaLabel: "Browse opportunities",
@@ -155,7 +165,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
           heading: `One more step, ${first}`,
           subheading: "Our reviewers asked for some changes.",
           bodyHtml: `${tag(PROGRAMME)}
-            <p>Your contribution${args_title(title)} needs a few changes before it can be accepted.</p>
+            <p>Your contribution${args_title(titleHtml)} needs a few changes before it can be accepted.</p>
             ${note ? `<p><strong>What to change:</strong> ${note}</p>` : ""}`,
           ctaLabel: "Update my contribution",
           ctaUrl: `${SITE}/collective/center`,
@@ -167,11 +177,57 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         html: brandedEmail({
           preheader: "A new way to contribute is open.",
           heading: `New opportunity, ${first}`,
-          subheading: title ?? "A new opportunity is open.",
+          subheading: titleHtml ?? "A new opportunity is open.",
           bodyHtml: `${tag(PROGRAMME)}
             <p>A new contribution opportunity is now open to Collective members. Participation is voluntary and unpaid.</p>
             ${note ? `<p>${note}</p>` : ""}`,
           ctaLabel: "View opportunity",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_under_review":
+      return {
+        subject: `Your opportunity application is under review — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Your expression of interest is being reviewed.",
+          heading: `Thanks for applying, ${first}`,
+          subheading: titleHtml ?? "Your opportunity application is under review.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your expression of interest has moved into review. You can check its status from your Collective Center.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+          `,
+          ctaLabel: "View application status",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_accepted":
+      return {
+        subject: `Your opportunity application was accepted — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "Your expression of interest was accepted.",
+          heading: `Good news, ${first}`,
+          subheading: titleHtml ?? "Your opportunity application was accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>Your expression of interest was accepted. Please review the opportunity details and any next steps in your Collective Center.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+          `,
+          ctaLabel: "View opportunity",
+          ctaUrl: `${SITE}/collective/center`,
+        }),
+      };
+    case "opportunity_application_declined":
+      return {
+        subject: `Update on your opportunity application — ${PROGRAMME}`,
+        html: brandedEmail({
+          preheader: "An update on your expression of interest.",
+          heading: `Thanks for applying, ${first}`,
+          subheading: titleHtml ?? "Your opportunity application was not accepted.",
+          bodyHtml: `${tag(PROGRAMME)}
+            <p>After review, your expression of interest was not accepted this time.</p>
+            ${note ? `<p><strong>Reviewer note:</strong> ${note}</p>` : ""}
+            <p>Other opportunities may be available in your Collective Center.</p>
+          `,
+          ctaLabel: "Browse opportunities",
           ctaUrl: `${SITE}/collective/center`,
         }),
       };
@@ -180,7 +236,7 @@ export function buildCollectiveEmail({ event, name, note, handle, title }: Build
         subject: `${title ?? "Collective update"} — ${PROGRAMME}`,
         html: brandedEmail({
           preheader: "A new Collective update.",
-          heading: title ?? "Collective update",
+          heading: titleHtml ?? "Collective update",
           subheading: `An update for the community, ${first}`,
           bodyHtml: `${tag(PROGRAMME)}
             ${note ? `<p>${note}</p>` : ""}`,
@@ -217,4 +273,107 @@ export async function sendCollectiveEmail(
     error_message,
   });
   return status === "sent";
+}
+
+
+export type TrackedEmailStatus = "sent" | "failed" | "in_progress" | "queue_failed" | "no_email";
+
+/**
+ * Idempotent, retryable delivery wrapper for core Collective email events.
+ * The event key must represent one business decision/publication version.
+ */
+export async function sendTrackedCollectiveEmail(
+  admin: any,
+  args: BuildArgs & {
+    to: string;
+    applicationId?: string | null;
+    memberId?: string | null;
+    userId: string;
+    eventKey: string;
+  },
+): Promise<TrackedEmailStatus> {
+  const recipient = args.to.trim();
+  if (!recipient) return "no_email";
+  const { userId, eventKey, ...emailArgs } = args;
+
+  const { error: queueError } = await admin
+    .from("collective_notification_deliveries")
+    .upsert({
+      event_key: eventKey,
+      user_id: userId,
+      member_id: args.memberId ?? null,
+      recipient,
+      event_type: args.event,
+      status: "pending",
+    }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+  if (queueError) {
+    console.error("Collective email queue failed", queueError);
+    return "queue_failed";
+  }
+
+  const { data: delivery, error: deliveryError } = await admin
+    .from("collective_notification_deliveries")
+    .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+    .eq("event_key", eventKey)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (deliveryError || !delivery) return "queue_failed";
+  if (delivery.status === "sent") return "sent";
+
+  let claimableStatus = delivery.status;
+  if (delivery.status === "sending") {
+    const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) return "in_progress";
+    const { data: reset } = await admin
+      .from("collective_notification_deliveries")
+      .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+      .eq("id", delivery.id)
+      .eq("status", "sending")
+      .lt("updated_at", staleBefore)
+      .select("id")
+      .maybeSingle();
+    if (!reset) return "in_progress";
+    claimableStatus = "failed";
+  }
+  if (!["pending", "failed"].includes(claimableStatus)) return "in_progress";
+
+  const { data: claimed } = await admin
+    .from("collective_notification_deliveries")
+    .update({
+      status: "sending",
+      attempts: delivery.attempts + 1,
+      updated_at: new Date().toISOString(),
+      last_error: null,
+    })
+    .eq("id", delivery.id)
+    .eq("status", claimableStatus)
+    .select("id, recipient, event_type, member_id")
+    .maybeSingle();
+  if (!claimed) return "in_progress";
+
+  let sent = false;
+  try {
+    sent = await sendCollectiveEmail(admin, {
+      ...emailArgs,
+      event: claimed.event_type as CollectiveEmailEvent,
+      to: claimed.recipient,
+      memberId: claimed.member_id ?? undefined,
+    });
+  } catch (error) {
+    console.error("Collective tracked email failed", error);
+  }
+
+  const now = new Date().toISOString();
+  const { error: finishError } = await admin
+    .from("collective_notification_deliveries")
+    .update({
+      status: sent ? "sent" : "failed",
+      last_error: sent ? null : "Email provider did not confirm delivery",
+      sent_at: sent ? now : null,
+      updated_at: now,
+    })
+    .eq("id", claimed.id)
+    .eq("status", "sending");
+
+  return sent && !finishError ? "sent" : "failed";
 }

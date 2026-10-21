@@ -1,10 +1,13 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Legacy Collective tables are not yet in generated Supabase client types. */
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, RefreshCw, Check, X, HelpCircle, Eye, Users } from 'lucide-react';
+import { Loader2, RefreshCw, Check, X, HelpCircle, Eye, Users, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
+import CollectiveOperationsPanel from '@/components/admin/CollectiveOperationsPanel';
 
 interface Application {
   id: string;
@@ -59,6 +62,8 @@ const CollectiveTab = () => {
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>('pending');
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
   const [expanded, setExpanded] = useState<string | null>(null);
   const [notes, setNotes] = useState<Record<string, string>>({});
   const [acting, setActing] = useState<string | null>(null);
@@ -97,11 +102,17 @@ const CollectiveTab = () => {
       const payload = data as any;
       if (error) throw new Error(payload?.error || error.message);
       if (payload?.error) throw new Error(payload.error);
-      toast.success(
-        status === 'approved'
-          ? `Approved${payload?.handle ? ` — handle @${payload.handle}` : ''}`
-          : `Application marked ${status.replace(/_/g, ' ')}`
-      );
+      if (payload?.email_status === 'failed' || payload?.email_status === 'queue_failed') {
+        toast.error('The application decision was saved, but email delivery failed. Use Retry email to try again.');
+      } else if (payload?.email_status === 'in_progress') {
+        toast.message('Application decision saved. Email delivery is already in progress.');
+      } else {
+        toast.success(
+          status === 'approved'
+            ? `Approved${payload?.handle ? ` — handle @${payload.handle}` : ''}`
+            : `Application marked ${status.replace(/_/g, ' ')}`
+        );
+      }
       await load();
     } catch (err: any) {
       toast.error(err?.message ?? 'Review failed');
@@ -109,6 +120,40 @@ const CollectiveTab = () => {
       setActing(null);
     }
   };
+
+  const retryReceiptEmail = async (id: string) => {
+    setActing(id + ':receipt');
+    try {
+      const { data, error } = await supabase.functions.invoke('collective-notify', {
+        body: { action: 'email_application_received', application_id: id },
+      });
+      const payload = data as { error?: string; email_status?: string } | null;
+      if (error || payload?.error) throw new Error(payload?.error ?? error.message);
+      if (payload?.email_status === 'failed' || payload?.email_status === 'queue_failed') {
+        toast.error('Receipt email delivery failed. You can retry this action.');
+      } else if (payload?.email_status === 'in_progress') {
+        toast.message('Receipt email delivery is already in progress.');
+      } else if (payload?.email_status === 'sent') {
+        toast.success('Receipt email is confirmed as sent.');
+      } else if (payload?.email_status === 'no_email') {
+        toast.message('This application has no email address.');
+      } else {
+        toast.message('Receipt email status checked.');
+      }
+    } catch (err: any) {
+      toast.error(err?.message ?? 'Could not check receipt email status.');
+    } finally {
+      setActing(null);
+    }
+  };
+
+  const visibleApps = apps.filter((app) => {
+    const term = search.trim().toLowerCase();
+    const matchesSearch = !term || app.full_name.toLowerCase().includes(term) || app.email.toLowerCase().includes(term);
+    const matchesRole = roleFilter === 'all' || (app.roles ?? []).includes(roleFilter);
+    return matchesSearch && matchesRole;
+  });
+  const roleOptions = Array.from(new Set(apps.flatMap((app) => app.roles ?? []))).sort();
 
   const statCards = stats
     ? [
@@ -160,15 +205,23 @@ const CollectiveTab = () => {
         ))}
       </div>
 
+      <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_220px]">
+        <Input placeholder="Search applicant name or email" value={search} onChange={(event) => setSearch(event.target.value)} />
+        <select aria-label="Filter applications by role" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value)}>
+          <option value="all">All roles in this view</option>
+          {roleOptions.map((role) => <option key={role} value={role}>{role.replace(/_/g, ' ')}</option>)}
+        </select>
+      </div>
+
       {loading ? (
         <div className="flex justify-center py-16">
           <Loader2 className="h-7 w-7 animate-spin text-primary" />
         </div>
-      ) : apps.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-16">No applications in this view.</p>
+      ) : visibleApps.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-16">No applications match these filters.</p>
       ) : (
         <div className="space-y-3">
-          {apps.map((app) => {
+          {visibleApps.map((app) => {
             const open = expanded === app.id;
             return (
               <div key={app.id} className="rounded-xl border border-border bg-card/60 p-4">
@@ -253,6 +306,15 @@ const CollectiveTab = () => {
                     />
 
                     <div className="flex flex-wrap gap-2">
+                      <Button size="sm" variant="outline" onClick={() => void retryReceiptEmail(app.id)} disabled={acting !== null}>
+                        {acting === app.id + ':receipt' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Mail className="h-4 w-4 mr-2" />}
+                        Check / retry receipt email
+                      </Button>
+                      {app.reviewed_at && ['approved', 'rejected', 'needs_information'].includes(app.status) && (
+                        <Button size="sm" variant="outline" onClick={() => review(app.id, app.status)} disabled={acting !== null}>
+                          <RefreshCw className="h-4 w-4 mr-2" />Retry email
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         onClick={() => review(app.id, 'approved')}
@@ -297,6 +359,7 @@ const CollectiveTab = () => {
           })}
         </div>
       )}
+      <CollectiveOperationsPanel />
     </div>
   );
 };

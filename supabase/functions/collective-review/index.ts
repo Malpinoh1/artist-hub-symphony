@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendCollectiveEmail, sendTrackedCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -52,7 +52,73 @@ Deno.serve(async (req) => {
     if (appErr) throw appErr;
     if (!app) return json({ error: "Application not found" }, 404);
 
-    let member: any = null;
+    const writeReviewAudit = async (reviewedAt: string, previousStatus: string | null, nextStatus: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+      const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
+        event_key: `application:${app.id}:${reviewedAt}`,
+        actor_id: reviewer.id,
+        action: "application_review",
+        target_table: "collective_applications",
+        target_id: app.id,
+        old_state: previousStatus ? { status: previousStatus } : null,
+        new_state: { status: nextStatus, reviewed_at: reviewedAt },
+      }, { onConflict: "event_key", ignoreDuplicates: true });
+      if (auditError) console.error("Collective application audit write failed", auditError);
+    };
+
+    let member: { id: string; handle: string; user_id: string; display_name: string; status: string } | null = null;
+    const eventMap: Record<string, CollectiveEmailEvent> = {
+      approved: "application_approved",
+      rejected: "application_rejected",
+      needs_information: "application_needs_information",
+    };
+    let reviewTimestamp = app.reviewed_at ?? app.created_at ?? new Date().toISOString();
+
+    // A repeated decision is idempotent. Final decisions cannot be silently
+    // flipped through this endpoint; rejected applicants may reapply.
+    if (app.status === status) {
+      if (note !== app.applicant_message && !["approved", "rejected"].includes(status)) {
+        reviewTimestamp = new Date().toISOString();
+        const { error: noteError } = await admin
+          .from("collective_applications")
+          .update({
+            applicant_message: note ?? app.applicant_message,
+            reviewed_at: reviewTimestamp,
+            reviewed_by: reviewer.id,
+          })
+          .eq("id", app.id)
+          .eq("status", app.status);
+        if (noteError) throw noteError;
+        await writeReviewAudit(reviewTimestamp, app.status, app.status);
+      }
+      if (status === "approved") {
+        const { data: existingMember } = await admin
+          .from("collective_members")
+          .select("id, handle, user_id, display_name, status")
+          .eq("application_id", app.id)
+          .maybeSingle();
+        member = existingMember;
+      }
+      const event = eventMap[status];
+      const emailStatus = event
+        ? await sendTrackedCollectiveEmail(admin, {
+            event,
+            to: app.email,
+            name: app.full_name,
+            note: app.applicant_message ?? undefined,
+            handle: member?.handle,
+            applicationId: app.id,
+            memberId: member?.id ?? null,
+            userId: app.user_id,
+            eventKey: `application:${app.id}:${reviewTimestamp}`,
+          })
+        : "not_required";
+      return json({ success: true, status, handle: member?.handle ?? null, already_processed: true, email_status: emailStatus });
+    }
+
+    if (["approved", "rejected"].includes(app.status)) {
+      return json({ error: "This application already has a final decision. Ask an administrator to use the approved correction process if needed." }, 409);
+    }
 
     if (status === "approved") {
       // Resolve the applicant's platform account
@@ -94,37 +160,55 @@ Deno.serve(async (req) => {
           })
           .select("*")
           .single();
-        if (mErr) throw mErr;
-        member = created;
+        if (mErr) {
+          // A concurrent approval may have created the unique member row.
+          const { data: concurrentMember } = await admin
+            .from("collective_members")
+            .select("id, handle, user_id, display_name, status")
+            .eq("user_id", userId)
+            .maybeSingle();
+          if (!concurrentMember) throw mErr;
+          member = concurrentMember;
+        } else {
+          member = created;
+        }
       }
     }
 
-    const { error: updErr } = await admin
+    reviewTimestamp = new Date().toISOString();
+    const { data: updatedApp, error: updErr } = await admin
       .from("collective_applications")
       .update({
         status,
         applicant_message: note ?? app.applicant_message,
-        reviewed_at: new Date().toISOString(),
+        reviewed_at: reviewTimestamp,
         reviewed_by: reviewer.id,
       })
-      .eq("id", app.id);
+      .eq("id", app.id)
+      .eq("status", app.status)
+      .select("id")
+      .maybeSingle();
     if (updErr) throw updErr;
+    if (!updatedApp) {
+      return json({ error: "The application status changed during review. Refresh and try again." }, 409);
+    }
+    await writeReviewAudit(reviewTimestamp, app.status, status);
 
-    // Applicant notification
-    const eventMap: Record<string, string> = {
-      approved: "application_approved",
-      rejected: "application_rejected",
-      needs_information: "application_needs_information",
-    };
-    if (eventMap[status]) {
-      await sendCollectiveEmail(admin, {
-        event: eventMap[status] as any,
+    // Applicant email is recorded in the delivery ledger so a retry can resume
+    // a failed send without repeating the application decision.
+    let emailStatus = "not_required";
+    const emailEvent = eventMap[status];
+    if (emailEvent) {
+      emailStatus = await sendTrackedCollectiveEmail(admin, {
+        event: emailEvent,
         to: app.email,
         name: app.full_name,
         note: note ?? undefined,
         handle: member?.handle,
         applicationId: app.id,
         memberId: member?.id ?? null,
+        userId: app.user_id,
+        eventKey: `application:${app.id}:${reviewTimestamp}`,
       });
     }
 
@@ -162,7 +246,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    return json({ success: true, status, handle: member?.handle ?? null });
+    return json({ success: true, status, handle: member?.handle ?? null, email_status: emailStatus });
   } catch (e) {
     console.error("collective-review error", e);
     return json({ error: (e as Error)?.message ?? "Unexpected error" }, 500);

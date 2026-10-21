@@ -20,6 +20,14 @@ interface Opportunity {
   status: string;
 }
 
+interface OpportunityApplication {
+  id: string;
+  opportunity_id: string;
+  status: string;
+  message: string | null;
+  reviewer_notes: string | null;
+  created_at: string;
+}
 interface Submission {
   id: string;
   opportunity_id: string;
@@ -27,6 +35,7 @@ interface Submission {
   link: string | null;
   status: string;
   reviewer_notes: string | null;
+  evidence_path?: string | null;
   created_at: string;
 }
 
@@ -54,30 +63,41 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
   const [loading, setLoading] = useState(true);
   const [opps, setOpps] = useState<Opportunity[]>([]);
   const [subs, setSubs] = useState<Submission[]>([]);
+  const [applications, setApplications] = useState<OpportunityApplication[]>([]);
   const [openId, setOpenId] = useState<string | null>(null);
   const [text, setText] = useState('');
   const [link, setLink] = useState('');
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [sending, setSending] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [applicationsUnavailable, setApplicationsUnavailable] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setLoadError(false);
-    const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }] = await Promise.all([
+    setApplicationsUnavailable(false);
+    const [{ data: oppData, error: oppErr }, { data: subData, error: subErr }, { data: appData, error: appErr }] = await Promise.all([
       supabase
         .from('collective_opportunities')
         .select('*')
         .in('status', ['published', 'closed'])
         .order('created_at', { ascending: false }),
       supabase.from('collective_submissions').select('*').order('created_at', { ascending: false }),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+      supabase.from('collective_opportunity_applications' as any).select('*').order('created_at', { ascending: false }),
     ]);
-    if (oppErr || subErr) {
+    const missingApplicationsTable = Boolean(
+      appErr && /collective_opportunity_applications|schema cache|does not exist/i.test(appErr.message)
+    );
+    if (oppErr || subErr || (appErr && !missingApplicationsTable)) {
       setLoadError(true);
       setLoading(false);
       return;
     }
     setOpps((oppData as Opportunity[]) ?? []);
     setSubs((subData as Submission[]) ?? []);
+    setApplications((appData as unknown as OpportunityApplication[]) ?? []);
+    setApplicationsUnavailable(missingApplicationsTable);
     setLoading(false);
   }, []);
 
@@ -85,8 +105,59 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
     load();
   }, [load]);
 
+  const submitInterest = async (opportunityId: string) => {
+    const { data: auth, error: authError } = await supabase.auth.getUser();
+    if (authError || !auth.user) return toast.error('Please sign in again before applying.');
+    setSending(true);
+    const existing = applications.find((application) => application.opportunity_id === opportunityId);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+    const { error } = existing?.status === 'withdrawn'
+      ? await supabase.from('collective_opportunity_applications' as any).update({ status: 'submitted', message: null }).eq('id', existing.id).eq('status', 'withdrawn')
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+      : await supabase.from('collective_opportunity_applications' as any).insert({
+          opportunity_id: opportunityId,
+          member_id: memberId,
+          user_id: auth.user.id,
+          message: null,
+          status: 'submitted',
+        });
+    setSending(false);
+    if (error) {
+      toast.error(error.code === '23505' ? 'You have already applied to this opportunity.' : "We couldn't submit your interest. Please try again.");
+      return;
+    }
+    toast.success('Your interest has been submitted.');
+    await load();
+  };
+
+  const withdrawInterest = async (application: OpportunityApplication) => {
+    setSending(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Opportunity application table is introduced by the accompanying migration.
+    const { error } = await supabase.from('collective_opportunity_applications' as any)
+      .update({ status: 'withdrawn' })
+      .eq('id', application.id)
+      .eq('status', 'submitted');
+    setSending(false);
+    if (error) return toast.error("We couldn't withdraw your application.");
+    toast.success('Your application was withdrawn.');
+    await load();
+  };
+
   const submit = async (opportunityId: string) => {
     if (text.trim().length < 20) return toast.error('Please describe your contribution (at least 20 characters).');
+    if (link.trim()) {
+      try {
+        const submittedUrl = new URL(link.trim());
+        if (!['http:', 'https:'].includes(submittedUrl.protocol)) throw new Error('Unsupported protocol');
+      } catch {
+        return toast.error('Enter a valid link beginning with https:// or http://.');
+      }
+    }
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+    if (evidenceFile && (!allowedTypes.includes(evidenceFile.type) || evidenceFile.size > 10 * 1024 * 1024)) {
+      return toast.error('Evidence must be a JPG, PNG, WebP or PDF file no larger than 10 MB.');
+    }
+
     setSending(true);
     const { data: auth } = await supabase.auth.getUser();
     if (!auth.user) {
@@ -94,28 +165,64 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
       toast.error('Please sign in again before submitting.');
       return;
     }
+
     const existing = subs.find((s) => s.opportunity_id === opportunityId);
+    let uploadedPath: string | null = null;
+    if (evidenceFile) {
+      const extensionByType: Record<string, string> = {
+        'image/jpeg': 'jpg',
+        'image/png': 'png',
+        'image/webp': 'webp',
+        'application/pdf': 'pdf',
+      };
+      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extensionByType[evidenceFile.type]}`;
+      const { error: uploadError } = await supabase.storage
+        .from('collective-evidence')
+        .upload(objectPath, evidenceFile, { contentType: evidenceFile.type, upsert: false });
+      if (uploadError) {
+        setSending(false);
+        toast.error("We couldn't upload your evidence. Check the file type and size, then try again.");
+        return;
+      }
+      uploadedPath = objectPath;
+    }
+
     const payload = {
       opportunity_id: opportunityId,
       member_id: memberId,
       user_id: auth.user.id,
       submission_text: text.trim(),
       link: link.trim() || null,
+      evidence_path: uploadedPath ?? existing?.evidence_path ?? null,
       status: 'submitted',
     };
     const { error } = existing
       ? await supabase
           .from('collective_submissions')
-          .update({ submission_text: payload.submission_text, link: payload.link, status: 'submitted' })
+          .update({
+            submission_text: payload.submission_text,
+            link: payload.link,
+            evidence_path: payload.evidence_path,
+            status: 'submitted',
+          })
           .eq('id', existing.id)
       : await supabase.from('collective_submissions').insert(payload);
+    if (error) {
+      if (uploadedPath) await supabase.storage.from('collective-evidence').remove([uploadedPath]);
+      setSending(false);
+      toast.error("We couldn't send your contribution. Please try again.");
+      return;
+    }
+    if (uploadedPath && existing?.evidence_path) {
+      await supabase.storage.from('collective-evidence').remove([existing.evidence_path]);
+    }
     setSending(false);
-    if (error) return toast.error("We couldn't send your contribution. Please try again.");
     toast.success('Contribution sent for review');
     setOpenId(null);
     setText('');
     setLink('');
-    load();
+    setEvidenceFile(null);
+    await load();
   };
 
   if (loading) {
@@ -140,6 +247,12 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
 
   return (
     <div className="space-y-6">
+      {applicationsUnavailable && (
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm">
+          <p className="font-medium">Opportunity applications are not enabled yet.</p>
+          <p className="mt-1 text-muted-foreground">The database update for applications has not been applied to this environment. Published opportunities and existing contributions can still be viewed, but expressing interest is temporarily unavailable.</p>
+        </div>
+      )}
       <section className="space-y-3">
         <h2 className="font-semibold">Ways to contribute</h2>
         {opps.length === 0 ? (
@@ -149,7 +262,9 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
         ) : (
           opps.map((o) => {
             const mySub = subs.find((s) => s.opportunity_id === o.id);
-            const closed = o.status === 'closed';
+            const myApplication = applications.find((application) => application.opportunity_id === o.id);
+            const expired = Boolean(o.deadline && new Date(o.deadline).getTime() <= Date.now());
+            const closed = o.status === 'closed' || expired;
             const canRevise = mySub?.status === 'submitted' || mySub?.status === 'needs_changes';
             const canSubmit = o.requires_submission && !closed && (!mySub || canRevise);
             return (
@@ -162,7 +277,7 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                   <div className="flex items-center gap-2">
                     {closed && (
                       <span className="px-2.5 py-1 rounded-full text-xs border border-border text-muted-foreground">
-                        Closed
+                        {expired && o.status !== 'closed' ? 'Expired' : 'Closed'}
                       </span>
                     )}
                     {o.deadline && (
@@ -187,7 +302,24 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                   </p>
                 )}
                 {!o.requires_submission && !closed && (
-                  <p className="mt-3 text-xs font-medium text-muted-foreground">No submission is required for this opportunity.</p>
+                  <p className="mt-3 text-xs font-medium text-muted-foreground">No contribution attachment is required. You can express interest directly.</p>
+                )}
+
+                {!o.requires_submission && myApplication && (
+                  <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-sm font-medium capitalize">Application: {myApplication.status.replace(/_/g, ' ')}</span>
+                      <span className="text-xs text-muted-foreground">Submitted {new Date(myApplication.created_at).toLocaleDateString()}</span>
+                    </div>
+                    {myApplication.reviewer_notes && <p className="mt-2 text-sm text-muted-foreground">{myApplication.reviewer_notes}</p>}
+                    {myApplication.status === 'submitted' && <Button size="sm" variant="outline" className="mt-3" disabled={sending} onClick={() => void withdrawInterest(myApplication)}>Withdraw application</Button>}
+                  </div>
+                )}
+                {!o.requires_submission && !closed && (!myApplication || myApplication.status === 'withdrawn') && (
+                  <Button className="mt-4" size="sm" disabled={sending || applicationsUnavailable} onClick={() => void submitInterest(o.id)}>
+                    {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                    {myApplication?.status === 'withdrawn' ? 'Reapply' : 'Express interest'}
+                  </Button>
                 )}
 
                 {mySub && (
@@ -240,6 +372,18 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
                             value={link}
                             onChange={(e) => setLink(e.target.value)}
                           />
+                        </div>
+                        <div>
+                          <Label htmlFor={`evidence-${o.id}`}>Evidence attachment (optional)</Label>
+                          <Input
+                            id={`evidence-${o.id}`}
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp,application/pdf"
+                            onChange={(e) => setEvidenceFile(e.target.files?.[0] ?? null)}
+                          />
+                          <p className="mt-1 text-xs text-muted-foreground">Private upload · JPG, PNG, WebP or PDF · maximum 10 MB</p>
+                          {evidenceFile && <p className="mt-1 break-all text-xs">{evidenceFile.name}</p>}
+                          {!evidenceFile && mySub?.evidence_path && <p className="mt-1 text-xs text-muted-foreground">Evidence already attached to this submission.</p>}
                         </div>
                         <div className="flex gap-2">
                           <Button onClick={() => submit(o.id)} disabled={sending}>

@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendCollectiveEmail, sendTrackedCollectiveEmail, type CollectiveEmailEvent } from "../_shared/collective-emails.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -54,60 +54,351 @@ Deno.serve(async (req) => {
 
       const { data: sub, error: subErr } = await admin
         .from("collective_submissions")
-        .select("id, user_id, member_id, opportunity_id")
+        .select("id, user_id, member_id, opportunity_id, status, reviewer_notes, reviewed_at, created_at")
         .eq("id", submissionId)
         .maybeSingle();
       if (subErr || !sub) return json({ error: "Submission not found" }, 404);
 
-      const { error: updErr } = await admin
-        .from("collective_submissions")
-        .update({
-          status,
-          reviewer_notes: notes,
-          reviewed_at: new Date().toISOString(),
-          reviewed_by: actor.id,
-        })
-        .eq("id", submissionId);
-      if (updErr) return json({ error: updErr.message }, 400);
+      const alreadyProcessed = sub.status === status;
+      const allowedTransitions: Record<string, string[]> = {
+        submitted: ["under_review", "accepted", "declined", "needs_changes"],
+        under_review: ["accepted", "declined", "needs_changes"],
+        needs_changes: ["under_review", "accepted", "declined"],
+        accepted: [],
+        declined: [],
+      };
+      if (!alreadyProcessed && !(allowedTransitions[sub.status] ?? []).includes(status)) {
+        return json({ error: "This submission has already been reviewed or its status changed. Refresh and try again." }, 409);
+      }
+
+      const reviewTimestamp = alreadyProcessed
+        ? (sub.reviewed_at ?? new Date().toISOString())
+        : new Date().toISOString();
+
+      if (!alreadyProcessed) {
+        // Compare-and-set the previous status to avoid two concurrent reviewers
+        // both generating notifications for competing decisions.
+        const { data: updated, error: updErr } = await admin
+          .from("collective_submissions")
+          .update({
+            status,
+            reviewer_notes: notes,
+            reviewed_at: reviewTimestamp,
+            reviewed_by: actor.id,
+            updated_at: reviewTimestamp,
+          })
+          .eq("id", submissionId)
+          .eq("status", sub.status)
+          .select("id")
+          .maybeSingle();
+        if (updErr) return json({ error: "Could not update submission status" }, 400);
+        if (!updated) return json({ error: "Submission status changed while you were reviewing it. Refresh and try again." }, 409);
+
+        // Record the reviewer and status transition without copying private submission text.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+        const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
+          event_key: `submission:${submissionId}:${reviewTimestamp}`,
+          actor_id: actor.id,
+          action: "submission_review",
+          target_table: "collective_submissions",
+          target_id: submissionId,
+          old_state: { status: sub.status },
+          new_state: { status, reviewed_at: reviewTimestamp },
+        }, { onConflict: "event_key", ignoreDuplicates: true });
+        if (auditError) console.error("Collective submission audit write failed", auditError);
+      } else if (sub.reviewed_at == null || (sub.reviewer_notes ?? null) !== notes) {
+        const { error: noteErr } = await admin
+          .from("collective_submissions")
+          .update({
+            reviewer_notes: notes,
+            reviewed_at: reviewTimestamp,
+            reviewed_by: actor.id,
+            updated_at: reviewTimestamp,
+          })
+          .eq("id", submissionId)
+          .eq("status", sub.status);
+        if (noteErr) return json({ error: "Could not update reviewer note" }, 400);
+      }
 
       const [{ data: member }, { data: opp }] = await Promise.all([
         admin.from("collective_members").select("id, display_name, user_id").eq("id", sub.member_id).maybeSingle(),
         admin.from("collective_opportunities").select("title").eq("id", sub.opportunity_id).maybeSingle(),
       ]);
 
-      await admin.from("notifications").insert({
-        user_id: sub.user_id,
-        type: "collective_contribution",
-        title:
-          status === "accepted"
-            ? "Contribution accepted"
-            : status === "declined"
-              ? "Contribution not accepted"
-              : status === "needs_changes"
-                ? "Contribution needs changes"
-                : "Contribution under review",
-        message: `${opp?.title ?? "Your contribution"}${notes ? ` — ${notes}` : ""}`,
-        link: "/collective/center",
-        metadata: { submission_id: submissionId, status },
-      });
+      const notificationMetadata = { submission_id: submissionId, status, reviewed_at: reviewTimestamp };
+      const { data: existingNotification, error: notificationLookupError } = await admin
+        .from("notifications")
+        .select("id")
+        .eq("user_id", sub.user_id)
+        .eq("type", "collective_contribution")
+        .contains("metadata", { submission_id: submissionId, reviewed_at: reviewTimestamp })
+        .maybeSingle();
+      if (notificationLookupError) return json({ error: "Could not check contribution notifications" }, 500);
 
-      const event = EMAIL_FOR_STATUS[status];
-      if (event) {
-        const { data: authUser } = await admin.auth.admin.getUserById(sub.user_id);
-        const email = authUser?.user?.email;
-        if (email) {
-          await sendCollectiveEmail(admin, {
-            event: event as any,
-            name: member?.display_name ?? "there",
-            note: notes ?? undefined,
-            title: opp?.title ?? undefined,
-            to: email,
-            memberId: member?.id ?? null,
-          });
+      if (!existingNotification) {
+        const { error: notificationError } = await admin.from("notifications").insert({
+          user_id: sub.user_id,
+          type: "collective_contribution",
+          title:
+            status === "accepted"
+              ? "Contribution accepted"
+              : status === "declined"
+                ? "Contribution not accepted"
+                : status === "needs_changes"
+                  ? "Contribution needs changes"
+                  : "Contribution under review",
+          message: `${opp?.title ?? "Your contribution"}${notes ? ` — ${notes}` : ""}`,
+          link: "/collective/center",
+          metadata: notificationMetadata,
+        });
+        if (notificationError && notificationError.code !== "23505") {
+          return json({ error: "Review saved, but the member notification could not be created" }, 500);
         }
       }
 
-      return json({ ok: true });
+      let emailStatus = "not_required";
+      const event = EMAIL_FOR_STATUS[status];
+      if (event) {
+        const { data: authUser } = await admin.auth.admin.getUserById(sub.user_id);
+        const email = authUser?.user?.email?.trim();
+        if (!email) {
+          emailStatus = "no_email";
+        } else {
+          const eventKey = `submission:${submissionId}:${reviewTimestamp}`;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+          const { error: queueError } = await admin.from("collective_notification_deliveries" as any).upsert({
+            event_key: eventKey,
+            user_id: sub.user_id,
+            member_id: member?.id ?? null,
+            recipient: email,
+            event_type: event,
+            status: "pending",
+          }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+          if (queueError) {
+            console.error("Could not queue contribution review email", queueError);
+            emailStatus = "queue_failed";
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+            const { data: delivery, error: deliveryError } = await admin.from("collective_notification_deliveries" as any)
+              .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+              .eq("event_key", eventKey)
+              .eq("user_id", sub.user_id)
+              .maybeSingle();
+
+            if (deliveryError || !delivery) {
+              emailStatus = "queue_failed";
+            } else if (delivery.status === "sent") {
+              emailStatus = "sent";
+            } else {
+              let claimableStatus = delivery.status;
+              if (delivery.status === "sending") {
+                const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+                if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) {
+                  emailStatus = "in_progress";
+                  return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+                }
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                const { data: reset } = await admin.from("collective_notification_deliveries" as any)
+                  .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+                  .eq("id", delivery.id)
+                  .eq("status", "sending")
+                  .lt("updated_at", staleBefore)
+                  .select("id")
+                  .maybeSingle();
+                if (!reset) {
+                  emailStatus = "in_progress";
+                  return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+                }
+                claimableStatus = "failed";
+              }
+
+              if (["pending", "failed"].includes(claimableStatus)) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                const { data: claimed } = await admin.from("collective_notification_deliveries" as any)
+                  .update({
+                    status: "sending",
+                    attempts: delivery.attempts + 1,
+                    updated_at: new Date().toISOString(),
+                    last_error: null,
+                  })
+                  .eq("id", delivery.id)
+                  .eq("status", claimableStatus)
+                  .select("id, recipient, event_type, member_id")
+                  .maybeSingle();
+
+                if (!claimed) {
+                  emailStatus = "in_progress";
+                } else {
+                  let sent = false;
+                  try {
+                    sent = await sendCollectiveEmail(admin, {
+                      event: claimed.event_type as CollectiveEmailEvent,
+                      name: member?.display_name ?? "there",
+                      note: notes ?? undefined,
+                      title: opp?.title ?? undefined,
+                      to: claimed.recipient,
+                      memberId: claimed.member_id ?? undefined,
+                    });
+                  } catch (emailError) {
+                    console.error("Collective contribution review email failed", emailError);
+                  }
+
+                  const now = new Date().toISOString();
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+                  const { error: finishError } = await admin.from("collective_notification_deliveries" as any)
+                    .update({
+                      status: sent ? "sent" : "failed",
+                      last_error: sent ? null : "Email provider did not confirm delivery",
+                      sent_at: sent ? now : null,
+                      updated_at: now,
+                    })
+                    .eq("id", claimed.id)
+                    .eq("status", "sending");
+                  emailStatus = sent && !finishError ? "sent" : "failed";
+                }
+              }
+            }
+          }
+        }
+      }
+
+      return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
+    }
+
+    // ---------- Retryable application receipt email ----------
+    if (action === "email_application_received") {
+      const applicationId: string = body?.application_id;
+      if (!applicationId) return json({ error: "Application ID is required" }, 400);
+
+      const { data: application, error: applicationError } = await admin
+        .from("collective_applications")
+        .select("id, user_id, full_name, email")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationError || !application) return json({ error: "Application not found" }, 404);
+
+      const emailStatus = await sendTrackedCollectiveEmail(admin, {
+        event: "application_received",
+        to: application.email,
+        name: application.full_name,
+        applicationId: application.id,
+        userId: application.user_id,
+        eventKey: `application:${application.id}:received`,
+      });
+      return json({ ok: true, email_status: emailStatus });
+    }
+
+    // ---------- Retryable email for an opportunity application decision ----------
+    if (action === "email_opportunity_application_review") {
+      const applicationId: string = body?.application_id;
+      if (!applicationId) return json({ error: "Application ID is required" }, 400);
+
+      const { data: application, error: applicationError } = await admin
+        .from("collective_opportunity_applications")
+        .select("id, user_id, member_id, opportunity_id, status, reviewed_at, reviewer_notes, created_at")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationError || !application) return json({ error: "Opportunity application not found" }, 404);
+
+      const eventByStatus: Record<string, CollectiveEmailEvent | null> = {
+        under_review: "opportunity_application_under_review",
+        accepted: "opportunity_application_accepted",
+        declined: "opportunity_application_declined",
+      };
+      const event = eventByStatus[application.status];
+      if (!event) return json({ ok: true, email_status: "not_required" });
+
+      const [{ data: member }, { data: opportunity }, { data: authUser }] = await Promise.all([
+        admin.from("collective_members").select("id, display_name").eq("id", application.member_id).maybeSingle(),
+        admin.from("collective_opportunities").select("title").eq("id", application.opportunity_id).maybeSingle(),
+        admin.auth.admin.getUserById(application.user_id),
+      ]);
+      const email = authUser?.user?.email?.trim();
+      if (!email) return json({ ok: true, email_status: "no_email" });
+
+      const reviewedAt = application.reviewed_at ?? application.created_at;
+      const eventKey = `opportunity-application:${applicationId}:${reviewedAt}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { error: queueError } = await admin.from("collective_notification_deliveries" as any).upsert({
+        event_key: eventKey,
+        user_id: application.user_id,
+        member_id: member?.id ?? null,
+        recipient: email,
+        event_type: event,
+        status: "pending",
+      }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+      if (queueError) return json({ error: "Could not queue opportunity application email" }, 500);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { data: delivery, error: deliveryError } = await admin.from("collective_notification_deliveries" as any)
+        .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+        .eq("event_key", eventKey)
+        .eq("user_id", application.user_id)
+        .maybeSingle();
+      if (deliveryError || !delivery) return json({ error: "Could not load email delivery state" }, 500);
+      if (delivery.status === "sent") return json({ ok: true, email_status: "sent", already_processed: true });
+
+      let claimableStatus = delivery.status;
+      if (delivery.status === "sending") {
+        const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) {
+          return json({ ok: true, email_status: "in_progress" });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+        const { data: reset } = await admin.from("collective_notification_deliveries" as any)
+          .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+          .eq("id", delivery.id)
+          .eq("status", "sending")
+          .lt("updated_at", staleBefore)
+          .select("id")
+          .maybeSingle();
+        if (!reset) return json({ ok: true, email_status: "in_progress" });
+        claimableStatus = "failed";
+      }
+
+      if (!["pending", "failed"].includes(claimableStatus)) {
+        return json({ ok: true, email_status: "in_progress" });
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { data: claimed } = await admin.from("collective_notification_deliveries" as any)
+        .update({
+          status: "sending",
+          attempts: delivery.attempts + 1,
+          updated_at: new Date().toISOString(),
+          last_error: null,
+        })
+        .eq("id", delivery.id)
+        .eq("status", claimableStatus)
+        .select("id, recipient, event_type, member_id")
+        .maybeSingle();
+      if (!claimed) return json({ ok: true, email_status: "in_progress" });
+
+      let sent = false;
+      try {
+        sent = await sendCollectiveEmail(admin, {
+          event: claimed.event_type as CollectiveEmailEvent,
+          name: member?.display_name ?? "there",
+          note: application.reviewer_notes ?? undefined,
+          title: opportunity?.title ?? undefined,
+          to: claimed.recipient,
+          memberId: claimed.member_id ?? undefined,
+        });
+      } catch (emailError) {
+        console.error("Collective opportunity application email failed", emailError);
+      }
+
+      const now = new Date().toISOString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { error: finishError } = await admin.from("collective_notification_deliveries" as any)
+        .update({
+          status: sent ? "sent" : "failed",
+          last_error: sent ? null : "Email provider did not confirm delivery",
+          sent_at: sent ? now : null,
+          updated_at: now,
+        })
+        .eq("id", claimed.id)
+        .eq("status", "sending");
+      return json({ ok: true, email_status: sent && !finishError ? "sent" : "failed" });
     }
 
     // ---------- Broadcast a published announcement or opportunity ----------
@@ -145,38 +436,163 @@ Deno.serve(async (req) => {
         .eq("status", "active");
 
       const recipients = members ?? [];
-      if (recipients.length > 0) {
-        await admin.from("notifications").insert(
-          recipients.map((m) => ({
+      const notificationType = kind === "announcement" ? "collective_announcement" : "collective_opportunity";
+      const metadataFilter = { [`${kind}_id`]: id };
+      const { data: existingNotifications, error: existingError } = await admin
+        .from("notifications")
+        .select("user_id")
+        .eq("type", notificationType)
+        .contains("metadata", metadataFilter);
+      if (existingError) return json({ error: "Could not check existing notifications" }, 500);
+
+      const alreadyNotified = new Set((existingNotifications ?? []).map((row: { user_id: string }) => row.user_id));
+      const pendingRecipients = recipients.filter((member) => !alreadyNotified.has(member.user_id));
+      if (pendingRecipients.length > 0) {
+        const { error: notificationError } = await admin.from("notifications").insert(
+          pendingRecipients.map((m) => ({
             user_id: m.user_id,
-            type: kind === "announcement" ? "collective_announcement" : "collective_opportunity",
+            type: notificationType,
             title: kind === "announcement" ? `Collective update: ${title}` : `New opportunity: ${title}`,
             message: summary,
             link: "/collective/center",
-            metadata: { [`${kind}_id`]: id },
+            metadata: metadataFilter,
           })),
         );
+        if (notificationError) return json({ error: "Could not create member notifications" }, 500);
       }
 
       let emailed = 0;
+      let emailFailed = 0;
       if (withEmail) {
-        for (const m of recipients) {
-          const { data: authUser } = await admin.auth.admin.getUserById(m.user_id);
-          const email = authUser?.user?.email;
-          if (!email) continue;
-          const ok = await sendCollectiveEmail(admin, {
-            event: kind === "announcement" ? "announcement" : "opportunity_new",
-            name: m.display_name ?? "there",
-            title,
-            note: summary,
-            to: email,
-            memberId: m.id,
-          });
-          if (ok) emailed += 1;
+        const eventKey = `${kind}:${id}`;
+        const eventType = kind === "announcement" ? "announcement" : "opportunity_new";
+        const emailTargets: Array<{ user_id: string; member_id: string; recipient: string }> = [];
+        for (const member of recipients) {
+          const { data: authUser } = await admin.auth.admin.getUserById(member.user_id);
+          const recipient = authUser?.user?.email?.trim();
+          if (recipient) emailTargets.push({ user_id: member.user_id, member_id: member.id, recipient });
+        }
+
+        // Unique (event_key, user_id) records make repeated broadcasts safe to
+        // retry. Sent deliveries are skipped; failed or stale in-flight rows can
+        // be retried without resending successful deliveries.
+        const emailTargetIds = new Set(emailTargets.map((target) => target.user_id));
+        if (emailTargets.length > 0) {
+          const { error: queueError } = await admin
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+            .from("collective_notification_deliveries" as any)
+            .upsert(
+              emailTargets.map((target) => ({
+                event_key: eventKey,
+                user_id: target.user_id,
+                member_id: target.member_id,
+                recipient: target.recipient,
+                event_type: eventType,
+                status: "pending",
+              })),
+              { onConflict: "event_key,user_id", ignoreDuplicates: true },
+            );
+          if (queueError) return json({ error: "Could not queue email deliveries" }, 500);
+        }
+
+        const { data: deliveries, error: deliveryError } = await admin
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+          .from("collective_notification_deliveries" as any)
+          .select("id, user_id, member_id, recipient, event_type, status, attempts, updated_at")
+          .eq("event_key", eventKey);
+        if (deliveryError) return json({ error: "Could not load email delivery state" }, 500);
+
+        for (const delivery of (deliveries ?? []) as Array<{
+          id: string; user_id: string; member_id: string | null; recipient: string;
+          event_type: string; status: string; attempts: number; updated_at: string;
+        }>) {
+          if (delivery.status === "sent") continue;
+          if (!emailTargetIds.has(delivery.user_id)) continue;
+
+          let claimableStatus = delivery.status;
+          if (delivery.status === "sending") {
+            const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+            if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) continue;
+            const { data: reset } = await admin
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+              .from("collective_notification_deliveries" as any)
+              .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+              .eq("id", delivery.id)
+              .eq("status", "sending")
+              .lt("updated_at", staleBefore)
+              .select("id")
+              .maybeSingle();
+            if (!reset) continue;
+            claimableStatus = "failed";
+          }
+          if (!["pending", "failed"].includes(claimableStatus)) continue;
+
+          const { data: claimed, error: claimError } = await admin
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+            .from("collective_notification_deliveries" as any)
+            .update({
+              status: "sending",
+              attempts: delivery.attempts + 1,
+              updated_at: new Date().toISOString(),
+              last_error: null,
+            })
+            .eq("id", delivery.id)
+            .eq("status", claimableStatus)
+            .select("id, user_id, member_id, recipient, event_type")
+            .maybeSingle();
+          if (claimError || !claimed) continue;
+
+          const member = recipients.find((candidate) => candidate.user_id === claimed.user_id);
+          let sent = false;
+          try {
+            sent = await sendCollectiveEmail(admin, {
+              event: claimed.event_type as CollectiveEmailEvent,
+              name: member?.display_name ?? "there",
+              title,
+              note: summary,
+              to: claimed.recipient,
+              memberId: claimed.member_id ?? undefined,
+            });
+          } catch (emailError) {
+            console.error("Collective broadcast email failed", emailError);
+          }
+
+          const now = new Date().toISOString();
+          const { error: finishError } = await admin
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
+            .from("collective_notification_deliveries" as any)
+            .update({
+              status: sent ? "sent" : "failed",
+              last_error: sent ? null : "Email provider did not confirm delivery",
+              sent_at: sent ? now : null,
+              updated_at: now,
+            })
+            .eq("id", claimed.id)
+            .eq("status", "sending");
+
+          if (sent && !finishError) emailed += 1;
+          else emailFailed += 1;
         }
       }
 
-      return json({ ok: true, notified: recipients.length, emailed });
+      // Record the broadcast action separately from the per-recipient delivery ledger.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+      const { error: broadcastAuditError } = await admin.from("collective_audit_logs" as any).insert({
+        actor_id: actor.id,
+        action: "broadcast",
+        target_table: kind === "announcement" ? "collective_announcements" : "collective_opportunities",
+        target_id: id,
+        new_state: { kind, notified: pendingRecipients.length, emailed, email_failed: emailFailed },
+      });
+      if (broadcastAuditError) console.error("Collective broadcast audit write failed", broadcastAuditError);
+
+      return json({
+        ok: true,
+        notified: pendingRecipients.length,
+        already_notified: alreadyNotified.size,
+        emailed,
+        email_failed: emailFailed,
+      });
     }
 
     return json({ error: "Unknown action" }, 400);

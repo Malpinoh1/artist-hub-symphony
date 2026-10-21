@@ -31,6 +31,7 @@ const DirectoryPanel = () => {
   const [roleFilter, setRoleFilter] = useState('');
   const [countryFilter, setCountryFilter] = useState('');
   const [areaFilter, setAreaFilter] = useState('');
+  const [roleOptions, setRoleOptions] = useState<Array<{ slug: string; label: string }>>([]);
   const [members, setMembers] = useState<DirectoryMember[]>([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
@@ -56,7 +57,18 @@ const DirectoryPanel = () => {
     }
     const result = (data as unknown as { total: number; members: DirectoryMember[] }) ?? { total: 0, members: [] };
     setTotal(result.total ?? 0);
-    setMembers((prev) => (reset ? result.members ?? [] : [...prev, ...(result.members ?? [])]));
+    // Keep one visible card per handle even if a backend page repeats a record.
+    const pageMembers = Array.from(new Map(
+      (result.members ?? [])
+        .filter((member) => member.handle?.trim())
+        .map((member) => [member.handle.trim().toLowerCase(), member])
+    ).values());
+    setMembers((prev) => {
+      const merged = reset ? pageMembers : [...prev, ...pageMembers];
+      return Array.from(new Map(
+        merged.map((member) => [member.handle.trim().toLowerCase(), member])
+      ).values());
+    });
     setLoading(false);
   }, [roleFilter, countryFilter, areaFilter]);
 
@@ -64,6 +76,21 @@ const DirectoryPanel = () => {
     load(true, query, 0);
     setOffset(0);
   }, [load, query]);
+
+  useEffect(() => {
+    let active = true;
+    const loadRoles = async () => {
+      const { data, error } = await supabase
+        .from('collective_roles')
+        .select('slug, label')
+        .eq('is_active', true)
+        .order('sort_order', { ascending: true });
+      if (!active || error) return;
+      setRoleOptions((data as Array<{ slug: string; label: string }>) ?? []);
+    };
+    void loadRoles();
+    return () => { active = false; };
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -74,23 +101,40 @@ const DirectoryPanel = () => {
         }}
         className="flex min-w-0 flex-col gap-2"
       >
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            className="pl-9"
-            placeholder="Search members by name, handle or city"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search Collective members"
-          />
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+          <div className="relative min-w-0 flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              placeholder="Search by name, handle or city"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              aria-label="Search Collective members"
+            />
+          </div>
+          <Button type="submit" variant="outline" className="sm:min-w-24">
+            Search
+          </Button>
         </div>
-        <Button type="submit" variant="outline">
-          Search
-        </Button>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Input value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} placeholder="Role slug (e.g. producer)" aria-label="Filter by role" />
-          <Input value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} placeholder="Country" aria-label="Filter by country" />
-          <Input value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} placeholder="Collaboration area" aria-label="Filter by collaboration area" />
+        <div className="rounded-xl border border-border bg-muted/20 p-3 sm:p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Filter members</p>
+          <div className="grid min-w-0 gap-3 sm:grid-cols-3">
+            <label className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+              Professional role
+              <select value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)} aria-label="Filter by role" className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground">
+                <option value="">All roles</option>
+                {roleOptions.map((role) => <option key={role.slug} value={role.slug}>{role.label}</option>)}
+              </select>
+            </label>
+            <label className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+              Country
+              <Input value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)} placeholder="Any country" aria-label="Filter by country" />
+            </label>
+            <label className="min-w-0 space-y-1.5 text-xs text-muted-foreground">
+              Collaboration area
+              <Input value={areaFilter} onChange={(e) => setAreaFilter(e.target.value)} placeholder="Any area" aria-label="Filter by collaboration area" />
+            </label>
+          </div>
         </div>
       </form>
 

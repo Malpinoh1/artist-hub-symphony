@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.74.0";
-import { sendCollectiveEmail } from "../_shared/collective-emails.ts";
+import { sendTrackedCollectiveEmail } from "../_shared/collective-emails.ts";
 import { attributeReferral } from "../_shared/collective-referral.ts";
 
 const corsHeaders = {
@@ -78,7 +78,7 @@ Deno.serve(async (req) => {
 
     const { data: validRoles } = await admin
       .from("collective_roles").select("slug").eq("is_active", true);
-    const allowed = new Set((validRoles ?? []).map((r: any) => r.slug));
+    const allowed = new Set((validRoles ?? []).map((r) => r.slug));
     if (roles.some((r) => !allowed.has(r))) errors.push("Invalid role selection");
 
     if (errors.length) return json({ error: errors[0], errors }, 400);
@@ -122,7 +122,14 @@ Deno.serve(async (req) => {
       })
       .select("id, full_name, email")
       .single();
-    if (insErr) throw insErr;
+    if (insErr) {
+      // The unique partial index is the final guard against concurrent duplicate
+      // submissions. Convert its conflict into a stable client-facing response.
+      if (insErr.code === "23505" && (insErr.message ?? "").includes("idx_collective_apps_active_email")) {
+        return json({ error: "An application for this email is already in progress.", code: "duplicate_application" }, 409);
+      }
+      throw insErr;
+    }
 
     // ---- Referral attribution (server-side only, idempotent) ----
     if (referral_code) {
@@ -135,14 +142,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    await sendCollectiveEmail(admin, {
+    const emailStatus = await sendTrackedCollectiveEmail(admin, {
       event: "application_received",
       to: app.email,
       name: app.full_name,
       applicationId: app.id,
+      userId,
+      eventKey: `application:${app.id}:received`,
     });
 
-    return json({ success: true, application_id: app.id, status: "pending" });
+    return json({ success: true, application_id: app.id, status: "pending", email_status: emailStatus });
   } catch (e) {
     console.error("collective-apply error", e);
     return json({ error: (e as Error)?.message ?? "Unexpected error" }, 500);
