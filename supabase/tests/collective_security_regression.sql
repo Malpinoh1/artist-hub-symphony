@@ -164,6 +164,14 @@ BEGIN
     RAISE EXCEPTION 'Admin UI must retain access to the admin-checked opportunity review RPC';
   END IF;
 
+  IF has_function_privilege('anon', 'public.manage_collective_referral_flag(uuid,boolean,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Anonymous role must not flag referral records';
+  END IF;
+
+  IF NOT has_function_privilege('authenticated', 'public.manage_collective_referral_flag(uuid,boolean,text)', 'EXECUTE') THEN
+    RAISE EXCEPTION 'Admin UI must retain access to the admin-checked referral flag RPC';
+  END IF;
+
   IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE schemaname = 'public' AND indexname = 'idx_collective_opportunity_application_notification_once') THEN
     RAISE EXCEPTION 'Opportunity application notifications must be deduplicated';
   END IF;
