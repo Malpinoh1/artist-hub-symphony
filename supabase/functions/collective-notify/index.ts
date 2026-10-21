@@ -269,7 +269,7 @@ Deno.serve(async (req) => {
 
           const { data: claimed, error: claimError } = await admin
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
-          .from("collective_notification_deliveries" as any)
+            .from("collective_notification_deliveries" as any)
             .update({
               status: "sending",
               attempts: delivery.attempts + 1,
@@ -300,7 +300,7 @@ Deno.serve(async (req) => {
           const now = new Date().toISOString();
           const { error: finishError } = await admin
             // eslint-disable-next-line @typescript-eslint/no-explicit-any -- This migration adds the table before generated client types are refreshed.
-          .from("collective_notification_deliveries" as any)
+            .from("collective_notification_deliveries" as any)
             .update({
               status: sent ? "sent" : "failed",
               last_error: sent ? null : "Email provider did not confirm delivery",
