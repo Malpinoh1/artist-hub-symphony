@@ -265,6 +265,119 @@ Deno.serve(async (req) => {
       return json({ ok: true, already_processed: alreadyProcessed, email_status: emailStatus });
     }
 
+    // ---------- Retryable email for an opportunity application decision ----------
+    if (action === "email_opportunity_application_review") {
+      const applicationId: string = body?.application_id;
+      if (!applicationId) return json({ error: "Application ID is required" }, 400);
+
+      const { data: application, error: applicationError } = await admin
+        .from("collective_opportunity_applications")
+        .select("id, user_id, member_id, opportunity_id, status, reviewed_at, reviewer_notes")
+        .eq("id", applicationId)
+        .maybeSingle();
+      if (applicationError || !application) return json({ error: "Opportunity application not found" }, 404);
+
+      const eventByStatus: Record<string, CollectiveEmailEvent | null> = {
+        under_review: "opportunity_application_under_review",
+        accepted: "opportunity_application_accepted",
+        declined: "opportunity_application_declined",
+      };
+      const event = eventByStatus[application.status];
+      if (!event) return json({ ok: true, email_status: "not_required" });
+
+      const [{ data: member }, { data: opportunity }, { data: authUser }] = await Promise.all([
+        admin.from("collective_members").select("id, display_name").eq("id", application.member_id).maybeSingle(),
+        admin.from("collective_opportunities").select("title").eq("id", application.opportunity_id).maybeSingle(),
+        admin.auth.admin.getUserById(application.user_id),
+      ]);
+      const email = authUser?.user?.email?.trim();
+      if (!email) return json({ ok: true, email_status: "no_email" });
+
+      const reviewedAt = application.reviewed_at ?? application.created_at;
+      const eventKey = `opportunity-application:${applicationId}:${reviewedAt}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { error: queueError } = await admin.from("collective_notification_deliveries" as any).upsert({
+        event_key: eventKey,
+        user_id: application.user_id,
+        member_id: member?.id ?? null,
+        recipient: email,
+        event_type: event,
+        status: "pending",
+      }, { onConflict: "event_key,user_id", ignoreDuplicates: true });
+      if (queueError) return json({ error: "Could not queue opportunity application email" }, 500);
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { data: delivery, error: deliveryError } = await admin.from("collective_notification_deliveries" as any)
+        .select("id, recipient, event_type, status, attempts, updated_at, member_id")
+        .eq("event_key", eventKey)
+        .eq("user_id", application.user_id)
+        .maybeSingle();
+      if (deliveryError || !delivery) return json({ error: "Could not load email delivery state" }, 500);
+      if (delivery.status === "sent") return json({ ok: true, email_status: "sent", already_processed: true });
+
+      let claimableStatus = delivery.status;
+      if (delivery.status === "sending") {
+        const staleBefore = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        if (new Date(delivery.updated_at).getTime() > Date.now() - 10 * 60 * 1000) {
+          return json({ ok: true, email_status: "in_progress" });
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+        const { data: reset } = await admin.from("collective_notification_deliveries" as any)
+          .update({ status: "failed", updated_at: new Date().toISOString(), last_error: "Recovered stale in-flight delivery" })
+          .eq("id", delivery.id)
+          .eq("status", "sending")
+          .lt("updated_at", staleBefore)
+          .select("id")
+          .maybeSingle();
+        if (!reset) return json({ ok: true, email_status: "in_progress" });
+        claimableStatus = "failed";
+      }
+
+      if (!["pending", "failed"].includes(claimableStatus)) {
+        return json({ ok: true, email_status: "in_progress" });
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { data: claimed } = await admin.from("collective_notification_deliveries" as any)
+        .update({
+          status: "sending",
+          attempts: delivery.attempts + 1,
+          updated_at: new Date().toISOString(),
+          last_error: null,
+        })
+        .eq("id", delivery.id)
+        .eq("status", claimableStatus)
+        .select("id, recipient, event_type, member_id")
+        .maybeSingle();
+      if (!claimed) return json({ ok: true, email_status: "in_progress" });
+
+      let sent = false;
+      try {
+        sent = await sendCollectiveEmail(admin, {
+          event: claimed.event_type as CollectiveEmailEvent,
+          name: member?.display_name ?? "there",
+          note: application.reviewer_notes ?? undefined,
+          title: opportunity?.title ?? undefined,
+          to: claimed.recipient,
+          memberId: claimed.member_id ?? undefined,
+        });
+      } catch (emailError) {
+        console.error("Collective opportunity application email failed", emailError);
+      }
+
+      const now = new Date().toISOString();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Delivery table is introduced by the accompanying migration.
+      const { error: finishError } = await admin.from("collective_notification_deliveries" as any)
+        .update({
+          status: sent ? "sent" : "failed",
+          last_error: sent ? null : "Email provider did not confirm delivery",
+          sent_at: sent ? now : null,
+          updated_at: now,
+        })
+        .eq("id", claimed.id)
+        .eq("status", "sending");
+      return json({ ok: true, email_status: sent && !finishError ? "sent" : "failed" });
+    }
+
     // ---------- Broadcast a published announcement or opportunity ----------
     if (action === "broadcast") {
       const kind: string = body?.kind; // 'announcement' | 'opportunity'
