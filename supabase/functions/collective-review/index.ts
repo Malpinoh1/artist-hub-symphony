@@ -52,22 +52,38 @@ Deno.serve(async (req) => {
     if (appErr) throw appErr;
     if (!app) return json({ error: "Application not found" }, 404);
 
+    const writeReviewAudit = async (reviewedAt: string, previousStatus: string | null, nextStatus: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Audit table is introduced by the accompanying migration.
+      const { error: auditError } = await admin.from("collective_audit_logs" as any).upsert({
+        event_key: `application:${app.id}:${reviewedAt}`,
+        actor_id: reviewer.id,
+        action: "application_review",
+        target_table: "collective_applications",
+        target_id: app.id,
+        old_state: previousStatus ? { status: previousStatus } : null,
+        new_state: { status: nextStatus, reviewed_at: reviewedAt },
+      }, { onConflict: "event_key", ignoreDuplicates: true });
+      if (auditError) console.error("Collective application audit write failed", auditError);
+    };
+
     let member: { id: string; handle: string; user_id: string; display_name: string; status: string } | null = null;
 
     // A repeated decision is idempotent. Final decisions cannot be silently
     // flipped through this endpoint; rejected applicants may reapply.
     if (app.status === status) {
       if (note !== app.applicant_message && !["approved", "rejected"].includes(status)) {
+        const reviewedAt = new Date().toISOString();
         const { error: noteError } = await admin
           .from("collective_applications")
           .update({
             applicant_message: note ?? app.applicant_message,
-            reviewed_at: new Date().toISOString(),
+            reviewed_at: reviewedAt,
             reviewed_by: reviewer.id,
           })
           .eq("id", app.id)
           .eq("status", app.status);
         if (noteError) throw noteError;
+        await writeReviewAudit(reviewedAt, app.status, app.status);
       }
       if (status === "approved") {
         const { data: existingMember } = await admin
@@ -139,12 +155,13 @@ Deno.serve(async (req) => {
       }
     }
 
+    const reviewTimestamp = new Date().toISOString();
     const { data: updatedApp, error: updErr } = await admin
       .from("collective_applications")
       .update({
         status,
         applicant_message: note ?? app.applicant_message,
-        reviewed_at: new Date().toISOString(),
+        reviewed_at: reviewTimestamp,
         reviewed_by: reviewer.id,
       })
       .eq("id", app.id)
@@ -155,6 +172,7 @@ Deno.serve(async (req) => {
     if (!updatedApp) {
       return json({ error: "The application status changed during review. Refresh and try again." }, 409);
     }
+    await writeReviewAudit(reviewTimestamp, app.status, status);
 
     // Applicant notification
     const eventMap: Record<string, string> = {
