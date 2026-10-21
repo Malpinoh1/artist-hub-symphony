@@ -40,10 +40,14 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
   const fetchReleases = useCallback(async () => {
     if (!accountId) return;
     setLoading(true);
+    // Include releases distributed under the selected label/team account as well as
+    // releases owned directly by the selected artist account. Label-distributed
+    // catalogue entries often keep the original artist_id and store the label in
+    // artist_account_id, so filtering only by artist_id hides those tracks.
     const { data } = await supabase
       .from('releases')
-      .select('id, title, artist_name')
-      .eq('artist_id', accountId)
+      .select('id, title, artist_name, artist_id, artist_account_id')
+      .or(`artist_id.eq.${accountId},artist_account_id.eq.${accountId}`)
       .order('release_date', { ascending: false });
     setReleases(data || []);
     setLoading(false);
@@ -136,6 +140,7 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
       const releaseTitle = releases.find(r => r.id === selectedRelease)?.title || 'Unknown';
       const trackTitle = tracks.find(t => t.id === selectedTrack)?.title || 'Unknown';
 
+      const failedEmailInvites: string[] = [];
       for (const c of recipients) {
         const email = c.email.toLowerCase().trim();
         const { data: existingArtist } = await supabase.from('artists').select('id').eq('email', email).maybeSingle();
@@ -146,7 +151,7 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
         if (rErr) throw rErr;
 
         try {
-          await supabase.functions.invoke('send-email', {
+          const { error: emailError } = await supabase.functions.invoke('send-email', {
             body: {
               to: email,
               subject: "You've been invited to a royalty split",
@@ -168,10 +173,21 @@ const CreateRoyaltySplitForm: React.FC<Props> = ({ preSelectedReleaseId, onSucce
                 </div></div>`,
             },
           });
-        } catch (e) { console.warn('Email failed for', email); }
+          if (emailError) {
+            failedEmailInvites.push(email);
+            console.warn('Email failed for', email, emailError);
+          }
+        } catch (e) {
+          failedEmailInvites.push(email);
+          console.warn('Email failed for', email, e);
+        }
       }
 
-      toast.success('Split created and invitations sent');
+      if (failedEmailInvites.length > 0) {
+        toast.warning(`Split saved, but invitation email failed for: ${failedEmailInvites.join(', ')}. Please retry sending those invitations.`);
+      } else {
+        toast.success('Split created and invitations sent');
+      }
       setRecipients([]); setOwnerPct('100'); setSelectedTrack('');
       onSuccess?.();
     } catch (err: any) {
