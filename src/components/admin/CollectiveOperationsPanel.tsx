@@ -460,11 +460,13 @@ const CollectiveOperationsPanel = () => {
               </div>
               {item.message && <p className="whitespace-pre-wrap text-sm">{item.message}</p>}
               <Textarea rows={2} placeholder="Member-visible feedback (optional)" value={notes[item.id] ?? item.reviewer_notes ?? ''} onChange={(event) => setNotes((current) => ({ ...current, [item.id]: event.target.value }))} />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'under_review')}>Under review</Button>
-                <Button size="sm" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'accepted')}><Check className="mr-2 h-4 w-4" />Accept</Button>
-                <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
-              </div>
+              {['submitted', 'under_review'].includes(item.status) ? (
+                <div className="flex flex-wrap gap-2">
+                  {item.status === 'submitted' && <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'under_review')}>Under review</Button>}
+                  <Button size="sm" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'accepted')}><Check className="mr-2 h-4 w-4" />Accept</Button>
+                  <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewOpportunityApplication(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
+                </div>
+              ) : <p className="text-xs text-muted-foreground">This application is no longer awaiting a decision.</p>}
             </article>
           ))}
         </TabsContent>
@@ -482,12 +484,14 @@ const CollectiveOperationsPanel = () => {
                 </div>
               )}
               <Textarea rows={2} placeholder="Member-visible feedback (optional)" value={notes[item.id] ?? item.reviewer_notes ?? ''} onChange={(e) => setNotes((current) => ({ ...current, [item.id]: e.target.value }))} />
-              <div className="flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'under_review')}>Under review</Button>
-                <Button size="sm" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'accepted')}><Check className="mr-2 h-4 w-4" />Accept</Button>
-                <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'needs_changes')}>Request changes</Button>
-                <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
-              </div>
+              {['submitted', 'under_review', 'needs_changes'].includes(item.status) ? (
+                <div className="flex flex-wrap gap-2">
+                  {item.status !== 'under_review' && <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'under_review')}>Under review</Button>}
+                  <Button size="sm" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'accepted')}><Check className="mr-2 h-4 w-4" />Accept</Button>
+                  <Button size="sm" variant="outline" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'needs_changes')}>Request changes</Button>
+                  <Button size="sm" variant="destructive" disabled={actingId !== null} onClick={() => void reviewSubmission(item, 'declined')}><X className="mr-2 h-4 w-4" />Decline</Button>
+                </div>
+              ) : <p className="text-xs text-muted-foreground">This contribution has a final review status.</p>}
             </article>
           ))}
         </TabsContent>
