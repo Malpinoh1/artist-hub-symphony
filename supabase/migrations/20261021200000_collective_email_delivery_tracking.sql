@@ -7,7 +7,13 @@ CREATE TABLE IF NOT EXISTS public.collective_notification_deliveries (
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   member_id uuid REFERENCES public.collective_members(id) ON DELETE SET NULL,
   recipient text NOT NULL,
-  event_type text NOT NULL CHECK (event_type IN ('announcement', 'opportunity_new', 'contribution_accepted', 'contribution_declined', 'contribution_needs_changes')),
+  event_type text NOT NULL CHECK (event_type IN (
+    'application_received', 'application_approved', 'application_rejected', 'application_needs_information',
+    'referral_new', 'referral_qualified',
+    'contribution_accepted', 'contribution_declined', 'contribution_needs_changes',
+    'opportunity_new', 'announcement',
+    'opportunity_application_under_review', 'opportunity_application_accepted', 'opportunity_application_declined'
+  )),
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'sending', 'sent', 'failed')),
   attempts integer NOT NULL DEFAULT 0 CHECK (attempts >= 0),
   last_error text,
