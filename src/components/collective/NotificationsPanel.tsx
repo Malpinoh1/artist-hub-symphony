@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { AlertCircle, Bell, CheckCheck, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface MemberNotification {
   id: string;
@@ -53,7 +54,10 @@ const NotificationsPanel = () => {
     setSavingId(id);
     const { error } = await supabase.from('notifications').update({ read: true }).eq('id', id).eq('user_id', userId);
     setSavingId(null);
-    if (error) return;
+    if (error) {
+      toast.error("We couldn't update this notification.");
+      return;
+    }
     setItems((current) => current.map((item) => item.id === id ? { ...item, read: true } : item));
   };
 
@@ -62,7 +66,10 @@ const NotificationsPanel = () => {
     setSavingId('all');
     const { error } = await supabase.from('notifications').update({ read: true }).eq('user_id', userId).eq('read', false);
     setSavingId(null);
-    if (error) return;
+    if (error) {
+      toast.error("We couldn't update your notifications.");
+      return;
+    }
     setItems((current) => current.map((item) => ({ ...item, read: true })));
   };
 
