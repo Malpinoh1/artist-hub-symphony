@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any -- Legacy Collective tables are not yet in generated Supabase client types. */
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, RefreshCw, Check, X, HelpCircle, Eye, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
