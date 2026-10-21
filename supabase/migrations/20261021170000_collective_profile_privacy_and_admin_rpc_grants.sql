@@ -28,29 +28,17 @@ BEGIN
   -- Discoverability is an independent privacy control and must be enforced
   -- by the server-side RPC, not just by the directory query or page UI.
   IF NOT v_m.discoverable AND v_m.user_id <> v_viewer_id THEN
-    RETURN jsonb_build_object(
-      'handle', v_m.handle,
-      'display_name', v_m.display_name,
-      'hidden', true
-    );
+    RETURN NULL;
   END IF;
 
   IF v_m.visibility = 'private' AND v_m.user_id <> v_viewer_id THEN
-    RETURN jsonb_build_object(
-      'handle', v_m.handle,
-      'display_name', v_m.display_name,
-      'private', true
-    );
+    RETURN NULL;
   END IF;
 
   IF v_m.visibility = 'members'
      AND NOT v_viewer_member
      AND v_m.user_id <> v_viewer_id THEN
-    RETURN jsonb_build_object(
-      'handle', v_m.handle,
-      'display_name', v_m.display_name,
-      'members_only', true
-    );
+    RETURN NULL;
   END IF;
 
   RETURN jsonb_build_object(
