@@ -46,14 +46,13 @@ const PasswordReset = () => {
     try {
       setLoading(true);
       
-      // Send exactly one recovery email through Supabase Auth. The recovery
-      // link is generated and signed by Supabase and is required by ResetPassword.
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'https://malpinohdistro.com.ng/reset-password',
+      // The server generates a signed Supabase recovery link and sends one branded email through Brevo.
+      const { error: resetError } = await supabase.functions.invoke('request-password-reset', {
+        body: { email },
       });
 
       if (resetError) {
-        console.error('Supabase reset error:', resetError);
+        console.error('Password reset request failed:', resetError);
         throw new Error('Could not send reset email. Please try again.');
       }
 
