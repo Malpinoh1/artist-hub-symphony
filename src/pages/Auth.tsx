@@ -313,19 +313,6 @@ const Auth = () => {
   };
   
   const completeLogin = async (user: any) => {
-    // Send a security alert after login (only after 2FA has completed, if enabled).
-    // Email delivery failures must never block a valid sign-in.
-    try {
-      const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-        (navigator as Navigator & { standalone?: boolean }).standalone === true;
-      const { error: alertError } = await supabase.functions.invoke('login-security-alert', {
-        body: { platform: standalone ? 'app' : 'web' },
-      });
-      if (alertError) console.warn('Login security alert was not sent:', alertError.message);
-    } catch (alertError) {
-      console.warn('Login security alert was not sent:', alertError);
-    }
-
     showNotification('success', 'Welcome Back!', 'Successfully signed in to your account.');
 
     // Attribute any pending Collective referral to this account (server-side, idempotent).
