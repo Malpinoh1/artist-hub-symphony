@@ -56,6 +56,7 @@ const NotFound = React.lazy(() => import("./pages/NotFound"));
 const ConfirmSubscription = React.lazy(() => import("./pages/ConfirmSubscription"));
 const PasswordReset = React.lazy(() => import("./pages/PasswordReset"));
 const LoginReported = React.lazy(() => import("./pages/LoginReported"));
+const LoginSecurityIncidents = React.lazy(() => import("./pages/LoginSecurityIncidents"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide"));
 const Support = React.lazy(() => import("./pages/Support"));
@@ -194,6 +195,7 @@ const AppContent = () => {
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
+        <Route path="/admin/security-incidents" element={<AdminPage><LoginSecurityIncidents /></AdminPage>} />
         <Route path="/admin/distribution" element={<AdminPage><AdminDistribution /></AdminPage>} />
         <Route path="/admin/release-metadata" element={<AdminPage><AdminReleaseMetadataQueue /></AdminPage>} />
         <Route path="/admin/distribution/*" element={<AdminPage><AdminDistribution /></AdminPage>} />
