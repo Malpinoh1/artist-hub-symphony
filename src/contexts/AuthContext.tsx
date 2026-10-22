@@ -23,11 +23,30 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+
+function scheduleLoginSecurityAlert(userId: string) {
+  // Defer work until after Supabase's auth callback returns; this avoids auth-lock
+  // deadlocks and does not depend on React state/effect scheduling.
+  window.setTimeout(async () => {
+    try {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      if (!currentSession?.user?.id || currentSession.user.id !== userId) return;
+      const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+        (navigator as Navigator & { standalone?: boolean }).standalone === true;
+      const { error } = await supabase.functions.invoke('login-security-alert', {
+        body: { platform: standalone ? 'app' : 'web' },
+      });
+      if (error) console.warn('Login security alert was not sent:', error.message);
+    } catch (error) {
+      console.warn('Login security alert was not sent:', error);
+    }
+  }, 1800);
+}
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [signInEvent, setSignInEvent] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -40,7 +59,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // OAuth redirects cannot bypass the security alert. A delayed session check
       // below filters out password sessions immediately discarded for 2FA.
       if (event === 'SIGNED_IN' && newSession?.user) {
-        setSignInEvent((current) => current + 1);
+        scheduleLoginSecurityAlert(newSession.user.id);
       }
       if (!active) return;
       setSession(newSession);
@@ -68,31 +87,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       subscription.unsubscribe();
     };
   }, []);
-
-  // Send one security alert for any real sign-in, after checking that the session
-  // still exists. This avoids alerting for the first password step of a 2FA login.
-  useEffect(() => {
-    if (!signInEvent || !user?.id) return;
-    let cancelled = false;
-    const timer = window.setTimeout(async () => {
-      try {
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        if (cancelled || !currentSession?.user?.id || currentSession.user.id !== user.id) return;
-        const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-          (navigator as Navigator & { standalone?: boolean }).standalone === true;
-        const { error } = await supabase.functions.invoke('login-security-alert', {
-          body: { platform: standalone ? 'app' : 'web' },
-        });
-        if (error) console.warn('Login security alert was not sent:', error.message);
-      } catch (error) {
-        console.warn('Login security alert was not sent:', error);
-      }
-    }, 1800);
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [signInEvent, user?.id]);
 
   // Check renewal eligibility whenever an artist signs in or an existing session is restored.
   // The server deduplicates notifications per subscription expiry and retries failed emails.
