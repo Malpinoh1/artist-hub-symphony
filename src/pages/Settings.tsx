@@ -322,8 +322,8 @@ const Settings = () => {
     }
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
-        redirectTo: 'https://malpinohdistro.com.ng/reset-password'
+      const { error } = await supabase.functions.invoke('request-password-reset', {
+        body: { email: currentUser.email },
       });
 
       if (error) throw error;
