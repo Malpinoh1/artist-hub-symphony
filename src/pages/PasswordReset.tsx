@@ -7,7 +7,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '../integrations/supabase/client';
 import { useToast } from '../hooks/use-toast';
-import { sendPasswordResetEmail } from '../services/emailService';
 import Notification from '../components/Notification';
 
 const PasswordReset = () => {
@@ -47,35 +46,15 @@ const PasswordReset = () => {
     try {
       setLoading(true);
       
-      // Use the custom domain for redirect
-      const resetUrl = `${window.location.origin}/reset-password`;
-      
-      // First send Supabase reset email
-      const { error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: resetUrl
+      // Send exactly one recovery email through Supabase Auth. The recovery
+      // link is generated and signed by Supabase and is required by ResetPassword.
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: 'https://malpinohdistro.com.ng/reset-password',
       });
 
-      if (supabaseError) {
-        console.error('Supabase reset error:', supabaseError);
-        // Don't fail completely - we'll still try to send custom email
-      }
-
-      // Send custom password reset email
-      try {
-        const emailResult = await sendPasswordResetEmail(email, resetUrl);
-        if (!emailResult.success) {
-          console.error('Custom email error:', emailResult.error);
-          // If both fail, show error
-          if (supabaseError) {
-            throw new Error(emailResult.error || 'Failed to send reset email');
-          }
-        }
-      } catch (emailError) {
-        console.error('Custom email error:', emailError);
-        // If Supabase also failed, throw error
-        if (supabaseError) {
-          throw new Error('Failed to send reset email. Please try again.');
-        }
+      if (resetError) {
+        console.error('Supabase reset error:', resetError);
+        throw new Error('Could not send reset email. Please try again.');
       }
 
       setSent(true);
