@@ -323,7 +323,7 @@ const Settings = () => {
 
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
-        redirectTo: `${window.location.origin}/reset-password`
+        redirectTo: 'https://malpinohdistro.com.ng/reset-password'
       });
 
       if (error) throw error;
