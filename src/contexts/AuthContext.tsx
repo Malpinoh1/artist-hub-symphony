@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [oauthSignInEvent, setOauthSignInEvent] = useState(0);
+  const [signInEvent, setSignInEvent] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -36,10 +36,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Subscribe before restoring the session so login/logout events are not missed.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
       receivedAuthEvent = true;
-      // OAuth redirects return to the app outside the /auth page. Password login is
-      // reported by Auth.tsx after its optional 2FA step, to avoid duplicate alerts.
-      if (event === 'SIGNED_IN' && !['/auth', '/login'].includes(window.location.pathname)) {
-        setOauthSignInEvent((current) => current + 1);
+      // Observe every successful sign-in centrally so alternate login forms and
+      // OAuth redirects cannot bypass the security alert. A delayed session check
+      // below filters out password sessions immediately discarded for 2FA.
+      if (event === 'SIGNED_IN' && newSession?.user) {
+        setSignInEvent((current) => current + 1);
       }
       if (!active) return;
       setSession(newSession);
@@ -68,18 +69,30 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
   }, []);
 
-  // OAuth providers redirect back into the app, bypassing the password form's
-  // completeLogin handler. Send the same security alert for those successful sign-ins.
+  // Send one security alert for any real sign-in, after checking that the session
+  // still exists. This avoids alerting for the first password step of a 2FA login.
   useEffect(() => {
-    if (!oauthSignInEvent || !user?.id) return;
-    const standalone = window.matchMedia('(display-mode: standalone)').matches ||
-      (navigator as Navigator & { standalone?: boolean }).standalone === true;
-    void supabase.functions.invoke('login-security-alert', {
-      body: { platform: standalone ? 'app' : 'web' },
-    }).then(({ error }) => {
-      if (error) console.warn('OAuth login security alert was not sent:', error.message);
-    }).catch((error) => console.warn('OAuth login security alert was not sent:', error));
-  }, [oauthSignInEvent, user?.id]);
+    if (!signInEvent || !user?.id) return;
+    let cancelled = false;
+    const timer = window.setTimeout(async () => {
+      try {
+        const { data: { session: currentSession } } = await supabase.auth.getSession();
+        if (cancelled || !currentSession?.user?.id || currentSession.user.id !== user.id) return;
+        const standalone = window.matchMedia('(display-mode: standalone)').matches ||
+          (navigator as Navigator & { standalone?: boolean }).standalone === true;
+        const { error } = await supabase.functions.invoke('login-security-alert', {
+          body: { platform: standalone ? 'app' : 'web' },
+        });
+        if (error) console.warn('Login security alert was not sent:', error.message);
+      } catch (error) {
+        console.warn('Login security alert was not sent:', error);
+      }
+    }, 1800);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [signInEvent, user?.id]);
 
   // Check renewal eligibility whenever an artist signs in or an existing session is restored.
   // The server deduplicates notifications per subscription expiry and retries failed emails.
