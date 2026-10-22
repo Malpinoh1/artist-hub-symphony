@@ -55,6 +55,7 @@ const Copyright = React.lazy(() => import("./pages/Copyright"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const ConfirmSubscription = React.lazy(() => import("./pages/ConfirmSubscription"));
 const PasswordReset = React.lazy(() => import("./pages/PasswordReset"));
+const LoginReported = React.lazy(() => import("./pages/LoginReported"));
 const ResetPassword = React.lazy(() => import("./pages/ResetPassword"));
 const MarketingGuide = React.lazy(() => import("./pages/resources/MarketingGuide"));
 const Support = React.lazy(() => import("./pages/Support"));
@@ -160,6 +161,7 @@ const AppContent = () => {
         <Route path="/cookies" element={<Cookies />} />
         <Route path="/copyright" element={<Copyright />} />
         <Route path="/password-reset" element={<PasswordReset />} />
+        <Route path="/login-reported" element={<LoginReported />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/confirm-subscription" element={<ConfirmSubscription />} />
         <Route path="/accept-split" element={<AcceptSplit />} />
