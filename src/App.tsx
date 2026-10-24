@@ -37,6 +37,8 @@ const AdminDashboard = React.lazy(() => import("./pages/AdminDashboard"));
 const AdminDistribution = React.lazy(() => import("./pages/AdminDistribution"));
 const AdminReleaseMetadataQueue = React.lazy(() => import("./pages/AdminReleaseMetadataQueue"));
 const AdminFinance = React.lazy(() => import("./pages/AdminFinance"));
+const DownloadApp = React.lazy(() => import("./pages/DownloadApp"));
+const AdminAppReleases = React.lazy(() => import("./pages/AdminAppReleases"));
 
 const About = React.lazy(() => import("./pages/About"));
 const Services = React.lazy(() => import("./pages/Services"));
@@ -146,6 +148,7 @@ const AppContent = () => {
 
         {/* Public marketing pages — always accessible */}
         <Route path="/pricing" element={<Pricing />} />
+        <Route path="/download-app" element={<DownloadApp />} />
         <Route path="/about" element={<About />} />
         <Route path="/services" element={<Services />} />
         <Route path="/resources" element={<Resources />} />
@@ -195,6 +198,7 @@ const AppContent = () => {
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
         <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
+        <Route path="/admin/app-releases" element={<AdminPage><AdminAppReleases /></AdminPage>} />
         <Route path="/admin/security-incidents" element={<AdminPage><LoginSecurityIncidents /></AdminPage>} />
         <Route path="/admin/distribution" element={<AdminPage><AdminDistribution /></AdminPage>} />
         <Route path="/admin/release-metadata" element={<AdminPage><AdminReleaseMetadataQueue /></AdminPage>} />
