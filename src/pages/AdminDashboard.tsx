@@ -310,6 +310,13 @@ const AdminDashboard = () => {
                 Switch to Artist Portal
                 <span aria-hidden>→</span>
               </a>
+              <a
+                href="/admin/app-releases"
+                className="inline-flex items-center gap-2 self-start sm:self-auto px-4 py-2 rounded-xl border border-primary/30 bg-primary/5 hover:bg-primary/10 text-sm font-medium text-foreground transition-colors"
+              >
+                Manage Android APK
+                <span aria-hidden>→</span>
+              </a>
             </div>
             
             <DashboardStats 
