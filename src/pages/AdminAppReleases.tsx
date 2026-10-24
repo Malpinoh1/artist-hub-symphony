@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, UploadCloud, Smartphone, CheckCircle2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -53,7 +53,7 @@ const AdminAppReleases = () => {
 
   useEffect(() => { void loadRelease(); }, []);
 
-  const publish = async (event: React.FormEvent<HTMLFormElement>) => {
+  const publish = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!user || !apkFile) {
       toast.error('Choose the APK file you want to publish.');
@@ -88,19 +88,6 @@ const AdminAppReleases = () => {
 
       const { data: publicData } = supabase.storage.from('app-releases').getPublicUrl(uploadedPath);
       const apkUrl = `${publicData.publicUrl}?download=${encodeURIComponent(safeName)}`;
-      const { error: unpublishError } = await supabase
-        .from('app_releases' as any)
-        .update({ is_published: false })
-        .eq('is_published', true);
-      if (unpublishError) throw unpublishError;
-
-      const { data: existing, error: lookupError } = await supabase
-        .from('app_releases' as any)
-        .select('id')
-        .eq('version_code', numericCode)
-        .maybeSingle();
-      if (lookupError) throw lookupError;
-
       const payload = {
         version_code: numericCode,
         version_name: versionName.trim(),
@@ -110,10 +97,16 @@ const AdminAppReleases = () => {
         published_by: user.id,
         published_at: new Date().toISOString(),
       };
-      const result = existing?.id
-        ? await supabase.from('app_releases' as any).update(payload).eq('id', existing.id)
-        : await supabase.from('app_releases' as any).insert(payload);
-      if (result.error) throw result.error;
+      const { error: publishError } = await supabase.from('app_releases' as any).insert(payload);
+      if (publishError) throw publishError;
+
+      // Publish the new version first, then retire previous releases to avoid a gap with no downloadable APK.
+      const { error: unpublishError } = await supabase
+        .from('app_releases' as any)
+        .update({ is_published: false })
+        .eq('is_published', true)
+        .neq('version_code', numericCode);
+      if (unpublishError) console.warn('The new release is live, but older releases could not be unpublished:', unpublishError);
 
       toast.success(`MALPINOHdistro v${versionName.trim()} is now published.`);
       setApkFile(null);
