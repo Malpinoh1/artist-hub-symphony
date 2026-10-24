@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet, Lock } from 'lucide-react';
+import { Plus, Music, TrendingUp, DollarSign, Users, Upload, Eye, BarChart3, Wallet, Lock, Smartphone } from 'lucide-react';
 import AnimatedCard from '../components/AnimatedCard';
 import DashboardStats from '../components/DashboardStats';
 import ReleaseCard from '../components/ReleaseCard';
@@ -171,6 +171,26 @@ const DashboardContent = () => {
                 )}
               </div>
             </div>
+          </div>
+
+          {/* Official Android app and updates */}
+          <div className="mb-8">
+            <Card className="border-primary/20 bg-gradient-to-r from-primary/10 via-background to-purple-600/10">
+              <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <div className="rounded-xl bg-primary/10 p-3 text-primary">
+                    <Smartphone className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-foreground">MALPINOHdistro for Android</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">Download the official APK, see what changed, and get future updates from our website. Google Play is coming soon.</p>
+                  </div>
+                </div>
+                <Button asChild className="shrink-0">
+                  <Link to="/download-app">Download / Update App</Link>
+                </Button>
+              </CardContent>
+            </Card>
           </div>
 
           {/* Quick Actions */}
