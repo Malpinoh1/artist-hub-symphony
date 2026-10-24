@@ -132,6 +132,12 @@ const Index = () => {
                     See Pricing
                   </Link>
                 </Button>
+                <Button size="lg" variant="ghost" className="text-lg px-6 py-6" asChild>
+                  <Link to="/download-app">
+                    Download Android App
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
+                </Button>
               </div>
 
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
