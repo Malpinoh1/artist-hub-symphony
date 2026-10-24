@@ -64,6 +64,10 @@ const AdminAppReleases = () => {
       toast.error('Version code must be a positive whole number.');
       return;
     }
+    if (release && numericCode <= release.version_code) {
+      toast.error(`Version code must be greater than the currently published build (${release.version_code}).`);
+      return;
+    }
     if (!/^\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?$/.test(versionName.trim())) {
       toast.error('Enter a version name such as 0.3.0.');
       return;
