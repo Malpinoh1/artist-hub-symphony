@@ -13,12 +13,6 @@ const formatBytes = (value: number) => {
   return `${(value / Math.pow(1024, i)).toFixed(i > 0 ? 2 : 0)} ${units[i]}`;
 };
 
-const getWebpPath = (path: string) => {
-  const slash = path.lastIndexOf('/');
-  const dot = path.lastIndexOf('.');
-  return dot > slash ? path.slice(0, dot) + '.webp' : path + '.webp';
-};
-
 const ArtworkOptimizerTab: React.FC = () => {
   const [dryRun, setDryRun] = useState(true);
   const [scanning, setScanning] = useState(false);
