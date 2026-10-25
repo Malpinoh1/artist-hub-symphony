@@ -19,6 +19,7 @@ import DashboardStats from '@/components/admin/DashboardStats';
 import ArtistsEarningsTab from '@/components/admin/ArtistsEarningsTab';
 import MarketingEmailsTab from '@/components/admin/MarketingEmailsTab';
 import AdminDirectEmailTab from '@/components/admin/AdminDirectEmailTab';
+import AndroidPushNotificationsTab from '@/components/admin/AndroidPushNotificationsTab';
 import TemporaryRoyaltyNoticeTab from '@/components/admin/TemporaryRoyaltyNoticeTab';
 import PlatformEarningsTab from '@/components/admin/PlatformEarningsTab';
 import RoyaltyStatementsTab from '@/components/admin/RoyaltyStatementsTab';
@@ -225,6 +226,8 @@ const AdminDashboard = () => {
         return <MarketingEmailsTab />;
       case 'direct-email':
         return <AdminDirectEmailTab />;
+      case 'push-notifications':
+        return <AndroidPushNotificationsTab />;
       case 'royalty-notices':
         return <TemporaryRoyaltyNoticeTab />;
       case 'platform-earnings':
@@ -268,6 +271,7 @@ const AdminDashboard = () => {
     { id: 'payments', label: 'Payments & Revenue' },
     { id: 'marketing', label: 'Marketing Emails' },
     { id: 'direct-email', label: 'Direct Email' },
+    { id: 'push-notifications', label: 'Android Push Notifications' },
     { id: 'royalty-notices', label: 'TEMP: Royalty Notices' },
     { id: 'site-notices', label: 'Site Notices' },
     { id: 'support', label: 'Support Tickets' },
