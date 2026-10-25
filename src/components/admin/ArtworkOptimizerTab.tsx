@@ -107,6 +107,20 @@ const ArtworkOptimizerTab: React.FC = () => {
         const item = itemsRef.current[i];
         setActiveIndex(i);
         updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'pending', error: undefined, newSize: undefined } : x));
+        try {
+          const signed = await callOptimizer({ action: 'signed-url', bucket: item.bucket, path: item.path });
+          if (!signed?.signedUrl) throw new Error('Cannot read original: signed URL unavailable');
+          const response = await fetch(signed.signedUrl);
+          if (!response.ok) throw new Error(`Download failed (${response.status})`);
+          const blob = await response.blob();
+          if (item.path.toLowerCase().endsWith('.webp') && blob.type === 'image/webp') {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: blob.size } : x));
+            continue;
+          }
+        } catch (e) {
+          const message = e instanceof Error ? e.message : 'Preview failed';
+          updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-failed', error: message } : x));
+        }
       }
       toast.success('Dry preview complete. No files were changed.');
     } finally { setRunning(false); setPaused(stopRef.current); }
