@@ -79,6 +79,7 @@ BEGIN
       ON t.table_schema = c.table_schema AND t.table_name = c.table_name
     WHERE c.table_schema = 'public'
       AND t.table_type = 'BASE TABLE'
+      AND c.is_generated = 'NEVER'
       AND c.data_type IN ('text', 'character varying', 'character')
   LOOP
     EXECUTE format(
@@ -98,6 +99,7 @@ BEGIN
       ON t.table_schema = c.table_schema AND t.table_name = c.table_name
     WHERE c.table_schema = 'public'
       AND t.table_type = 'BASE TABLE'
+      AND c.is_generated = 'NEVER'
       AND c.data_type IN ('json', 'jsonb')
   LOOP
     EXECUTE format(
@@ -118,6 +120,7 @@ BEGIN
       ON t.table_schema = c.table_schema AND t.table_name = c.table_name
     WHERE c.table_schema = 'public'
       AND t.table_type = 'BASE TABLE'
+      AND c.is_generated = 'NEVER'
       AND c.data_type = 'ARRAY'
       AND c.udt_name IN ('_text', '_varchar', '_bpchar')
   LOOP
