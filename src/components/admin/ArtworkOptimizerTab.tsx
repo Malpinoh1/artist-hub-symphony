@@ -242,7 +242,7 @@ const ArtworkOptimizerTab: React.FC = () => {
         {items.length > 100 && <p className="p-3 text-xs text-muted-foreground">Showing first 100 of {items.length} files.</p>}
       </div>
     </>}
-    <div className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" /> Images are processed one at a time. If a replacement or reference update cannot be verified, the original should be retained for manual retry.</div>
+    <div className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" /> Images are processed one at a time. Dry preview does not prove every database or external URL reference can be updated; back up the database and verify a small live batch first.</div>
   </div>;
 };
 
