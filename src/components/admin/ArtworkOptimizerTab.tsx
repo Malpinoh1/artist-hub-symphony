@@ -117,6 +117,16 @@ const ArtworkOptimizerTab: React.FC = () => {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: blob.size } : x));
             continue;
           }
+          const newPath = item.path.replace(/\\.[^/.]+$/, '') + '.webp';
+          const slash = newPath.lastIndexOf('/');
+          const parent = slash >= 0 ? newPath.slice(0, slash) : '';
+          const filename = slash >= 0 ? newPath.slice(slash + 1) : newPath;
+          const { data: siblings, error: listError } = await supabase.storage.from(item.bucket).list(parent, { search: filename, limit: 10 });
+          if (listError) throw new Error('Could not check the destination safely; no changes were made');
+          if ((siblings ?? []).some(entry => entry.name === filename)) {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'conflict', error: 'A WebP destination already exists; it will not be overwritten' } : x));
+            continue;
+          }
         } catch (e) {
           const message = e instanceof Error ? e.message : 'Preview failed';
           updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-failed', error: message } : x));
