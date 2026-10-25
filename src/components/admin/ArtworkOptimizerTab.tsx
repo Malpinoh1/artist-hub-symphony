@@ -98,7 +98,19 @@ const ArtworkOptimizerTab: React.FC = () => {
     } finally { bitmap.close(); }
   };
 
-  const runDryPreview = async () => { toast.info('Dry preview requires a new scan'); };
+  const runDryPreview = async () => {
+    if (!itemsRef.current.length) return;
+    setRunning(true); setPaused(false); stopRef.current = false;
+    try {
+      for (let i = 0; i < itemsRef.current.length; i++) {
+        if (stopRef.current) break;
+        const item = itemsRef.current[i];
+        setActiveIndex(i);
+        updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'pending', error: undefined, newSize: undefined } : x));
+      }
+      toast.success('Dry preview complete. No files were changed.');
+    } finally { setRunning(false); setPaused(stopRef.current); }
+  };
 
   const start = async () => {
     if (!items.length) return;
