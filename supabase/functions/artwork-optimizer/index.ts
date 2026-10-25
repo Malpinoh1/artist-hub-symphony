@@ -73,6 +73,17 @@ Deno.serve(async (req) => {
     return json({ buckets, objects, totalBytes });
   }
 
+  if (action === "signed-url") {
+    const bucket = String(body.bucket ?? "");
+    const path = String(body.path ?? "");
+    if (!bucket || !path) return json({ error: "Bucket and path are required" }, 400);
+    const { data: bucketRows, error: bucketError } = await admin.storage.listBuckets();
+    if (bucketError || !(bucketRows ?? []).some((b) => b.name === bucket)) return json({ error: "Storage bucket not found" }, 400);
+    const { data, error } = await admin.storage.from(bucket).createSignedUrl(path, 180);
+    if (error || !data?.signedUrl) return json({ error: `Could not create download URL: ${error?.message ?? "unknown error"}` }, 500);
+    return json({ signedUrl: data.signedUrl });
+  }
+
   if (action === "upload") {
     const bucket = String(body.bucket ?? "");
     const originalPath = String(body.originalPath ?? "");
