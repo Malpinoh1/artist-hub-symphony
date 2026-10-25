@@ -59,6 +59,7 @@ const ArtworkOptimizerTab: React.FC = () => {
     const response = await fetch(signed.signedUrl);
     if (!response.ok) throw new Error(`Download failed (${response.status})`);
     const blob = await response.blob();
+    if (item.path.toLowerCase().endsWith('.webp') && blob.type === 'image/webp') return { skipped: true as const, newSize: blob.size };
     const bitmap = await createImageBitmap(blob);
     try {
       const canvas = document.createElement('canvas');
@@ -106,10 +107,7 @@ const ArtworkOptimizerTab: React.FC = () => {
         const item = itemsRef.current[i];
         if (item.status === 'done' || item.status === 'skipped') continue;
         setActiveIndex(i);
-        if (dryRun) {
-          updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', error: undefined } : x));
-          continue;
-        }
+        if (dryRun) continue;
         updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'pending', error: undefined } : x));
         try {
           const result = await convertOne(item);
