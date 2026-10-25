@@ -8,7 +8,6 @@ import {
   Download,
   ExternalLink,
   FileCheck2,
-  Play,
   RefreshCw,
   ShieldCheck,
   Smartphone,
@@ -143,18 +142,23 @@ const DownloadApp = () => {
 
                 <div className="relative flex min-h-[190px] flex-col justify-between overflow-hidden rounded-2xl border border-white/10 bg-[#11101b] p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white/75">
-                      <Play className="h-5 w-5 fill-current" />
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] p-2.5">
+                      <svg viewBox="0 0 48 48" role="img" aria-label="Google Play logo" className="h-full w-full" xmlns="http://www.w3.org/2000/svg">
+                        <path fill="#00D6FF" d="M5.2 3.6C4.5 4.3 4 5.4 4 6.9v34.2c0 1.5.5 2.6 1.2 3.3L25 24 5.2 3.6Z" />
+                        <path fill="#00F076" d="M5.2 3.6 29.1 17.4 22.3 24 5.2 3.6Z" />
+                        <path fill="#FFCE00" d="M29.1 17.4 41.6 24.6c2.1 1.2 2.1 3.2 0 4.4L29 36.2 22.3 24l6.8-6.6Z" />
+                        <path fill="#FF3A44" d="M5.2 44.4 29 30.6 22.3 24 5.2 44.4Z" />
+                      </svg>
                     </span>
                     <span className="rounded-full border border-amber-300/25 bg-amber-300/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200">
                       Coming soon
                     </span>
                   </div>
                   <div className="mt-6">
-                    <p className="text-lg font-bold">Google Play Store</p>
-                    <p className="mt-1 text-sm text-white/50">Install from Google Play when the listing launches.</p>
+                    <p className="text-lg font-bold">Google Play</p>
+                    <p className="mt-1 text-sm text-white/50">Get it on Google Play when the official listing launches.</p>
                     <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-white/45">
-                      Not available yet <Clock3 className="h-4 w-4" />
+                      Coming soon <Clock3 className="h-4 w-4" />
                     </div>
                   </div>
                   <span className="absolute bottom-0 right-0 h-24 w-24 translate-x-8 translate-y-8 rounded-full bg-amber-400/5 blur-2xl" />
