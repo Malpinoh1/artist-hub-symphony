@@ -54,3 +54,6 @@ verify_jwt = true
 
 [functions.ai-support]
 verify_jwt = false
+
+[functions.artwork-optimizer]
+verify_jwt = true
