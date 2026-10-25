@@ -144,7 +144,7 @@ const ArtworkOptimizerTab: React.FC = () => {
     </div>
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
       <div className="flex gap-2 font-medium"><AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" /> Start with a dry run</div>
-      <p className="mt-1 text-muted-foreground">Dry run only inventories files and simulates the batch. Live conversion is destructive after verification. Take a database backup first.</p>
+      <p className="mt-1 text-muted-foreground">Dry preview reads each image, estimates WebP size, checks destination conflicts, and makes no changes. Live conversion is destructive after verification. Take a database backup first.</p>
     </div>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" onClick={() => void scan()} disabled={scanning || running} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium disabled:opacity-50">
