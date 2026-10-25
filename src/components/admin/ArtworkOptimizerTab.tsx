@@ -3,7 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, CirclePause, ImageIcon, Loader2, Play, RefreshCw, ScanSearch, ShieldCheck } from 'lucide-react';
 
-type ArtworkObject = { bucket: string; path: string; size: number; contentType: string; status: 'pending'|'uploaded'|'done'|'failed'|'skipped'; error?: string; newSize?: number };
+type ArtworkObject = { bucket: string; path: string; size: number; contentType: string; status: 'pending'|'uploaded'|'done'|'failed'|'skipped'|'preview-ready'|'conflict'|'preview-failed'; error?: string; newSize?: number };
 type ScanResult = { buckets: string[]; objects: ArtworkObject[]; totalBytes: number };
 
 const formatBytes = (value: number) => {
