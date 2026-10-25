@@ -31,6 +31,7 @@ import RoyaltySplitRequestsTab from '@/components/admin/RoyaltySplitRequestsTab'
 import OACRequestsTab from '@/components/admin/OACRequestsTab';
 import CollectiveTab from '@/components/admin/CollectiveTab';
 import RoyaltyUploadTab from '@/components/admin/RoyaltyUploadTab';
+import ArtworkOptimizerTab from '@/components/admin/ArtworkOptimizerTab';
 import AdminSectionNavigation from '@/components/admin/AdminSectionNavigation';
 
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
@@ -251,6 +252,8 @@ const AdminDashboard = () => {
 
       case 'royalty-upload':
         return <RoyaltyUploadTab />;
+      case 'artwork-optimizer':
+        return isAdmin ? <ArtworkOptimizerTab /> : <div className="p-6 text-center text-sm text-muted-foreground">Super-admin access required.</div>;
       case 'payments':
         return <PaymentsAnalyticsTab />;
       default:
@@ -281,6 +284,7 @@ const AdminDashboard = () => {
     { id: 'oac', label: 'YouTube OAC' },
     { id: 'collective', label: 'MDISTRO Collective' },
     { id: 'royalty-upload', label: 'Upload Royalties (CSV)' },
+    { id: 'artwork-optimizer', label: 'Artwork Optimizer' },
 
     {
       id: 'takedown',
@@ -289,7 +293,7 @@ const AdminDashboard = () => {
     },
   ];
 
-  const tabs = allTabs.filter(t => canAccessTab(t.id));
+  const tabs = allTabs.filter(t => canAccessTab(t.id) && (t.id !== 'artwork-optimizer' || isAdmin));
 
   // Ensure active tab is always one the user can access
   useEffect(() => {
