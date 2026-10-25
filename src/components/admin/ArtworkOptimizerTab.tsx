@@ -54,8 +54,8 @@ const ArtworkOptimizerTab: React.FC = () => {
   }, [callOptimizer]);
 
   const convertOne = async (item: ArtworkObject) => {
-    const { data: signed, error: signedError } = await supabase.storage.from(item.bucket).createSignedUrl(item.path, 120);
-    if (signedError || !signed?.signedUrl) throw new Error(`Cannot read original: ${signedError?.message || 'signed URL unavailable'}`);
+    const signed = await callOptimizer({ action: 'signed-url', bucket: item.bucket, path: item.path });
+    if (!signed?.signedUrl) throw new Error('Cannot read original: signed URL unavailable');
     const response = await fetch(signed.signedUrl);
     if (!response.ok) throw new Error(`Download failed (${response.status})`);
     const blob = await response.blob();
@@ -83,8 +83,8 @@ const ArtworkOptimizerTab: React.FC = () => {
       if (!uploaded?.uploaded) throw new Error('WebP upload was not confirmed');
 
       // Verify the replacement can be read back and is a WebP before references are changed.
-      const { data: verify, error: verifyError } = await supabase.storage.from(item.bucket).createSignedUrl(newPath, 120);
-      if (verifyError || !verify?.signedUrl) throw new Error('Replacement uploaded but could not be verified');
+      const verify = await callOptimizer({ action: 'signed-url', bucket: item.bucket, path: newPath });
+      if (!verify?.signedUrl) throw new Error('Replacement uploaded but could not be verified');
       const verifyResponse = await fetch(verify.signedUrl);
       if (!verifyResponse.ok) throw new Error('Replacement verification download failed');
       const verifyBlob = await verifyResponse.blob();
