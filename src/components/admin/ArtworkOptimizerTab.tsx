@@ -98,6 +98,8 @@ const ArtworkOptimizerTab: React.FC = () => {
     } finally { bitmap.close(); }
   };
 
+  const runDryPreview = async () => { toast.info('Dry preview requires a new scan'); };
+
   const start = async () => {
     if (!items.length) return;
     setRunning(true); setPaused(false); stopRef.current = false; setError('');
