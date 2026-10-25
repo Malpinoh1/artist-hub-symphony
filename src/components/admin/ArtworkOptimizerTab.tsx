@@ -181,7 +181,7 @@ const ArtworkOptimizerTab: React.FC = () => {
   };
 
   const completed = items.filter(x => ['done', 'skipped', 'preview-ready', 'conflict'].includes(x.status)).length;
-  const failed = items.filter(x => x.status === 'failed').length;
+  const failed = items.filter(x => ['failed', 'preview-failed'].includes(x.status)).length;
   const savedBytes = items.reduce((sum, item) => sum + (item.status === 'done' && item.newSize != null ? Math.max(0, item.size - item.newSize) : 0), 0);
   const progress = items.length ? Math.round((completed + failed) / items.length * 100) : 0;
   const preview = useMemo(() => items.slice(0, 100), [items]);
