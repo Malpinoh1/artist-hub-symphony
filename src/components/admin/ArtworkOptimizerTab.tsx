@@ -182,7 +182,7 @@ const ArtworkOptimizerTab: React.FC = () => {
 
   const completed = items.filter(x => ['done', 'skipped', 'preview-ready', 'conflict'].includes(x.status)).length;
   const failed = items.filter(x => ['failed', 'preview-failed'].includes(x.status)).length;
-  const savedBytes = items.reduce((sum, item) => sum + (item.status === 'done' && item.newSize != null ? Math.max(0, item.size - item.newSize) : 0), 0);
+  const savedBytes = items.reduce((sum, item) => sum + ((item.status === 'done' || item.status === 'preview-ready') && item.newSize != null ? Math.max(0, item.size - item.newSize) : 0), 0);
   const progress = items.length ? Math.round((completed + failed) / items.length * 100) : 0;
   const preview = useMemo(() => items.slice(0, 100), [items]);
 
@@ -216,7 +216,7 @@ const ArtworkOptimizerTab: React.FC = () => {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Image files found" value={items.length.toLocaleString()} />
         <Metric label="Original storage" value={formatBytes(items.reduce((sum, x) => sum + x.size, 0))} />
-        <Metric label="Verified savings" value={formatBytes(savedBytes)} />
+        <Metric label={dryRun ? "Estimated savings" : "Verified savings"} value={formatBytes(savedBytes)} />
         <Metric label="Completed / failed" value={`${completed} / ${failed}`} />
       </div>
       <div className="space-y-2">
