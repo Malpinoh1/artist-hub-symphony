@@ -127,6 +127,19 @@ const ArtworkOptimizerTab: React.FC = () => {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'conflict', error: 'A WebP destination already exists; it will not be overwritten' } : x));
             continue;
           }
+          const bitmap = await createImageBitmap(blob);
+          let webp: Blob;
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width; canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Image conversion canvas is unavailable');
+            ctx.drawImage(bitmap, 0, 0);
+            webp = await new Promise<Blob>((resolve, reject) =>
+              canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86));
+          } finally { bitmap.close(); }
+          if (!webp.size) throw new Error('Converted WebP is empty');
+          updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-ready', newSize: webp.size } : x));
         } catch (e) {
           const message = e instanceof Error ? e.message : 'Preview failed';
           updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-failed', error: message } : x));
