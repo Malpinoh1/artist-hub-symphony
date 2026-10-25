@@ -151,6 +151,7 @@ const ArtworkOptimizerTab: React.FC = () => {
 
   const start = async () => {
     if (!items.length) return;
+    if (dryRun) { await runDryPreview(); return; }
     setRunning(true); setPaused(false); stopRef.current = false; setError('');
     try {
       for (let i = 0; i < itemsRef.current.length; i++) {
