@@ -93,8 +93,19 @@ Deno.serve(async (req) => {
       return json({ error: "Invalid upload request" }, 400);
     }
     if (base64.length > 22_000_000) return json({ error: "Converted image is too large for this endpoint; reduce dimensions or quality and retry" }, 413);
+    const expectedNewPath = originalPath.replace(/\\.[^/.]+$/, "") + ".webp";
+    if (newPath !== expectedNewPath) return json({ error: "Replacement path must be the original path with a .webp extension" }, 400);
     const { data: bucketRows, error: bucketError } = await admin.storage.listBuckets();
     if (bucketError || !(bucketRows ?? []).some((b) => b.name === bucket)) return json({ error: "Storage bucket not found" }, 400);
+    // Never overwrite an existing WebP. It may be an intentional asset or another conversion's output.
+    const slash = newPath.lastIndexOf("/");
+    const parent = slash >= 0 ? newPath.slice(0, slash) : "";
+    const filename = slash >= 0 ? newPath.slice(slash + 1) : newPath;
+    const { data: siblings, error: listError } = await admin.storage.from(bucket).list(parent, { search: filename, limit: 10 });
+    if (listError) return json({ error: `Could not check destination path: ${listError.message}` }, 500);
+    if ((siblings ?? []).some((entry) => entry.name === filename)) {
+      return json({ error: "A WebP destination already exists; original retained to prevent overwriting an existing image" }, 409);
+    }
     const bytesString = atob(base64);
     const bytes = new Uint8Array(bytesString.length);
     for (let i = 0; i < bytesString.length; i++) bytes[i] = bytesString.charCodeAt(i);
