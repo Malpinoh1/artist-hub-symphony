@@ -1,3 +1,4 @@
+import { getArtworkDisplayUrl } from '@/lib/artworkDisplay';
 import React, { useEffect, useState } from 'react';
 import { ImagePlus, Loader2, RefreshCw, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -161,7 +162,7 @@ const ReleaseArtworkManager: React.FC<ReleaseArtworkManagerProps> = ({ releaseId
               <div key={release.id} className="flex flex-col gap-3 rounded-xl border p-3 sm:flex-row sm:items-center">
                 <div className="h-20 w-20 shrink-0 overflow-hidden rounded-lg bg-muted">
                   {release.cover_art_url ? (
-                    <img src={release.cover_art_url} alt={`${release.title} cover art`} className="h-full w-full object-cover" />
+                    <img src={getArtworkDisplayUrl(release.cover_art_url)} alt={`${release.title} cover art`} loading="lazy" decoding="async" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full items-center justify-center"><ImagePlus className="h-7 w-7 text-muted-foreground" /></div>
                   )}
