@@ -75,8 +75,8 @@ const ArtworkOptimizerTab: React.FC = () => {
       ctx.drawImage(bitmap, 0, 0);
       const webp = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86));
       if (!webp.size) throw new Error('Converted image is empty');
-      if (webp.size >= blob.size && blob.type === 'image/webp') {
-        // Already WebP: leave it untouched instead of creating another copy.
+      if (webp.size >= blob.size) {
+        // Never replace an original when WebP would not reduce storage.
         return { skipped: true as const, newSize: blob.size };
       }
       const newPath = item.path.replace(/\.[^/.]+$/, '') + '.webp';
