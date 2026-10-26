@@ -52,6 +52,7 @@ import {
 import { downloadReleaseAssets } from '@/services/assetsService';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { getArtworkDisplayUrl } from '@/lib/artworkDisplay';
 
 interface ReleasesTabProps {
   releases: Release[];
@@ -571,7 +572,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               <div className="flex gap-3">
                 <Checkbox className="mt-1" checked={selectedIds.has(release.id)} onCheckedChange={() => toggleOne(release.id)} aria-label={`Select ${release.title}`} />
                 {release.cover_art_url ? (
-                  <img src={release.cover_art_url} alt={release.title} className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
+                  <img src={getArtworkDisplayUrl(release.cover_art_url)} alt={release.title} loading="lazy" decoding="async" className="w-16 h-16 rounded-md object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-16 h-16 rounded-md bg-muted flex items-center justify-center flex-shrink-0">
                     <Music className="w-6 h-6 text-muted-foreground" />
@@ -670,7 +671,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               </TableCell>
               <TableCell>
                 {release.cover_art_url ? (
-                  <img src={release.cover_art_url} alt={release.title} className="w-12 h-12 rounded object-cover" />
+                  <img src={getArtworkDisplayUrl(release.cover_art_url)} alt={release.title} loading="lazy" decoding="async" className="w-12 h-12 rounded object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
                     <Music className="w-5 h-5 text-muted-foreground" />
