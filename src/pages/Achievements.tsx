@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import MilestonePromoCard, { MilestoneCardData } from '@/components/achievements/MilestonePromoCard';
 import { loadCoverPalette } from '@/lib/coverPalette';
+import { getArtworkDisplayUrl } from '@/lib/artworkDisplay';
 import {
   useArtistAchievements, useArtistReportedSnapshot,
   MILESTONES, milestoneLabel, milestoneTier,
@@ -45,7 +46,7 @@ const UnlockedMilestoneTile: React.FC<UnlockedMilestoneTileProps> = ({
   const [palette, setPalette] = useState<{ primary: string; secondary: string } | null>(null);
   useEffect(() => {
     let active = true;
-    loadCoverPalette(release?.cover_art_url).then((value) => {
+    loadCoverPalette(getArtworkDisplayUrl(release?.cover_art_url)).then((value) => {
       if (active) setPalette(value);
     });
     return () => { active = false; };
@@ -58,9 +59,10 @@ const UnlockedMilestoneTile: React.FC<UnlockedMilestoneTileProps> = ({
       <div className="relative h-52 overflow-hidden bg-neutral-950">
         {release?.cover_art_url ? (
           <img
-            src={release.cover_art_url}
+            src={getArtworkDisplayUrl(release.cover_art_url)}
             alt={release.title ? release.title + ' cover art' : 'Release cover art'}
             loading="lazy"
+            decoding="async"
             className="absolute inset-0 h-full w-full object-cover opacity-70 transition-transform duration-700 group-hover:scale-105"
           />
         ) : (
