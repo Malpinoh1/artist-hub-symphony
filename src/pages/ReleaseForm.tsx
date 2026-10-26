@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../lib/convertImageToWebp';
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Check, Save, AlertCircle } from 'lucide-react';
@@ -106,8 +107,9 @@ const ReleaseForm = () => {
     if (!coverArt || !user) return;
     const selectedFile = coverArt;
     const upload = (async () => {
-      const path = `${user.id}/${Date.now()}_cover.${selectedFile.name.split('.').pop()}`;
-      const { error } = await supabase.storage.from('release_artwork').upload(path, selectedFile, { cacheControl: '3600', upsert: false });
+      const webpCover = await convertImageToWebp(selectedFile);
+      const path = `${user.id}/${Date.now()}_cover.webp`;
+      const { error } = await supabase.storage.from('release_artwork').upload(path, webpCover, { cacheControl: '31536000', upsert: false, contentType: 'image/webp' });
       if (error) throw new Error(`Cover art upload failed: ${error.message}`);
       const { data: urlData } = supabase.storage.from('release_artwork').getPublicUrl(path);
       return urlData?.publicUrl ?? null;
@@ -285,8 +287,9 @@ const ReleaseForm = () => {
       let coverArtUrl = coverArtUrlRef.current;
       if (coverArt && !coverArtUrl) throw new Error('Cover art upload is not complete. Please retry selecting the file.');
       if (!coverArtUrl && coverArt) {
-        const path = `${userId}/${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
-        const { error: coverErr } = await supabase.storage.from('release_artwork').upload(path, coverArt, { cacheControl: '3600', upsert: false });
+        const webpCover = await convertImageToWebp(coverArt);
+        const path = `${userId}/${Date.now()}_cover.webp`;
+        const { error: coverErr } = await supabase.storage.from('release_artwork').upload(path, webpCover, { cacheControl: '31536000', upsert: false, contentType: 'image/webp' });
         if (coverErr) throw new Error(`Cover art upload failed: ${coverErr.message}`);
         const { data: urlData } = supabase.storage.from('release_artwork').getPublicUrl(path);
         coverArtUrl = urlData?.publicUrl || null;
