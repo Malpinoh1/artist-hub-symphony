@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../../lib/convertImageToWebp';
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -191,11 +192,12 @@ const AdminReleaseUpload: React.FC<AdminReleaseUploadProps> = ({ open, onOpenCha
       if (coverArt) {
         setUploadProgress('Uploading cover art...');
         const coverArtFileName = `${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
-        const coverArtPath = `${selectedArtistId}/${coverArtFileName}`;
+        const webpCover = await convertImageToWebp(coverArt);
+        const coverArtPath = `${selectedArtistId}/${coverArtFileName.replace(/\.[^.]+$/, '')}.webp`;
         
         const { error: coverUploadError } = await supabase.storage
           .from('release_artwork')
-          .upload(coverArtPath, coverArt, { cacheControl: '3600', upsert: false });
+          .upload(coverArtPath, webpCover, { cacheControl: '31536000', upsert: false, contentType: 'image/webp' });
           
         if (coverUploadError) throw new Error(`Failed to upload cover art: ${coverUploadError.message}`);
         
