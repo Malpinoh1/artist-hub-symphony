@@ -221,7 +221,7 @@ const ReportedPerformance: React.FC<{ artistId: string }> = ({ artistId }) => {
                   className="flex items-center gap-3 rounded-xl border border-border p-2.5 hover:border-primary/40 transition-colors"
                 >
                   {r.cover_art_url ? (
-                    <img src={r.cover_art_url} alt={`${r.title} cover art`} loading="lazy"
+                    <img src={getArtworkDisplayUrl(r.cover_art_url)} alt={`${r.title} cover art`} loading="lazy" decoding="async"
                       className="h-12 w-12 rounded-lg object-cover shrink-0" />
                   ) : (
                     <div className="h-12 w-12 rounded-lg bg-muted flex items-center justify-center shrink-0">
