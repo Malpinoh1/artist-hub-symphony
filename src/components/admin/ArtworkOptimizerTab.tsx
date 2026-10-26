@@ -3,8 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, CirclePause, ImageIcon, Loader2, Play, RefreshCw, ScanSearch, ShieldCheck } from 'lucide-react';
 
-type ArtworkObject = { bucket: string; path: string; size: number; contentType: string; status: 'pending'|'uploaded'|'done'|'failed'|'skipped'; error?: string; newSize?: number };
+type ArtworkObject = { bucket: string; path: string; size: number; contentType: string; status: 'pending'|'uploaded'|'done'|'failed'|'skipped'|'preview-ready'|'conflict'|'preview-failed'; error?: string; newSize?: number };
 type ScanResult = { buckets: string[]; objects: ArtworkObject[]; totalBytes: number };
+
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(value => { window.clearTimeout(timer); resolve(value); }, error => { window.clearTimeout(timer); reject(error); });
+  });
 
 const formatBytes = (value: number) => {
   if (!Number.isFinite(value) || value <= 0) return '0 B';
@@ -69,8 +75,8 @@ const ArtworkOptimizerTab: React.FC = () => {
       ctx.drawImage(bitmap, 0, 0);
       const webp = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86));
       if (!webp.size) throw new Error('Converted image is empty');
-      if (webp.size >= blob.size && blob.type === 'image/webp') {
-        // Already WebP: leave it untouched instead of creating another copy.
+      if (webp.size >= blob.size) {
+        // Never replace an original when WebP would not reduce storage.
         return { skipped: true as const, newSize: blob.size };
       }
       const newPath = item.path.replace(/\.[^/.]+$/, '') + '.webp';
@@ -98,8 +104,69 @@ const ArtworkOptimizerTab: React.FC = () => {
     } finally { bitmap.close(); }
   };
 
+  const runDryPreview = async () => {
+    if (!itemsRef.current.length) return;
+    setRunning(true); setPaused(false); stopRef.current = false;
+    try {
+      for (let i = 0; i < itemsRef.current.length; i++) {
+        if (stopRef.current) break;
+        const item = itemsRef.current[i];
+        setActiveIndex(i);
+        updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'pending', error: undefined, newSize: undefined } : x));
+        try {
+          const signed = await withTimeout(callOptimizer({ action: 'signed-url', bucket: item.bucket, path: item.path }), 30000, 'Timed out requesting the image URL');
+          if (!signed?.signedUrl) throw new Error('Cannot read original: signed URL unavailable');
+          const controller = new AbortController();
+          const fetchTimer = window.setTimeout(() => controller.abort(), 30000);
+          let response: Response;
+          try { response = await fetch(signed.signedUrl, { signal: controller.signal }); }
+          catch (fetchError) { if (controller.signal.aborted) throw new Error('Timed out downloading the original image'); throw fetchError; }
+          finally { window.clearTimeout(fetchTimer); }
+          if (!response.ok) throw new Error(`Download failed (${response.status})`);
+          const blob = await withTimeout(response.blob(), 120000, 'Timed out reading the image data');
+          if (item.path.toLowerCase().endsWith('.webp') && blob.type === 'image/webp') {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: blob.size } : x));
+            continue;
+          }
+          const newPath = item.path.replace(/\.[^/.]+$/, '') + '.webp';
+          const slash = newPath.lastIndexOf('/');
+          const parent = slash >= 0 ? newPath.slice(0, slash) : '';
+          const filename = slash >= 0 ? newPath.slice(slash + 1) : newPath;
+          const { data: siblings, error: listError } = await withTimeout(supabase.storage.from(item.bucket).list(parent, { search: filename, limit: 10 }), 20000, 'Timed out checking the WebP destination');
+          if (listError) throw new Error('Could not check the destination safely; no changes were made');
+          if ((siblings ?? []).some(entry => entry.name === filename)) {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'conflict', error: 'A WebP destination already exists; it will not be overwritten' } : x));
+            continue;
+          }
+          const bitmap = await withTimeout(createImageBitmap(blob), 60000, 'Timed out decoding the image');
+          let webp: Blob;
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width; canvas.height = bitmap.height;
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Image conversion canvas is unavailable');
+            ctx.drawImage(bitmap, 0, 0);
+            webp = await withTimeout(new Promise<Blob>((resolve, reject) =>
+              canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86)), 30000, 'Timed out encoding WebP');
+          } finally { bitmap.close(); }
+          if (!webp.size) throw new Error('Converted WebP is empty');
+          if (webp.size >= blob.size) {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: webp.size, error: 'WebP would not reduce file size; original kept' } : x));
+            continue;
+          }
+          updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-ready', newSize: webp.size } : x));
+        } catch (e) {
+          const message = e instanceof Error ? e.message : 'Preview failed';
+          updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-failed', error: message } : x));
+        }
+      }
+      toast.success('Dry preview complete. No files were changed.');
+    } finally { setRunning(false); setPaused(stopRef.current); }
+  };
+
   const start = async () => {
     if (!items.length) return;
+    if (dryRun) { await runDryPreview(); return; }
     setRunning(true); setPaused(false); stopRef.current = false; setError('');
     try {
       for (let i = 0; i < itemsRef.current.length; i++) {
@@ -128,9 +195,9 @@ const ArtworkOptimizerTab: React.FC = () => {
     setTimeout(() => { void start(); }, 0);
   };
 
-  const completed = items.filter(x => x.status === 'done' || x.status === 'skipped').length;
-  const failed = items.filter(x => x.status === 'failed').length;
-  const savedBytes = items.reduce((sum, item) => sum + (item.status === 'done' && item.newSize != null ? Math.max(0, item.size - item.newSize) : 0), 0);
+  const completed = items.filter(x => ['done', 'skipped', 'preview-ready', 'conflict'].includes(x.status)).length;
+  const failed = items.filter(x => ['failed', 'preview-failed'].includes(x.status)).length;
+  const savedBytes = items.reduce((sum, item) => sum + ((item.status === 'done' || item.status === 'preview-ready') && item.newSize != null ? Math.max(0, item.size - item.newSize) : 0), 0);
   const progress = items.length ? Math.round((completed + failed) / items.length * 100) : 0;
   const preview = useMemo(() => items.slice(0, 100), [items]);
 
@@ -144,7 +211,7 @@ const ArtworkOptimizerTab: React.FC = () => {
     </div>
     <div className="rounded-xl border border-amber-500/40 bg-amber-500/5 p-3 text-sm">
       <div className="flex gap-2 font-medium"><AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" /> Start with a dry run</div>
-      <p className="mt-1 text-muted-foreground">Dry run only inventories files and simulates the batch. Live conversion is destructive after verification. Take a database backup first.</p>
+      <p className="mt-1 text-muted-foreground">Dry preview reads each image, estimates WebP size, checks destination conflicts, and makes no changes. Live conversion is destructive after verification. Take a database backup first.</p>
     </div>
     <div className="flex flex-wrap items-center gap-3">
       <button type="button" onClick={() => void scan()} disabled={scanning || running} className="inline-flex min-h-11 items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium disabled:opacity-50">
@@ -164,7 +231,7 @@ const ArtworkOptimizerTab: React.FC = () => {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <Metric label="Image files found" value={items.length.toLocaleString()} />
         <Metric label="Original storage" value={formatBytes(items.reduce((sum, x) => sum + x.size, 0))} />
-        <Metric label="Verified savings" value={formatBytes(savedBytes)} />
+        <Metric label={dryRun ? "Estimated savings" : "Verified savings"} value={formatBytes(savedBytes)} />
         <Metric label="Completed / failed" value={`${completed} / ${failed}`} />
       </div>
       <div className="space-y-2">
@@ -184,7 +251,7 @@ const ArtworkOptimizerTab: React.FC = () => {
         {items.length > 100 && <p className="p-3 text-xs text-muted-foreground">Showing first 100 of {items.length} files.</p>}
       </div>
     </>}
-    <div className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" /> Images are processed one at a time. If a replacement or reference update cannot be verified, the original should be retained for manual retry.</div>
+    <div className="flex items-start gap-2 text-xs text-muted-foreground"><ShieldCheck className="h-4 w-4 shrink-0" /> Images are processed one at a time. Dry preview does not prove every database or external URL reference can be updated; back up the database and verify a small live batch first.</div>
   </div>;
 };
 
