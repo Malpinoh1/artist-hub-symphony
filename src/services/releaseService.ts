@@ -1,3 +1,4 @@
+import { convertImageToWebp } from "../lib/convertImageToWebp";
 import { supabase } from "../integrations/supabase/client";
 import type { Database } from "../integrations/supabase/types";
 import { toast } from "sonner";
@@ -265,10 +266,11 @@ export async function submitRelease(
     let coverArtUrl = null;
     if (coverArt) {
       onProgress?.({ step: 'cover', currentFile: coverArt.name });
-      const coverArtPath = `${userId}/${Date.now()}_cover.${coverArt.name.split('.').pop()}`;
+      const webpCover = await convertImageToWebp(coverArt);
+      const coverArtPath = `${userId}/${Date.now()}_cover.webp`;
       const { error: coverUploadError } = await supabase.storage
         .from('release_artwork')
-        .upload(coverArtPath, coverArt, { cacheControl: '3600', upsert: false });
+        .upload(coverArtPath, webpCover, { cacheControl: '31536000', upsert: false, contentType: 'image/webp' });
       if (coverUploadError) throw new Error(`Failed to upload cover art: ${coverUploadError.message}`);
       const { data: publicUrlData } = supabase.storage.from('release_artwork').getPublicUrl(coverArtPath);
       coverArtUrl = publicUrlData?.publicUrl;
