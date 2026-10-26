@@ -123,7 +123,7 @@ const ArtworkOptimizerTab: React.FC = () => {
           catch (fetchError) { if (controller.signal.aborted) throw new Error('Timed out downloading the original image'); throw fetchError; }
           finally { window.clearTimeout(fetchTimer); }
           if (!response.ok) throw new Error(`Download failed (${response.status})`);
-          const blob = await withTimeout(response.blob(), 30000, 'Timed out reading the image data');
+          const blob = await withTimeout(response.blob(), 120000, 'Timed out reading the image data');
           if (item.path.toLowerCase().endsWith('.webp') && blob.type === 'image/webp') {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: blob.size } : x));
             continue;
@@ -138,7 +138,7 @@ const ArtworkOptimizerTab: React.FC = () => {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'conflict', error: 'A WebP destination already exists; it will not be overwritten' } : x));
             continue;
           }
-          const bitmap = await withTimeout(createImageBitmap(blob), 30000, 'Timed out decoding the image');
+          const bitmap = await withTimeout(createImageBitmap(blob), 60000, 'Timed out decoding the image');
           let webp: Blob;
           try {
             const canvas = document.createElement('canvas');
