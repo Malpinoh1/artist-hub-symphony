@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../../lib/convertImageToWebp';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, Send, Calendar, CheckCircle2, Clock, XCircle, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -169,16 +170,14 @@ const OpportunitiesPanel = ({ memberId }: Props) => {
     const existing = subs.find((s) => s.opportunity_id === opportunityId);
     let uploadedPath: string | null = null;
     if (evidenceFile) {
-      const extensionByType: Record<string, string> = {
-        'image/jpeg': 'jpg',
-        'image/png': 'png',
-        'image/webp': 'webp',
-        'application/pdf': 'pdf',
-      };
-      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extensionByType[evidenceFile.type]}`;
+      const uploadFile = evidenceFile.type.startsWith('image/')
+        ? await convertImageToWebp(evidenceFile)
+        : evidenceFile;
+      const extension = uploadFile.type === 'application/pdf' ? 'pdf' : 'webp';
+      const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extension}`;
       const { error: uploadError } = await supabase.storage
         .from('collective-evidence')
-        .upload(objectPath, evidenceFile, { contentType: evidenceFile.type, upsert: false });
+        .upload(objectPath, uploadFile, { contentType: uploadFile.type, upsert: false });
       if (uploadError) {
         setSending(false);
         toast.error("We couldn't upload your evidence. Check the file type and size, then try again.");
