@@ -150,6 +150,10 @@ const ArtworkOptimizerTab: React.FC = () => {
               canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86)), 30000, 'Timed out encoding WebP');
           } finally { bitmap.close(); }
           if (!webp.size) throw new Error('Converted WebP is empty');
+          if (webp.size >= blob.size) {
+            updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: webp.size, error: 'WebP would not reduce file size; original kept' } : x));
+            continue;
+          }
           updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-ready', newSize: webp.size } : x));
         } catch (e) {
           const message = e instanceof Error ? e.message : 'Preview failed';
