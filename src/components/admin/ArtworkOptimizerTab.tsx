@@ -6,6 +6,12 @@ import { AlertTriangle, CheckCircle2, CirclePause, ImageIcon, Loader2, Play, Ref
 type ArtworkObject = { bucket: string; path: string; size: number; contentType: string; status: 'pending'|'uploaded'|'done'|'failed'|'skipped'|'preview-ready'|'conflict'|'preview-failed'; error?: string; newSize?: number };
 type ScanResult = { buckets: string[]; objects: ArtworkObject[]; totalBytes: number };
 
+const withTimeout = <T,>(promise: Promise<T>, ms: number, message: string): Promise<T> =>
+  new Promise((resolve, reject) => {
+    const timer = window.setTimeout(() => reject(new Error(message)), ms);
+    promise.then(value => { window.clearTimeout(timer); resolve(value); }, error => { window.clearTimeout(timer); reject(error); });
+  });
+
 const formatBytes = (value: number) => {
   if (!Number.isFinite(value) || value <= 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -108,26 +114,31 @@ const ArtworkOptimizerTab: React.FC = () => {
         setActiveIndex(i);
         updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'pending', error: undefined, newSize: undefined } : x));
         try {
-          const signed = await callOptimizer({ action: 'signed-url', bucket: item.bucket, path: item.path });
+          const signed = await withTimeout(callOptimizer({ action: 'signed-url', bucket: item.bucket, path: item.path }), 30000, 'Timed out requesting the image URL');
           if (!signed?.signedUrl) throw new Error('Cannot read original: signed URL unavailable');
-          const response = await fetch(signed.signedUrl);
+          const controller = new AbortController();
+          const fetchTimer = window.setTimeout(() => controller.abort(), 30000);
+          let response: Response;
+          try { response = await fetch(signed.signedUrl, { signal: controller.signal }); }
+          catch (fetchError) { if (controller.signal.aborted) throw new Error('Timed out downloading the original image'); throw fetchError; }
+          finally { window.clearTimeout(fetchTimer); }
           if (!response.ok) throw new Error(`Download failed (${response.status})`);
-          const blob = await response.blob();
+          const blob = await withTimeout(response.blob(), 30000, 'Timed out reading the image data');
           if (item.path.toLowerCase().endsWith('.webp') && blob.type === 'image/webp') {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'skipped', newSize: blob.size } : x));
             continue;
           }
-          const newPath = item.path.replace(/\\.[^/.]+$/, '') + '.webp';
+          const newPath = item.path.replace(/\.[^/.]+$/, '') + '.webp';
           const slash = newPath.lastIndexOf('/');
           const parent = slash >= 0 ? newPath.slice(0, slash) : '';
           const filename = slash >= 0 ? newPath.slice(slash + 1) : newPath;
-          const { data: siblings, error: listError } = await supabase.storage.from(item.bucket).list(parent, { search: filename, limit: 10 });
+          const { data: siblings, error: listError } = await withTimeout(supabase.storage.from(item.bucket).list(parent, { search: filename, limit: 10 }), 20000, 'Timed out checking the WebP destination');
           if (listError) throw new Error('Could not check the destination safely; no changes were made');
           if ((siblings ?? []).some(entry => entry.name === filename)) {
             updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'conflict', error: 'A WebP destination already exists; it will not be overwritten' } : x));
             continue;
           }
-          const bitmap = await createImageBitmap(blob);
+          const bitmap = await withTimeout(createImageBitmap(blob), 30000, 'Timed out decoding the image');
           let webp: Blob;
           try {
             const canvas = document.createElement('canvas');
@@ -135,8 +146,8 @@ const ArtworkOptimizerTab: React.FC = () => {
             const ctx = canvas.getContext('2d');
             if (!ctx) throw new Error('Image conversion canvas is unavailable');
             ctx.drawImage(bitmap, 0, 0);
-            webp = await new Promise<Blob>((resolve, reject) =>
-              canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86));
+            webp = await withTimeout(new Promise<Blob>((resolve, reject) =>
+              canvas.toBlob(value => value ? resolve(value) : reject(new Error('WebP encoding failed')), 'image/webp', 0.86)), 30000, 'Timed out encoding WebP');
           } finally { bitmap.close(); }
           if (!webp.size) throw new Error('Converted WebP is empty');
           updateItems(prev => prev.map((x, index) => index === i ? { ...x, status: 'preview-ready', newSize: webp.size } : x));
