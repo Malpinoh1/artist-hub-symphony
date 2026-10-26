@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ReleaseEditRequest } from './ReleaseEditRequest';
 import { Link } from 'react-router-dom';
+import { getArtworkDisplayUrl } from '@/lib/artworkDisplay';
 
 interface Release {
   id: string;
@@ -125,8 +126,10 @@ export default function ReleaseCard({
           <div className="flex items-start space-x-3">
             {releaseData.cover_art_url ? (
               <img 
-                src={releaseData.cover_art_url}
+                src={getArtworkDisplayUrl(releaseData.cover_art_url)}
                 alt={releaseData.title}
+                loading="lazy"
+                decoding="async"
                 className="w-16 h-16 rounded-lg object-cover bg-muted"
               />
             ) : (
