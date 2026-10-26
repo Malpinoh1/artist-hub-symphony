@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../../lib/convertImageToWebp';
 import React, { useCallback, useEffect, useState } from 'react';
 import { AlertCircle, Loader2, Save, Eye, EyeOff, RefreshCw, ImagePlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -111,15 +112,11 @@ const ProfilePanel = ({ onSaved }: Props) => {
       toast.error('Your session expired. Sign in again before uploading.');
       return;
     }
-    const extensionByType: Record<string, string> = {
-      'image/jpeg': 'jpg',
-      'image/png': 'png',
-      'image/webp': 'webp',
-    };
-    const objectPath = `${auth.user.id}/${crypto.randomUUID()}.${extensionByType[file.type]}`;
+    const webpFile = await convertImageToWebp(file);
+    const objectPath = `${auth.user.id}/${crypto.randomUUID()}.webp`;
     const { error: uploadError } = await supabase.storage
       .from('collective-avatars')
-      .upload(objectPath, file, { contentType: file.type, upsert: false });
+      .upload(objectPath, webpFile, { contentType: 'image/webp', cacheControl: '31536000', upsert: false });
     if (uploadError) {
       setUploadingAvatar(false);
       toast.error("We couldn't upload your profile photo. Check the file type and size.");

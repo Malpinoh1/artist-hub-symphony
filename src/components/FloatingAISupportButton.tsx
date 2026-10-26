@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../lib/convertImageToWebp';
 import { FormEvent, Fragment, ReactNode, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Bot, ChevronDown, ExternalLink, Loader2, MessageCircle, Plus, Send, Sparkles, X } from "lucide-react";
@@ -197,9 +198,9 @@ const FloatingAISupportButton = () => {
     if (releaseAudioFiles.some((file) => file.size > 50 * 1024 * 1024)) { toast({ title: "Audio file is too large", description: "Each audio file must be 50 MB or smaller.", variant: "destructive" }); return; }
     setUploadingReleaseDraft(true);
     try {
-      const coverExtension = releaseCoverFile.name.split(".").pop()?.replace(/[^a-zA-Z0-9]/g, "") || "jpg";
-      const coverPath = `${user.id}/${Date.now()}_ai_cover.${coverExtension}`;
-      const { error: coverError } = await supabase.storage.from("release_artwork").upload(coverPath, releaseCoverFile, { cacheControl: "3600", upsert: false });
+      const webpCover = await convertImageToWebp(releaseCoverFile);
+      const coverPath = `${user.id}/${Date.now()}_ai_cover.webp`;
+      const { error: coverError } = await supabase.storage.from("release_artwork").upload(coverPath, webpCover, { cacheControl: "31536000", upsert: false, contentType: "image/webp" });
       if (coverError) throw new Error("Cover art upload failed: " + coverError.message);
       const { data: coverPublic } = supabase.storage.from("release_artwork").getPublicUrl(coverPath);
       if (!coverPublic?.publicUrl) throw new Error("Could not retrieve the uploaded cover art URL.");

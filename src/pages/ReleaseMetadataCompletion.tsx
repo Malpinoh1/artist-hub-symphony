@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../lib/convertImageToWebp';
 import React, { useEffect, useState } from 'react';
 import { CalendarDays, ImagePlus, CheckCircle2, AlertCircle, Music2, Upload } from 'lucide-react';
 import { supabase } from '../integrations/supabase/client';
@@ -87,9 +88,10 @@ const ReleaseMetadataCompletion = () => {
       return;
     }
     setUploading(requestId);
-    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const path = `${user.id}/metadata-completion/${requestId}-${Date.now()}-${safeName}`;
-    const { error } = await supabase.storage.from('release_artwork').upload(path, file, { upsert: true, contentType: file.type });
+    const webpFile = await convertImageToWebp(file);
+    const safeName = file.name.replace(/\.[^.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const path = `${user.id}/metadata-completion/${requestId}-${Date.now()}-${safeName}.webp`;
+    const { error } = await supabase.storage.from('release_artwork').upload(path, webpFile, { upsert: true, contentType: 'image/webp', cacheControl: '31536000' });
     if (error) {
       toast({ title: 'Artwork upload failed', description: error.message, variant: 'destructive' });
     } else {
