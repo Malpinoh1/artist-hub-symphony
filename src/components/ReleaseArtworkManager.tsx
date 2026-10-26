@@ -1,3 +1,4 @@
+import { convertImageToWebp } from '../lib/convertImageToWebp';
 import { getArtworkDisplayUrl } from '@/lib/artworkDisplay';
 import React, { useEffect, useState } from 'react';
 import { ImagePlus, Loader2, RefreshCw, Upload } from 'lucide-react';
@@ -86,14 +87,14 @@ const ReleaseArtworkManager: React.FC<ReleaseArtworkManagerProps> = ({ releaseId
     }
 
     setUploadingId(release.id);
-    const extension = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
-    const objectPath = `${user.id}/${release.id}/${Date.now()}-${crypto.randomUUID()}.${extension}`;
+    const webpFile = await convertImageToWebp(file);
+    const objectPath = `${user.id}/${release.id}/${Date.now()}-${crypto.randomUUID()}.webp`;
     let uploadedPath: string | null = null;
 
     try {
       const { error: uploadError } = await supabase.storage
         .from('release_artwork')
-        .upload(objectPath, file, { contentType: file.type, cacheControl: '0', upsert: false });
+        .upload(objectPath, webpFile, { contentType: 'image/webp', cacheControl: '31536000', upsert: false });
       if (uploadError) throw uploadError;
       uploadedPath = objectPath;
 
