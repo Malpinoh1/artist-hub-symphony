@@ -25,6 +25,7 @@ const statusClass: Record<string, string> = {
 export default function DistributionInvoicesTab() {
   const [accounts, setAccounts] = useState<any[]>([]);
   const [releases, setReleases] = useState<any[]>([]);
+  const [artistAccounts, setArtistAccounts] = useState<any[]>([]);
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,18 +48,21 @@ export default function DistributionInvoicesTab() {
   const load = async () => {
     setLoading(true);
     try {
-      const [a, r, i, p] = await Promise.all([
+      const [a, r, aa, i, p] = await Promise.all([
         db.from('artists').select('id,name,email,account_type,account_name').order('name'),
         db.from('releases').select('id,title,artist_id,artist_account_id').order('created_at', { ascending: false }).limit(500),
+        db.from('artist_accounts').select('id,owner_id'),
         db.from('distribution_invoices').select('*').order('created_at', { ascending: false }).limit(200),
         db.from('distribution_payments').select('*').order('recorded_at', { ascending: false }).limit(200),
       ]);
       if (a.error) throw a.error;
       if (r.error) throw r.error;
+      if (aa.error) throw aa.error;
       if (i.error) throw i.error;
       if (p.error) throw p.error;
       setAccounts(a.data || []);
       setReleases(r.data || []);
+      setArtistAccounts(aa.data || []);
       setInvoices(i.data || []);
       setPayments(p.data || []);
       if (!accountId && a.data?.[0]?.id) setAccountId(a.data[0].id);
@@ -71,7 +75,7 @@ export default function DistributionInvoicesTab() {
 
   const accountReleases = releases.filter(r => {
     if (!accountId) return false;
-    return r.artist_id === accountId || accounts.some(a => a.id === accountId && r.artist_account_id && a.id === r.artist_account_id);
+    return r.artist_id === accountId || artistAccounts.some(aa => aa.id === r.artist_account_id && aa.owner_id === accountId);
   });
 
   const createInvoice = async (event: React.FormEvent) => {
