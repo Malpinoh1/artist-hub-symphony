@@ -32,6 +32,25 @@ serve(async (req) => {
     const body = await req.json();
     const action = String(body.action ?? "");
 
+
+    if (action === "update_bank_details") {
+      if (!roleNames.some((r: string) => ["admin", "finance_manager"].includes(r))) return json({ success: false, error: "Finance admin privileges required" }, 403);
+      const bankName = String(body.bank_name ?? "").trim().slice(0, 120);
+      const accountName = String(body.account_name ?? "").trim().slice(0, 120);
+      const accountNumber = String(body.account_number ?? "").replace(/\\s/g, "").slice(0, 30);
+      const instructions = String(body.transfer_instructions ?? "").trim().slice(0, 1500);
+      if (bankName && (!accountName || !/^[0-9]{6,20}$/.test(accountNumber))) {
+        return json({ success: false, error: "Enter a bank name, account name, and account number containing 6–20 digits." }, 400);
+      }
+      if (!bankName && (accountName || accountNumber)) return json({ success: false, error: "Bank name is required when configuring account details." }, 400);
+      const { data: settings, error: settingsError } = await db.from("distribution_payment_settings").upsert({
+        id: true, bank_name: bankName, account_name: accountName, account_number: accountNumber,
+        transfer_instructions: instructions, updated_by: userId, updated_at: new Date().toISOString(),
+      }, { onConflict: "id" }).select("bank_name,account_name,account_number,transfer_instructions,updated_at").single();
+      if (settingsError) throw settingsError;
+      return json({ success: true, settings });
+    }
+
     if (action === "create_invoice") {
       if (!roleNames.some((r: string) => ["admin", "finance_manager", "distribution_manager"].includes(r))) {
         return json({ success: false, error: "Invoice management permission required" }, 403);
