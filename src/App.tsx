@@ -71,6 +71,7 @@ const Achievements = React.lazy(() => import("./pages/Achievements"));
 const AcceptSplit = React.lazy(() => import("./pages/AcceptSplit"));
 const PaymentCallback = React.lazy(() => import("./pages/PaymentCallback"));
 const PaymentHistory = React.lazy(() => import("./pages/PaymentHistory"));
+const Billing = React.lazy(() => import("./pages/Billing"));
 const OAuthConsent = React.lazy(() => import("./pages/OAuthConsent"));
 const CollectiveApply = React.lazy(() => import("./pages/CollectiveApply"));
 const CollectiveCenter = React.lazy(() => import("./pages/CollectiveCenter"));
@@ -196,7 +197,7 @@ const AppContent = () => {
         <Route path="/collective/center" element={<DashboardPage><CollectiveCenter /></DashboardPage>} />
 
         <Route path="/settings/payments" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
-        <Route path="/billing" element={<DashboardPage><PaymentHistory /></DashboardPage>} />
+        <Route path="/billing" element={<DashboardPage><Billing /></DashboardPage>} />
         <Route path="/admin" element={<AdminPage><AdminDashboard /></AdminPage>} />
         <Route path="/admin/app-releases" element={<AdminPage><AdminAppReleases /></AdminPage>} />
         <Route path="/admin/security-incidents" element={<AdminPage><LoginSecurityIncidents /></AdminPage>} />
