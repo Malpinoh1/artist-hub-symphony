@@ -43,28 +43,33 @@ export default function DistributionInvoicesTab() {
   const [transferReference, setTransferReference] = useState('');
   const [transferNote, setTransferNote] = useState('Part payment for one-time music distribution');
   const [verifiedPayment, setVerifiedPayment] = useState<string | null>(null);
+  const [bankSettings, setBankSettings] = useState({ bank_name: '', account_name: '', account_number: '', transfer_instructions: '' });
+  const [bankSaving, setBankSaving] = useState(false);
   const [busyPayment, setBusyPayment] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [a, r, aa, i, p] = await Promise.all([
+      const [a, r, aa, i, p, s] = await Promise.all([
         db.from('artists').select('id,name,email,account_type,account_name').order('name'),
         db.from('releases').select('id,title,artist_id,artist_account_id').order('created_at', { ascending: false }).limit(500),
         db.from('artist_accounts').select('id,owner_id'),
         db.from('distribution_invoices').select('*').order('created_at', { ascending: false }).limit(200),
         db.from('distribution_payments').select('*').order('recorded_at', { ascending: false }).limit(200),
+        db.from('distribution_payment_settings').select('*').eq('id', true).maybeSingle(),
       ]);
       if (a.error) throw a.error;
       if (r.error) throw r.error;
       if (aa.error) throw aa.error;
       if (i.error) throw i.error;
       if (p.error) throw p.error;
+      if (s.error) throw s.error;
       setAccounts(a.data || []);
       setReleases(r.data || []);
       setArtistAccounts(aa.data || []);
       setInvoices(i.data || []);
       setPayments(p.data || []);
+      setBankSettings({ bank_name: s.data?.bank_name || '', account_name: s.data?.account_name || '', account_number: s.data?.account_number || '', transfer_instructions: s.data?.transfer_instructions || '' });
       if (!accountId && a.data?.[0]?.id) setAccountId(a.data[0].id);
     } catch (e: any) {
       toast.error(e?.message || 'Could not load distribution invoices');
@@ -126,6 +131,18 @@ export default function DistributionInvoicesTab() {
     finally { setSaving(false); }
   };
 
+  const saveBankSettings = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setBankSaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('distribution-billing-admin', { body: { action: 'update_bank_details', ...bankSettings } });
+      if (error || !data?.success) throw new Error(data?.error || error?.message || 'Could not save bank details');
+      toast.success('Bank transfer details updated');
+      setBankSettings(data.settings || bankSettings);
+    } catch (e: any) { toast.error(e?.message || 'Could not save bank details'); }
+    finally { setBankSaving(false); }
+  };
+
   const confirmPayment = async (paymentId: string) => {
     if (verifiedPayment !== paymentId) return toast.error('Confirm that the funds have been verified in the bank account');
     setBusyPayment(paymentId);
@@ -163,6 +180,17 @@ export default function DistributionInvoicesTab() {
           <label className="flex items-start gap-3 text-sm"><Checkbox checked={issueNow} onCheckedChange={v => setIssueNow(v === true)} /><span><b>Issue invoice immediately</b><span className="block text-muted-foreground">Publishes it to the billing page and queues the invoice email.</span></span></label>
         </div>
         <div><Button type="submit" disabled={saving || loading}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create invoice</Button></div>
+      </form>
+
+      <form onSubmit={saveBankSettings} className="grid gap-4 rounded-xl border bg-card p-4 sm:p-5">
+        <div><h3 className="font-semibold">Official bank transfer details</h3><p className="text-sm text-muted-foreground">These details are shown to artists and labels on their billing page. Verify them carefully before saving.</p></div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="space-y-2"><Label htmlFor="bank-name">Bank name</Label><Input id="bank-name" value={bankSettings.bank_name} onChange={e => setBankSettings(s => ({...s,bank_name:e.target.value}))} maxLength={120} /></div>
+          <div className="space-y-2"><Label htmlFor="bank-account-name">Account name</Label><Input id="bank-account-name" value={bankSettings.account_name} onChange={e => setBankSettings(s => ({...s,account_name:e.target.value}))} maxLength={120} /></div>
+          <div className="space-y-2"><Label htmlFor="bank-account-number">Account number</Label><Input id="bank-account-number" value={bankSettings.account_number} onChange={e => setBankSettings(s => ({...s,account_number:e.target.value}))} inputMode="numeric" maxLength={30} placeholder="6–20 digits" /></div>
+          <div className="space-y-2"><Label htmlFor="bank-instructions">Transfer instructions</Label><Textarea id="bank-instructions" value={bankSettings.transfer_instructions} onChange={e => setBankSettings(s => ({...s,transfer_instructions:e.target.value}))} maxLength={1500} rows={2} placeholder="Include transfer narration or reconciliation instructions" /></div>
+        </div>
+        <div><Button type="submit" disabled={bankSaving}>{bankSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Save bank details</Button></div>
       </form>
 
       <form onSubmit={recordTransfer} className="grid gap-4 rounded-xl border bg-card p-4 sm:p-5">
