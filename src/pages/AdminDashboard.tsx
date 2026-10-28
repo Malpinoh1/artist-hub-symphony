@@ -36,13 +36,14 @@ import AdminSectionNavigation from '@/components/admin/AdminSectionNavigation';
 
 import PaymentsAnalyticsTab from '@/components/admin/PaymentsAnalyticsTab';
 import AdminManualPaymentTab from '@/components/admin/AdminManualPaymentTab';
+import DistributionInvoicesTab from '@/components/admin/DistributionInvoicesTab';
 import { useAdminRole } from '@/hooks/useAdminRole';
 import { ShieldAlert } from 'lucide-react';
 
 // Tabs each sub-role may access (admin sees all)
 const FINANCE_TABS = new Set([
   'withdrawals', 'support', 'royalty-upload', 'marketing',
-  'subscriptions', 'artists', 'payments', 'credit-balance', 'manual-payment',
+  'subscriptions', 'artists', 'payments', 'credit-balance', 'manual-payment', 'distribution-invoices',
   'earnings', 'platform-earnings', 'royalty-statements', 'income-management',
 ]);
 const DISTRIBUTION_TABS = new Set([
@@ -221,6 +222,8 @@ const AdminDashboard = () => {
         return <SubscriptionManagement />;
       case 'manual-payment':
         return <AdminManualPaymentTab />;
+      case 'distribution-invoices':
+        return <DistributionInvoicesTab />;
       case 'takedown':
         return <TakeDownRequestsTab />;
       case 'marketing':
@@ -271,6 +274,7 @@ const AdminDashboard = () => {
     { id: 'analytics', label: 'Analytics' },
     { id: 'subscriptions', label: 'Subscriptions' },
     { id: 'manual-payment', label: 'Manual Payment & Renewal' },
+    { id: 'distribution-invoices', label: 'Distribution Invoices' },
     { id: 'payments', label: 'Payments & Revenue' },
     { id: 'marketing', label: 'Marketing Emails' },
     { id: 'direct-email', label: 'Direct Email' },
