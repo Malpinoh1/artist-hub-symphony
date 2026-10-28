@@ -1,0 +1,1 @@
+alter table public.distribution_invoices drop constraint if exists distribution_invoices_release_exception_check;
