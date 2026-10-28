@@ -22,6 +22,7 @@ export default function Billing() {
   const [invoices, setInvoices] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [receipts, setReceipts] = useState<any[]>([]);
+  const [bankSettings, setBankSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [payingId, setPayingId] = useState<string | null>(null);
   const [amounts, setAmounts] = useState<Record<string, string>>({});
@@ -34,15 +35,17 @@ export default function Billing() {
     if (!currentAccountId) return;
     setLoading(true);
     try {
-      const [i, p, r] = await Promise.all([
+      const [i, p, r, s] = await Promise.all([
         db.from('distribution_invoices').select('*').eq('billing_account_id', currentAccountId).order('created_at', { ascending: false }),
         db.from('distribution_payments').select('*').eq('billing_account_id', currentAccountId).order('recorded_at', { ascending: false }),
         db.from('distribution_receipts').select('*').eq('billing_account_id', currentAccountId).order('issued_at', { ascending: false }),
+        db.from('distribution_payment_settings').select('bank_name,account_name,account_number,transfer_instructions').eq('id', true).maybeSingle(),
       ]);
       if (i.error) throw i.error;
       if (p.error) throw p.error;
       if (r.error) throw r.error;
-      setInvoices(i.data || []); setPayments(p.data || []); setReceipts(r.data || []);
+      if (s.error) throw s.error;
+      setInvoices(i.data || []); setPayments(p.data || []); setReceipts(r.data || []); setBankSettings(s.data || null);
     } catch (e: any) { toast.error(e?.message || 'Could not load billing information'); }
     finally { setLoading(false); }
   };
@@ -104,6 +107,19 @@ export default function Billing() {
         <Card><CardHeader className="pb-2"><CardDescription>Invoices</CardDescription><CardTitle className="text-2xl">{invoices.filter(i => i.status !== 'cancelled').length}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Including paid and partially paid</CardContent></Card>
         <Card><CardHeader className="pb-2"><CardDescription>Receipts</CardDescription><CardTitle className="text-2xl">{receipts.length}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Confirmed payments recorded</CardContent></Card>
       </div>
+
+      <Card>
+        <CardHeader><CardTitle className="flex items-center gap-2 text-lg"><Landmark className="h-5 w-5" />Bank transfer details</CardTitle><CardDescription>Use these official MALPINOHdistro details for direct transfers.</CardDescription></CardHeader>
+        <CardContent>
+          {bankSettings?.bank_name && bankSettings?.account_name && bankSettings?.account_number ? <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Bank</p><p className="font-semibold">{bankSettings.bank_name}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Account name</p><p className="font-semibold">{bankSettings.account_name}</p></div>
+            <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Account number</p><p className="font-semibold tracking-wide">{bankSettings.account_number}</p></div>
+            {bankSettings.transfer_instructions && <div className="rounded-lg bg-muted/40 p-3"><p className="text-xs text-muted-foreground">Instructions</p><p className="whitespace-pre-wrap text-sm">{bankSettings.transfer_instructions}</p></div>}
+          </div> : <div className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-sm"><AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" /><span>Official bank details have not been configured yet. Please contact MALPINOHdistro support before making a transfer.</span></div>}
+          <p className="mt-3 text-xs text-muted-foreground">After sending a transfer, choose “I paid by bank transfer” on the relevant invoice and submit the amount and bank reference. Your balance changes only after finance verifies the funds.</p>
+        </CardContent>
+      </Card>
 
       {loading ? <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin" />Loading your invoices…</div> : invoices.length === 0 ? <Card><CardContent className="py-12 text-center"><ReceiptText className="mx-auto mb-3 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold">No distribution invoices yet</h2><p className="mt-1 text-sm text-muted-foreground">Invoices created by MALPINOHdistro will appear here.</p></CardContent></Card> : <div className="space-y-4">{invoices.map(invoice => {
         const invoicePayments = payments.filter(p => p.invoice_id === invoice.id);
