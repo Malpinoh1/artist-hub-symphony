@@ -21,6 +21,19 @@ Deno.serve(async (req) => {
     const event = await req.json();
     const txRef = event?.data?.tx_ref;
     const txId = event?.data?.id ? String(event.data.id) : undefined;
+    if (typeof txRef === "string" && txRef.startsWith("MDH-DIST-")) {
+      const invoiceWebhookUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/distribution-invoice-webhook`;
+      const invoiceResponse = await fetch(invoiceWebhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "verif-hash": expected },
+        body: JSON.stringify(event),
+      });
+      if (!invoiceResponse.ok) console.error("Distribution invoice webhook returned", invoiceResponse.status, await invoiceResponse.text());
+      return new Response(JSON.stringify({ received: true, invoice_payment_processed: invoiceResponse.ok }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 
     // Delegate verification by calling verify endpoint
