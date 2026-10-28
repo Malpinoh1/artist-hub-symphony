@@ -88,14 +88,13 @@ export default function DistributionInvoicesTab() {
     const numericAmount = Number(amount);
     if (!accountId) return toast.error('Select an artist or label account');
     if (!Number.isSafeInteger(numericAmount) || numericAmount <= 0) return toast.error('Enter a positive whole-NGN amount');
-    if (allowException && !releaseId) return toast.error('Select the specific release for the release exception');
     setSaving(true);
     try {
       const { data, error } = await supabase.functions.invoke('distribution-billing-admin', {
         body: {
           action: 'create_invoice',
           billing_account_id: accountId,
-          release_id: releaseId || null,
+          release_id: allowException ? null : (releaseId || null),
           description,
           total_amount: numericAmount,
           due_at: dueDate ? new Date(dueDate + 'T23:59:00+01:00').toISOString() : null,
@@ -176,7 +175,7 @@ export default function DistributionInvoicesTab() {
           <div className="space-y-2"><Label htmlFor="invoice-notes">Internal notes (admin only)</Label><Textarea id="invoice-notes" value={notes} onChange={e => setNotes(e.target.value)} rows={2} /></div>
         </div>
         <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-3">
-          <label className="flex items-start gap-3 text-sm"><Checkbox checked={allowException} onCheckedChange={v => setAllowException(v === true)} /><span><b>Allow this release before full payment</b><span className="block text-muted-foreground">Approval applies only to the selected release. The remaining fee remains owed.</span></span></label>
+          <label className="flex items-start gap-3 text-sm"><Checkbox checked={allowException} onCheckedChange={v => setAllowException(v === true)} /><span><b>Allow the next release before full payment</b><span className="block text-muted-foreground">This one-time exception is consumed by the next eligible release submission for this account. The remaining fee stays owed.</span></span></label>
           <label className="flex items-start gap-3 text-sm"><Checkbox checked={issueNow} onCheckedChange={v => setIssueNow(v === true)} /><span><b>Issue invoice immediately</b><span className="block text-muted-foreground">Publishes it to the billing page and queues the invoice email.</span></span></label>
         </div>
         <div><Button type="submit" disabled={saving || loading}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create invoice</Button></div>
@@ -211,7 +210,7 @@ export default function DistributionInvoicesTab() {
           return <article key={i.id} className="rounded-xl border bg-card p-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between"><div><p className="font-semibold">{i.invoice_number}</p><p className="text-sm text-muted-foreground">{account?.account_name || account?.name || 'Account'} · {i.description}</p></div><span className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[i.status] || 'bg-muted'}`}>{String(i.status).replaceAll('_',' ')}</span></div>
             <div className="mt-4 grid grid-cols-3 gap-3 text-sm"><div><p className="text-muted-foreground">Total</p><p className="font-semibold">{money(Number(i.total_amount))}</p></div><div><p className="text-muted-foreground">Paid</p><p className="font-semibold text-emerald-600">{money(Number(i.amount_paid))}</p></div><div><p className="text-muted-foreground">Outstanding</p><p className="font-semibold text-destructive">{money(Number(i.amount_due))}</p></div></div>
-            {i.allow_release_before_full_payment && <p className="mt-3 text-xs text-amber-600">One-time release exception enabled for the linked release.</p>}
+            {i.allow_release_before_full_payment && <p className="mt-3 text-xs text-amber-600">One-time release exception enabled. {i.release_id ? 'Linked to the release that used the exception.' : 'Available for the next eligible release submission.'}</p>}
           </article>;
         })}</div>}
       </section>
