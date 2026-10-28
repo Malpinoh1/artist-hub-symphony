@@ -37,7 +37,6 @@ export default function DistributionInvoicesTab() {
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
   const [allowException, setAllowException] = useState(false);
-  const [issueNow, setIssueNow] = useState(true);
   const [transferInvoice, setTransferInvoice] = useState('');
   const [transferAmount, setTransferAmount] = useState('');
   const [transferReference, setTransferReference] = useState('');
@@ -99,14 +98,14 @@ export default function DistributionInvoicesTab() {
           total_amount: numericAmount,
           due_at: dueDate ? new Date(dueDate + 'T23:59:00+01:00').toISOString() : null,
           internal_notes: notes,
-          issue_now: issueNow,
+          issue_now: true,
           allow_release_before_full_payment: allowException,
         },
       });
       if (error || !data?.success) throw new Error(data?.error || error?.message || 'Invoice creation failed');
       toast.success(issueNow ? `Invoice ${data.invoice.invoice_number} issued` : `Invoice ${data.invoice.invoice_number} saved as draft`);
       setDescription('One-time music distribution'); setAmount('13563'); setDueDate(''); setNotes('');
-      setReleaseId(''); setAllowException(false); setIssueNow(true);
+      setReleaseId(''); setAllowException(false);
       await load();
     } catch (e: any) { toast.error(e?.message || 'Could not create invoice'); }
     finally { setSaving(false); }
@@ -168,7 +167,7 @@ export default function DistributionInvoicesTab() {
         <div className="flex items-center gap-2"><FilePlus2 className="h-5 w-5 text-primary" /><h3 className="font-semibold">Create invoice</h3></div>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2"><Label htmlFor="invoice-account">Artist or label</Label><select id="invoice-account" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={accountId} onChange={e => { setAccountId(e.target.value); setReleaseId(''); }} required><option value="">Select account</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.account_name || a.name} — {a.account_type || 'artist'} ({a.email})</option>)}</select></div>
-          <div className="space-y-2"><Label htmlFor="invoice-release">Release (optional unless exception enabled)</Label><select id="invoice-release" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={releaseId} onChange={e => setReleaseId(e.target.value)}><option value="">No release linked</option>{accountReleases.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}</select></div>
+          <div className="space-y-2"><Label htmlFor="invoice-release">Existing release (optional)</Label><select id="invoice-release" className="h-10 w-full rounded-md border bg-background px-3 text-sm" value={releaseId} onChange={e => setReleaseId(e.target.value)}><option value="">No release linked — use for a new release exception</option>{accountReleases.map(r => <option key={r.id} value={r.id}>{r.title}</option>)}</select></div>
           <div className="space-y-2"><Label htmlFor="invoice-description">Description</Label><Input id="invoice-description" value={description} onChange={e => setDescription(e.target.value)} required maxLength={240} /></div>
           <div className="space-y-2"><Label htmlFor="invoice-amount">Total fee (NGN)</Label><Input id="invoice-amount" type="number" min="1" step="1" value={amount} onChange={e => setAmount(e.target.value)} required /></div>
           <div className="space-y-2"><Label htmlFor="invoice-due">Due date (optional)</Label><Input id="invoice-due" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></div>
@@ -176,7 +175,6 @@ export default function DistributionInvoicesTab() {
         </div>
         <div className="flex flex-col gap-3 rounded-lg bg-muted/40 p-3">
           <label className="flex items-start gap-3 text-sm"><Checkbox checked={allowException} onCheckedChange={v => setAllowException(v === true)} /><span><b>Allow the next release before full payment</b><span className="block text-muted-foreground">This one-time exception is consumed by the next eligible release submission for this account. The remaining fee stays owed.</span></span></label>
-          <label className="flex items-start gap-3 text-sm"><Checkbox checked={issueNow} onCheckedChange={v => setIssueNow(v === true)} /><span><b>Issue invoice immediately</b><span className="block text-muted-foreground">Publishes it to the billing page and queues the invoice email.</span></span></label>
         </div>
         <div><Button type="submit" disabled={saving || loading}>{saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Create invoice</Button></div>
       </form>
