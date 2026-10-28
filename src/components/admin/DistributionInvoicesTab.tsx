@@ -103,7 +103,7 @@ export default function DistributionInvoicesTab() {
         },
       });
       if (error || !data?.success) throw new Error(data?.error || error?.message || 'Invoice creation failed');
-      toast.success(issueNow ? `Invoice ${data.invoice.invoice_number} issued` : `Invoice ${data.invoice.invoice_number} saved as draft`);
+      toast.success(`Invoice ${data.invoice.invoice_number} issued`);
       setDescription('One-time music distribution'); setAmount('13563'); setDueDate(''); setNotes('');
       setReleaseId(''); setAllowException(false);
       await load();
