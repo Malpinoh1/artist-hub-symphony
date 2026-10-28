@@ -19,7 +19,6 @@ Deno.serve(async(req)=>{
   const {data:payment,error:pe}=await db.from("distribution_payments").select("id,amount,currency,status,provider_reference,method").eq("provider_reference",txRef).eq("method","card").maybeSingle();
   if(pe) throw pe;
   if(!payment) return json({received:true,ignored:true});
-  if(payment.status==="confirmed") return json({received:true,already_confirmed:true});
   const verifyResp=await fetch("https://api.flutterwave.com/v3/transactions/"+encodeURIComponent(transactionId)+"/verify",{headers:{Authorization:"Bearer "+secret}});
   const verified=await verifyResp.json().catch(()=>({}));
   const d=verified?.data;
@@ -30,9 +29,10 @@ Deno.serve(async(req)=>{
   }
   const {data:confirmed,error:ce}=await db.rpc("confirm_distribution_card_payment",{p_payment_id:payment.id,p_provider_reference:txRef});
   if(ce) throw ce;
-  const {data:jobs}=await db.from("billing_notification_outbox").select("id,recipient_email,receipt_id").eq("payment_id",payment.id).eq("status","pending").limit(1);
+  const {data:jobs}=await db.from("billing_notification_outbox").select("id,recipient_email,receipt_id").eq("payment_id",payment.id).in("status",["pending","failed"]).limit(1);
   let emailStatus="not_queued";
   for(const job of jobs||[]){
+    await db.from("billing_notification_outbox").update({status:"processing",attempts:Number(job.attempts||0)+1,updated_at:new Date().toISOString(),last_error:null}).eq("id",job.id);
     try{
       const {data:receipt,error:re}=await db.from("distribution_receipts").select("*").eq("id",job.receipt_id).single();
       if(re) throw re;
@@ -51,7 +51,7 @@ Deno.serve(async(req)=>{
       emailStatus="sent";
     }catch(err){
       const message=err instanceof Error?err.message:"Receipt email failed";
-      await db.from("billing_notification_outbox").update({status:"failed",last_error:message.slice(0,1000),updated_at:new Date().toISOString(),attempts:1}).eq("id",job.id);
+      await db.from("billing_notification_outbox").update({status:"failed",last_error:message.slice(0,1000),updated_at:new Date().toISOString()}).eq("id",job.id);
       emailStatus="failed";
       console.error("Invoice receipt email delivery failed",message);
     }
