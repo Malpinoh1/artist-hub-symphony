@@ -5,7 +5,7 @@ Deno.serve(async(req)=>{
  if(req.method==="OPTIONS") return new Response("ok",{headers:cors});
  if(req.method!=="POST") return json({error:"Method not allowed"},405);
  try{
-  const expected=Deno.env.get("FLUTTERWAVE_WEBHOOK_SECRET_HASH")||Deno.env.get("FLUTTERWAVE_SECRET_HASH");
+  const expected=Deno.env.get("FLUTTERWAVE_WEBHOOK_SECRET")||Deno.env.get("FLUTTERWAVE_WEBHOOK_SECRET_HASH")||Deno.env.get("FLUTTERWAVE_SECRET_HASH");
   const supplied=req.headers.get("verif-hash");
   if(!expected||!supplied||supplied!==expected) return json({error:"Invalid webhook signature"},401);
   const payload=await req.json();
