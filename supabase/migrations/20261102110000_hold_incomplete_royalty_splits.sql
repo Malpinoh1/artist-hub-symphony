@@ -101,7 +101,7 @@ $old$;
         AND sr.status = 'accepted'
         AND sr.artist_id IS NOT NULL;
     END IF;
-$ new$;
+$new$;
 
   IF position(v_old IN v_def) = 0 THEN
     RAISE EXCEPTION 'Could not safely locate existing royalty split block';
