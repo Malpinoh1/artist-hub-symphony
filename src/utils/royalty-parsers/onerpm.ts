@@ -54,6 +54,10 @@ export function parseOnerpmRows(records: Record<string, any>[]): NormalizedRoyal
         const v = String(pickField(r, ['ISRC']) ?? '').trim();
         return v || undefined;
       })(),
+      upc: (() => {
+        const v = String(pickField(r, ['UPC', 'UPC Code', 'Barcode']) ?? '').trim();
+        return v || undefined;
+      })(),
     });
   }
   return rows;
