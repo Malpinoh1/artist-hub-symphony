@@ -157,6 +157,7 @@ export async function assignRowToArtist(rowId: string, artistId: string) {
     .update({
       matched_artist_ids: [artistId],
       match_status: 'matched',
+      manually_assigned: true,
       assigned_amount_per_artist: row.net_amount,
     })
     .eq('id', rowId);
