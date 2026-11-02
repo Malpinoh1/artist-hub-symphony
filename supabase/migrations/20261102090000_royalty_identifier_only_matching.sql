@@ -29,7 +29,7 @@ DECLARE
   v_distributor text;
   v_split_pct numeric;
   v_candidate_count int;
-  v_track_count int;
+  v_base_per_artist numeric;
 BEGIN
   IF auth.uid() IS NOT NULL AND NOT public.user_is_admin(auth.uid()) THEN
     RAISE EXCEPTION 'Admin only';
@@ -220,6 +220,15 @@ BEGIN
            AND s.status IN ('active', 'locked')
            AND sr.status <> 'declined'
            AND sr.artist_id IS NULL
+       )
+       AND EXISTS (
+         SELECT 1
+         FROM public.splits s
+         JOIN public.split_recipients sr ON sr.split_id = s.id
+         WHERE s.track_id = v_track_id
+           AND s.status IN ('active', 'locked')
+           AND sr.status <> 'declined'
+           AND sr.artist_id IS NOT NULL
        ) THEN
       SELECT array_agg(sr.artist_id ORDER BY sr.invited_at, sr.id)
       INTO v_matched_ids
@@ -231,7 +240,8 @@ BEGIN
         AND sr.artist_id IS NOT NULL;
     END IF;
 
-    v_per_artist := ROUND(v_safe_net / array_length(v_matched_ids, 1), 4);
+    v_base_per_artist := ROUND(v_safe_net / array_length(v_matched_ids, 1), 4);
+    v_per_artist := v_base_per_artist;
     v_per_downloads := FLOOR(COALESCE(v_row.downloads, 0)::numeric / array_length(v_matched_ids, 1));
 
     UPDATE public.royalty_upload_rows
@@ -245,6 +255,7 @@ BEGIN
 
     FOR v_artist IN SELECT unnest(v_matched_ids) AS id
     LOOP
+      v_per_artist := v_base_per_artist;
       v_split_pct := NULL;
 
       IF v_track_id IS NOT NULL THEN
