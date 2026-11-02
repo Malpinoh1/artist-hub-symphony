@@ -111,7 +111,7 @@ BEGIN
             OR regexp_replace(COALESCE(r.upc, ''), '[^0-9]', '', 'g')
                = regexp_replace(v_row.upc, '[^0-9]', '', 'g')
           )
-          AND (SELECT COUNT(*) FROM public.tracks t WHERE t.release_id = r.id) = 1;
+;
 
         IF v_candidate_count = 1 THEN
           SELECT r.id, r.artist_id
