@@ -474,66 +474,72 @@ export async function updateReleaseStatus(
   }
 }
 
-// Update release UPC and ISRC
-export async function updateReleaseIdentifiers(releaseId: string, upc: string, isrc: string) {
-  console.log(`Updating identifiers for release ${releaseId}: UPC=${upc}, ISRC=${isrc}`);
-  
+// A release has one UPC; each row in release_tracks owns its own ISRC.
+export interface TrackIdentifierInput {
+  id: string;
+  isrc: string;
+}
+
+export async function updateReleaseIdentifiers(
+  releaseId: string,
+  upc: string,
+  trackIdentifiers: TrackIdentifierInput[]
+) {
   try {
-    // First, check if the release exists
     const { data: existingRelease, error: checkError } = await supabase
       .from('releases')
       .select('id')
       .eq('id', releaseId)
       .maybeSingle();
-      
-    if (checkError) {
-      console.error('Error checking release existence:', checkError);
-      return { success: false, error: checkError };
-    }
 
+    if (checkError) return { success: false, error: checkError };
     if (!existingRelease) {
-      console.error('Release not found');
       return { success: false, error: { message: 'Release not found' } };
     }
 
-    // Update the identifiers
-    const { error: updateError } = await supabase
-      .from('releases')
-      .update({ 
-        upc: upc || null,
-        isrc: isrc || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', releaseId);
-      
-    if (updateError) {
-      console.error('Error updating release identifiers:', updateError);
-      return { success: false, error: updateError };
+    const { data: existingTracks, error: tracksError } = await supabase
+      .from('release_tracks')
+      .select('id')
+      .eq('release_id', releaseId);
+
+    if (tracksError) return { success: false, error: tracksError };
+
+    const validTrackIds = new Set((existingTracks || []).map(track => track.id));
+    const submittedTrackIds = trackIdentifiers.map(track => track.id);
+    if (new Set(submittedTrackIds).size !== submittedTrackIds.length || submittedTrackIds.some(id => !validTrackIds.has(id))) {
+      return { success: false, error: { message: 'One or more tracks do not belong to this release. Refresh and try again.' } };
     }
 
-    // Fetch the updated release with all required data
+    const updates = await Promise.all([
+      supabase.from('releases')
+        .update({ upc: upc.trim() || null, updated_at: new Date().toISOString() })
+        .eq('id', releaseId),
+      ...trackIdentifiers.map(track => supabase.from('release_tracks')
+        .update({ isrc: track.isrc.trim() || null })
+        .eq('id', track.id)
+        .eq('release_id', releaseId)),
+    ]);
+
+    const failedUpdate = updates.find(result => result.error);
+    if (failedUpdate?.error) {
+      console.error('Error updating release/track identifiers:', failedUpdate.error);
+      return { success: false, error: failedUpdate.error };
+    }
+
     const { data: updatedRelease, error: fetchError } = await supabase
       .from('releases')
       .select(`
-        id,
-        title,
-        cover_art_url,
-        status,
-        release_date,
-        upc,
-        isrc,
-        artist_id,
-        artists(id, name, email)
+        id, title, cover_art_url, audio_file_url, status, release_date, upc, isrc,
+        artist_id, artist_name, release_type, genre, description, producer_credits,
+        songwriter_credits, artwork_credits, copyright_info, primary_language,
+        total_tracks, explicit_content, submission_notes, admin_notes, platforms,
+        artists(id, name, email),
+        release_tracks(id, track_number, title, duration, isrc, explicit_content, featured_artists, performers)
       `)
       .eq('id', releaseId)
       .single();
-      
-    if (fetchError) {
-      console.error('Error fetching updated release:', fetchError);
-      return { success: false, error: fetchError };
-    }
-    
-    console.log('Release identifiers updated successfully:', updatedRelease);
+
+    if (fetchError) return { success: false, error: fetchError };
     return { success: true, data: updatedRelease };
   } catch (error) {
     console.error('Error in updateReleaseIdentifiers:', error);
