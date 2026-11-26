@@ -881,7 +881,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2">
                 <Button type="button" variant="outline" onClick={() => { setIdentifierDialogOpen(false); setSelectedRelease(null); setUpc(''); setTrackIdentifiers([]); }} disabled={updating}>Cancel</Button>
-                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating || trackIdentifiers.length === 0}>
+                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating}>
                   {updating ? 'Updating...' : 'Save identifiers'}
                 </Button>
               </DialogFooter>
