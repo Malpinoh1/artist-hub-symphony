@@ -86,6 +86,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const allSelected = releases.length > 0 && releases.every(r => selectedIds.has(r.id));
+  const getAssignedTrackIsrcCount = (release: Release) => {
+    const tracks = release.release_tracks || [];
+    const assignedOnTracks = tracks.filter(track => !!track.isrc?.trim()).length;
+    return assignedOnTracks || (tracks.length === 1 && !!release.isrc?.trim() ? 1 : 0);
+  };
   const toggleOne = (id: string) => setSelectedIds(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
@@ -156,7 +161,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
     setTrackIdentifiers((release.release_tracks || [])
       .slice()
       .sort((a, b) => a.track_number - b.track_number)
-      .map(track => ({ id: track.id, track_number: track.track_number, title: track.title, isrc: track.isrc || '' })));
+      .map(track => ({ id: track.id, track_number: track.track_number, title: track.title, isrc: track.isrc || ((release.release_tracks || []).length === 1 ? release.isrc || '' : '') })));
     setIdentifierDialogOpen(true);
   };
 
@@ -538,7 +543,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-muted-foreground">ISRC: {track.isrc || 'Not assigned'}</span>
+                      <span className="text-xs text-muted-foreground">ISRC: {track.isrc || (tracks.length === 1 ? selectedRelease.isrc : null) || 'Not assigned'}</span>
                       {track.explicit_content && <Badge variant="destructive" className="text-[10px] px-1 py-0">E</Badge>}
                     </div>
                   </li>
@@ -595,7 +600,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="text-muted-foreground">UPC: {release.upc || '—'}</span>
-                <span className="text-muted-foreground">ISRCs: {release.release_tracks?.filter(track => !!track.isrc?.trim()).length || 0}/{release.release_tracks?.length || 0} tracks assigned</span>
+                <span className="text-muted-foreground">ISRCs: {getAssignedTrackIsrcCount(release)}/{release.release_tracks?.length || 0} tracks assigned</span>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -687,7 +692,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               <TableCell>{release.artist_name || release.artists?.[0]?.name || 'Unknown'}</TableCell>
               <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
               <TableCell>{release.upc || '—'}</TableCell>
-              <TableCell>{release.release_tracks?.filter(track => !!track.isrc?.trim()).length || 0}/{release.release_tracks?.length || 0} assigned</TableCell>
+              <TableCell>{getAssignedTrackIsrcCount(release)}/{release.release_tracks?.length || 0} assigned</TableCell>
               <TableCell>
                 <Badge 
                   className={`cursor-pointer ${getStatusColor(release.status)}`}
