@@ -65,7 +65,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const isMobile = useIsMobile();
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [upc, setUpc] = useState('');
-  const [isrc, setIsrc] = useState('');
+  const [trackIdentifiers, setTrackIdentifiers] = useState<Array<{ id: string; track_number: number; title: string; isrc: string }>>([]);
   const [identifierDialogOpen, setIdentifierDialogOpen] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
@@ -86,6 +86,11 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const allSelected = releases.length > 0 && releases.every(r => selectedIds.has(r.id));
+  const getAssignedTrackIsrcCount = (release: Release) => {
+    const tracks = release.release_tracks || [];
+    const assignedOnTracks = tracks.filter(track => !!track.isrc?.trim()).length;
+    return assignedOnTracks || (tracks.length === 1 && !!release.isrc?.trim() ? 1 : 0);
+  };
   const toggleOne = (id: string) => setSelectedIds(prev => {
     const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
   });
@@ -153,22 +158,31 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
   const openIdentifiersDialog = (release: Release) => {
     setSelectedRelease(release);
     setUpc(release.upc || '');
-    setIsrc(release.isrc || '');
+    setTrackIdentifiers((release.release_tracks || [])
+      .slice()
+      .sort((a, b) => a.track_number - b.track_number)
+      .map(track => ({ id: track.id, track_number: track.track_number, title: track.title, isrc: track.isrc || ((release.release_tracks || []).length === 1 ? release.isrc || '' : '') })));
     setIdentifierDialogOpen(true);
+  };
+
+  const updateTrackIsrc = (trackId: string, value: string) => {
+    setTrackIdentifiers(current => current.map(track =>
+      track.id === trackId ? { ...track, isrc: value } : track
+    ));
   };
 
   const handleIdentifiersUpdate = async () => {
     if (!selectedRelease || updating) return;
     setUpdating(true);
     try {
-      const result = await updateReleaseIdentifiers(selectedRelease.id, upc, isrc);
+      const result = await updateReleaseIdentifiers(selectedRelease.id, upc, trackIdentifiers.map(({ id, isrc }) => ({ id, isrc })));
       if (result.success && result.data) {
         onReleaseUpdate(selectedRelease.id, selectedRelease.status, result.data);
         toast.success('Release identifiers updated successfully');
         setIdentifierDialogOpen(false);
         setSelectedRelease(null);
         setUpc('');
-        setIsrc('');
+        setTrackIdentifiers([]);
       } else {
         toast.error(`Failed to update release identifiers: ${result.error?.message || 'Unknown error'}`);
       }
@@ -442,10 +456,6 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                 <p className="font-medium">{selectedRelease.upc || 'Not assigned'}</p>
               </div>
               <div>
-                <span className="text-muted-foreground">ISRC:</span>
-                <p className="font-medium">{selectedRelease.isrc || 'Not assigned'}</p>
-              </div>
-              <div>
                 <span className="text-muted-foreground">Language:</span>
                 <p className="font-medium">{selectedRelease.primary_language || 'English'}</p>
               </div>
@@ -533,7 +543,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
                       )}
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      {track.isrc && <span className="text-xs text-muted-foreground hidden sm:inline">ISRC: {track.isrc}</span>}
+                      <span className="text-xs text-muted-foreground">ISRC: {track.isrc || (tracks.length === 1 ? selectedRelease.isrc : null) || 'Not assigned'}</span>
                       {track.explicit_content && <Badge variant="destructive" className="text-[10px] px-1 py-0">E</Badge>}
                     </div>
                   </li>
@@ -590,7 +600,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               
               <div className="flex flex-wrap gap-2 text-xs">
                 <span className="text-muted-foreground">UPC: {release.upc || '—'}</span>
-                <span className="text-muted-foreground">ISRC: {release.isrc || '—'}</span>
+                <span className="text-muted-foreground">ISRCs: {getAssignedTrackIsrcCount(release)}/{release.release_tracks?.length || 0} tracks assigned</span>
               </div>
 
               <div className="flex flex-wrap gap-2">
@@ -651,7 +661,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
           <TableHead>Artist</TableHead>
           <TableHead>Release Date</TableHead>
           <TableHead>UPC</TableHead>
-          <TableHead>ISRC</TableHead>
+          <TableHead>Track ISRCs</TableHead>
           <TableHead>Status</TableHead>
           <TableHead className="text-right">Actions</TableHead>
         </TableRow>
@@ -682,7 +692,7 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
               <TableCell>{release.artist_name || release.artists?.[0]?.name || 'Unknown'}</TableCell>
               <TableCell>{new Date(release.release_date).toLocaleDateString()}</TableCell>
               <TableCell>{release.upc || '—'}</TableCell>
-              <TableCell>{release.isrc || '—'}</TableCell>
+              <TableCell>{getAssignedTrackIsrcCount(release)}/{release.release_tracks?.length || 0} assigned</TableCell>
               <TableCell>
                 <Badge 
                   className={`cursor-pointer ${getStatusColor(release.status)}`}
@@ -838,26 +848,47 @@ const ReleasesTab: React.FC<ReleasesTabProps> = ({ releases, loading, onReleaseU
             </DialogContent>
           </Dialog>
 
-          {/* Identifiers Dialog */}
+          {/* Release UPC and per-track ISRC editor */}
           <Dialog open={identifierDialogOpen} onOpenChange={setIdentifierDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Update Release Identifiers</DialogTitle>
-                <DialogDescription>Update the UPC and ISRC for "{selectedRelease?.title}"</DialogDescription>
+                <DialogDescription>
+                  One UPC identifies this release. Each track has its own ISRC.
+                </DialogDescription>
               </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-                  <Label htmlFor="upc" className="sm:text-right">UPC</Label>
-                  <Input id="upc" value={upc} onChange={(e) => setUpc(e.target.value)} className="sm:col-span-3" placeholder="Enter UPC" />
+              <div className="grid gap-5 py-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="upc">Release UPC</Label>
+                  <Input id="upc" value={upc} onChange={(e) => setUpc(e.target.value)} placeholder="Enter the UPC for the entire release" />
                 </div>
-                <div className="grid grid-cols-1 sm:grid-cols-4 items-center gap-4">
-                  <Label htmlFor="isrc" className="sm:text-right">ISRC</Label>
-                  <Input id="isrc" value={isrc} onChange={(e) => setIsrc(e.target.value)} className="sm:col-span-3" placeholder="Enter ISRC" />
+                <div className="space-y-3">
+                  <div>
+                    <h4 className="font-semibold">Track ISRCs</h4>
+                    <p className="text-sm text-muted-foreground">Enter a separate ISRC for every track. Leave blank if it has not been assigned.</p>
+                  </div>
+                  {trackIdentifiers.length > 0 ? trackIdentifiers.map((track) => (
+                    <div key={track.id} className="grid gap-2 rounded-lg border p-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] sm:items-center">
+                      <Label htmlFor={`isrc-${track.id}`}>Track {track.track_number}: {track.title}</Label>
+                      <Input
+                        id={`isrc-${track.id}`}
+                        value={track.isrc}
+                        onChange={(e) => updateTrackIsrc(track.id, e.target.value)}
+                        placeholder="Enter track ISRC"
+                      />
+                    </div>
+                  )) : (
+                    <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
+                      No track records are attached to this release yet. Add the release tracks before assigning track-level ISRCs.
+                    </p>
+                  )}
                 </div>
               </div>
               <DialogFooter className="flex-col sm:flex-row gap-2">
-                <Button type="button" variant="outline" onClick={() => { setIdentifierDialogOpen(false); setSelectedRelease(null); setUpc(''); setIsrc(''); }} disabled={updating}>Cancel</Button>
-                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating}>{updating ? 'Updating...' : 'Save changes'}</Button>
+                <Button type="button" variant="outline" onClick={() => { setIdentifierDialogOpen(false); setSelectedRelease(null); setUpc(''); setTrackIdentifiers([]); }} disabled={updating}>Cancel</Button>
+                <Button type="button" onClick={handleIdentifiersUpdate} disabled={updating}>
+                  {updating ? 'Updating...' : 'Save identifiers'}
+                </Button>
               </DialogFooter>
             </DialogContent>
           </Dialog>
